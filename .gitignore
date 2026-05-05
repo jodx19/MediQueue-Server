@@ -1,0 +1,39 @@
+## Build artifacts
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.rsuser
+
+## EF Core migration bundles
+efbundle
+efbundle.exe
+
+## Logs
+*.log
+logs/
+
+## Secrets / config overrides (never commit these)
+appsettings.Production.json
+appsettings.Staging.json
+**/secrets.json
+
+## NuGet
+*.nupkg
+packages/
+.nuget/
+
+## Rider / JetBrains
+.idea/
+*.sln.iml
+
+## Visual Studio Code
+.vscode/
+
+## Docker volumes
+.docker/
+
+## OS
+.DS_Store
+Thumbs.db

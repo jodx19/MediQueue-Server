@@ -1,0 +1,99 @@
+// e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.Infrastructure\Persistence\Context\ClinicDbContext.cs
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using MediQueue.Domain.Common;
+using MediQueue.Domain.Entities;
+using MediQueue.Infrastructure.Persistence.Configurations;
+
+namespace MediQueue.Infrastructure.Persistence.Context;
+
+public class ClinicDbContext : DbContext
+{
+    private readonly IMediator _mediator;
+
+    public ClinicDbContext(DbContextOptions<ClinicDbContext> options, IMediator mediator) : base(options)
+    {
+        _mediator = mediator;
+    }
+
+    public DbSet<Patient> Patients => Set<Patient>();
+    public DbSet<Doctor> Doctors => Set<Doctor>();
+    public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<ClinicalVisit> ClinicalVisits => Set<ClinicalVisit>();
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<AppUser> Users => Set<AppUser>();
+    public DbSet<MedicalAttachment> Attachments => Set<MedicalAttachment>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ClinicDbContext).Assembly);
+
+        // Global Query Filter for Soft Deletes
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (entityType.IsOwned()) continue;
+
+            if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+            {
+                var parameter = System.Linq.Expressions.Expression.Parameter(entityType.ClrType, "e");
+                var propertyMethodInfo = typeof(EF).GetMethod("Property")!.MakeGenericMethod(typeof(bool));
+                var isDeletedProperty = System.Linq.Expressions.Expression.Call(propertyMethodInfo, parameter, System.Linq.Expressions.Expression.Constant("IsDeleted"));
+                var compareExpression = System.Linq.Expressions.Expression.MakeBinary(System.Linq.Expressions.ExpressionType.Equal, isDeletedProperty, System.Linq.Expressions.Expression.Constant(false));
+                var lambda = System.Linq.Expressions.Expression.Lambda(compareExpression, parameter);
+                
+                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
+            }
+        }
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var auditableEntries = ChangeTracker.Entries<AuditableEntity>();
+        var now = DateTime.UtcNow;
+
+        foreach (var entry in auditableEntries)
+        {
+            if (entry.State == EntityState.Added)
+            {
+                // Reflection to set internal/private setter if necessary, or assuming properties have protected/internal setters accessible.
+                // In our domain, AuditableEntity has `CreatedAt { get; private set; }`. 
+                // We'll use reflection if EF can't set it via shadow properties, but EF can write to private setters if mapped.
+                // However, we can use the SetCreated/SetUpdated methods we added or set it via reflection.
+                // If the domain didn't expose methods, we set it via EF Property.
+                entry.Property(a => a.CreatedAt).CurrentValue = now;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Property(a => a.UpdatedAt).CurrentValue = now;
+            }
+        }
+
+        // Get domain events before save, dispatch after save
+        var entitiesWithEvents = ChangeTracker.Entries<BaseAggregateRoot>()
+            .Select(e => e.Entity)
+            .Where(e => e.DomainEvents.Any())
+            .ToList();
+
+        var domainEvents = entitiesWithEvents
+            .SelectMany(e => e.DomainEvents)
+            .ToList();
+
+        entitiesWithEvents.ForEach(e => e.ClearDomainEvents());
+
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        // Dispatch events
+        foreach (var domainEvent in domainEvents)
+        {
+            await _mediator.Publish(domainEvent, cancellationToken);
+        }
+
+        return result;
+    }
+}
