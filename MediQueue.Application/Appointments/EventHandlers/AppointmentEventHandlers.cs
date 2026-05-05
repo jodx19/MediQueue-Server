@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using MediatR;
 using MediQueue.Application.Interfaces;
 using MediQueue.Domain.Events;
+using MediQueue.Domain.Interfaces;
 
 namespace MediQueue.Application.Appointments.EventHandlers;
 
@@ -13,34 +14,55 @@ public class AppointmentBookedEventHandler : INotificationHandler<AppointmentBoo
     private readonly ISmsService _smsService;
     private readonly ISchedulerService _schedulerService;
     private readonly IRealtimeService _realtimeService;
+    private readonly IUnitOfWork _unitOfWork;
 
     public AppointmentBookedEventHandler(
         ISmsService smsService,
         ISchedulerService schedulerService,
-        IRealtimeService realtimeService)
+        IRealtimeService realtimeService,
+        IUnitOfWork unitOfWork)
     {
         _smsService = smsService;
         _schedulerService = schedulerService;
         _realtimeService = realtimeService;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task Handle(AppointmentBookedEvent notification, CancellationToken cancellationToken)
     {
-        var patientName = "Patient"; 
-        var patientPhone = "01000000000";
-        var doctorName = "Doctor";
+        var patient = await _unitOfWork.Patients.GetByIdAsync(notification.PatientId);
+        var doctor = await _unitOfWork.Doctors.GetByIdAsync(notification.DoctorId);
 
-        _ = _smsService.SendAppointmentConfirmationAsync(patientPhone, patientName, doctorName, notification.ScheduledAt);
+        if (patient != null && doctor != null)
+        {
+            var patientName = patient.PersonName.FullName;
+            var patientPhone = patient.ContactInfo.Phone;
+            var doctorName = doctor.PersonName.FullName;
+
+            await _smsService.SendAppointmentConfirmationAsync(patientPhone, patientName, doctorName, notification.ScheduledAt);
+
+            // Create In-App Notification
+            var user = await _unitOfWork.Users.GetByPatientIdAsync(notification.PatientId);
+            if (user != null)
+            {
+                var appNotification = MediQueue.Domain.Entities.Notification.Create(
+                    user.Id,
+                    "Appointment Booked",
+                    $"Your appointment with {doctorName} is confirmed for {notification.ScheduledAt:f}",
+                    MediQueue.Domain.Entities.NotificationType.Success);
+                
+                await _unitOfWork.Notifications.AddAsync(appNotification);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+        }
 
         var reminderTime = notification.ScheduledAt.AddDays(-1);
         if (reminderTime > DateTime.UtcNow)
         {
-            _ = _schedulerService.ScheduleReminderAsync(notification.AppointmentId, reminderTime);
+            await _schedulerService.ScheduleReminderAsync(notification.AppointmentId, reminderTime);
         }
 
-        _ = _realtimeService.BroadcastAsync("AppointmentBooked", new { notification.AppointmentId, notification.DoctorId, notification.ScheduledAt });
-
-        await Task.CompletedTask;
+        await _realtimeService.BroadcastAsync("AppointmentBooked", new { notification.AppointmentId, notification.DoctorId, notification.ScheduledAt });
     }
 }
 

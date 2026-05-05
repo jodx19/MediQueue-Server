@@ -10,6 +10,8 @@ public interface IUserRepository
     Task<AppUser?> GetByIdAsync(Guid id);
     Task<AppUser?> GetByUsernameAsync(string username);
     Task<AppUser?> GetByEmailAsync(string email);
+    Task<AppUser?> GetByPatientIdAsync(Guid patientId);
+    Task<AppUser?> GetByDoctorIdAsync(Guid doctorId);
     Task AddAsync(AppUser user);
     Task UpdateAsync(AppUser user);
 }

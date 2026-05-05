@@ -14,6 +14,7 @@ public interface IUnitOfWork
     IInvoiceRepository Invoices { get; }
     IUserRepository Users { get; }
     IMedicalAttachmentRepository Attachments { get; }
+    INotificationRepository Notifications { get; }
     
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync();

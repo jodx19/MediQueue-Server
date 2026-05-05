@@ -1,28 +1,31 @@
 // e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.API\Controllers\AuthController.cs
 using System.Threading.Tasks;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using MediQueue.Application.Auth.Commands;
 using MediQueue.Application.Auth.DTOs;
-using MediQueue.Application.Interfaces;
 using MediQueue.Application.Common;
+
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace MediQueue.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[ApiVersion("1.0")]
+[EnableRateLimiting("AuthPolicy")]
 public class AuthController : ControllerBase
 {
-    private readonly IAuthService _authService;
+    private readonly ISender _sender;
 
-    public AuthController(IAuthService authService)
+    public AuthController(ISender sender)
     {
-        _authService = authService;
+        _sender = sender;
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginRequestDto request)
+    public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginCommand command)
     {
-        var result = await _authService.LoginAsync(request);
+        var result = await _sender.Send(command);
         if (!result.IsSuccess)
         {
             return Unauthorized(result.Error);
@@ -32,9 +35,9 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<ActionResult> Register([FromBody] RegisterRequestDto request)
+    public async Task<ActionResult> Register([FromBody] RegisterCommand command)
     {
-        var result = await _authService.RegisterAsync(request);
+        var result = await _sender.Send(command);
         if (!result.IsSuccess)
         {
             return BadRequest(result.Error);
@@ -44,9 +47,9 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("refresh-token")]
-    public async Task<ActionResult<AuthResponseDto>> RefreshToken([FromBody] RefreshTokenRequestDto request)
+    public async Task<ActionResult<AuthResponseDto>> RefreshToken([FromBody] RefreshTokenCommand command)
     {
-        var result = await _authService.RefreshTokenAsync(request);
+        var result = await _sender.Send(command);
         if (!result.IsSuccess)
         {
             return Unauthorized(result.Error);

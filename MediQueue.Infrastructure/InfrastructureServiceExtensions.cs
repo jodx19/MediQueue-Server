@@ -22,6 +22,10 @@ public static class InfrastructureServiceExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // 0. Settings
+        services.Configure<MediQueue.Infrastructure.Persistence.Settings.SeedingSettings>(
+            configuration.GetSection("SeedingSettings"));
+
         // 1. DbContext — uses ClinicDbContext (the correct, clean-architecture context)
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -38,16 +42,20 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IAppointmentRepository, AppointmentRepository>();
         services.AddScoped<IClinicalVisitRepository, ClinicalVisitRepository>();
         services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+        services.AddScoped<IDataSeeder, DataSeeder>();
 
         // 3. External Services
         services.AddScoped<IEmailService, EmailNotificationService>();
-        services.AddScoped<ISmsService, EmailNotificationService>();
+        services.AddScoped<ISmsService, ConsoleSmsService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
         services.AddScoped<IRealtimeService, SignalRRealtimeService>();
         services.AddScoped<ISchedulerService, HangfireSchedulerService>();
         services.AddScoped<IStorageService, AzureBlobStorageService>();
         services.AddScoped<ICacheService, RedisCacheService>();
+        services.AddScoped<MissedAppointmentJob>();
+        services.AddScoped<InvoiceOverdueJob>();
+        services.AddScoped<DashboardJobs>();
 
         // 4. SignalR
         services.AddSignalR();

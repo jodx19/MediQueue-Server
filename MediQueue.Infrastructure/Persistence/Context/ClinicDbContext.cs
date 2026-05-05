@@ -27,6 +27,7 @@ public class ClinicDbContext : DbContext
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<MedicalAttachment> Attachments => Set<MedicalAttachment>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
