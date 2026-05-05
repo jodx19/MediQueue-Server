@@ -38,6 +38,20 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Email == email);
     }
 
+    public async Task<AppUser?> GetByPatientIdAsync(Guid patientId)
+    {
+        return await _context.Set<AppUser>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.PatientId == patientId);
+    }
+
+    public async Task<AppUser?> GetByDoctorIdAsync(Guid doctorId)
+    {
+        return await _context.Set<AppUser>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.DoctorId == doctorId);
+    }
+
     public async Task AddAsync(AppUser user)
     {
         await _context.Set<AppUser>().AddAsync(user);

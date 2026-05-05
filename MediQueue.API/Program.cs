@@ -10,6 +10,8 @@ using MediQueue.API.Middleware;
 using MediQueue.Infrastructure;
 using MediQueue.Infrastructure.Hubs;
 using MediQueue.Infrastructure.ExternalServices;
+using MediQueue.Infrastructure.Persistence;
+using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
 using Hangfire.Dashboard;
 
@@ -26,6 +28,27 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 // ── Controllers ───────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
+// ── Rate Limiting ─────────────────────────────────────────────────────────────
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("FixedPolicy", opt =>
+    {
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.PermitLimit = 100;
+        opt.QueueLimit = 10;
+        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+    });
+
+    options.AddFixedWindowLimiter("AuthPolicy", opt =>
+    {
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.PermitLimit = 10;
+        opt.QueueLimit = 0;
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 
 // ── JWT Bearer Authentication ─────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -148,6 +171,14 @@ builder.Services.AddHealthChecks()
 var app = builder.Build();
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Database Seeding (Development Only) ───────────────────────────────────────
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var seeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
+    await seeder.SeedAsync();
+}
+
 // ── Global Exception Middleware (must be first) ───────────────────────────────
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
@@ -171,6 +202,7 @@ app.UseSwaggerUI(opts =>
     opts.DisplayRequestDuration();
 });
 
+app.UseRateLimiter();
 app.UseRouting();
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -193,6 +225,16 @@ using (var scope = app.Services.CreateScope())
     recurringJobManager.AddOrUpdate<DashboardJobs>(
         "daily-revenue-report", 
         job => job.SendDailyRevenueReportAsync(), 
+        Cron.Daily);
+
+    recurringJobManager.AddOrUpdate<MissedAppointmentJob>(
+        "check-missed-appointments",
+        job => job.ExecuteAsync(),
+        "*/15 * * * *"); // Every 15 minutes
+
+    recurringJobManager.AddOrUpdate<InvoiceOverdueJob>(
+        "check-overdue-invoices",
+        job => job.ExecuteAsync(),
         Cron.Daily);
 }
 

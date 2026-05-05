@@ -49,7 +49,15 @@ public sealed class PrescriptionItem : IEquatable<PrescriptionItem>
         Refills = refills;
     }
 
-    private PrescriptionItem() { } // For EF Core
+    private PrescriptionItem()
+    {
+        // EF Core parameterless constructor — non-nullable string props initialized with null!
+        MedicationName = null!;
+        Dosage         = null!;
+        Form           = null!;
+        Frequency      = null!;
+        Duration       = null!;
+    }
 
     public override bool Equals(object? obj) => obj is PrescriptionItem other && Equals(other);
 

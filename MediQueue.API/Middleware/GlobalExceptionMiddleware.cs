@@ -297,17 +297,17 @@ public class GlobalExceptionMiddleware
             _ => LogLevel.Error
         };
 
-        var logContext = new Dictionary<string, object>
+        var logContext = new Dictionary<string, object?>
         {
-            ["ProblemType"] = problemDetails.Type,
-            ["StatusCode"] = problemDetails.Status,
-            ["Message"] = problemDetails.Detail,
-            ["InstanceId"] = problemDetails.Instance,
-            ["RequestId"] = context.TraceIdentifier,
-            ["Path"] = context.Request.Path,
-            ["Method"] = context.Request.Method,
-            ["UserAgent"] = context.Request.Headers["User-Agent"].ToString(),
-            ["RemoteIpAddress"] = context.Connection.RemoteIpAddress?.ToString()
+            ["ProblemType"]      = problemDetails.Type,
+            ["StatusCode"]       = problemDetails.Status,
+            ["Message"]          = problemDetails.Detail,
+            ["InstanceId"]       = problemDetails.Instance,
+            ["RequestId"]        = context.TraceIdentifier,
+            ["Path"]             = context.Request.Path.Value,
+            ["Method"]           = context.Request.Method,
+            ["UserAgent"]        = context.Request.Headers["User-Agent"].ToString(),
+            ["RemoteIpAddress"]  = context.Connection.RemoteIpAddress?.ToString()
         };
 
         // Add exception-specific context
