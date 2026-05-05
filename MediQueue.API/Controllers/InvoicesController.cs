@@ -66,11 +66,11 @@ public class InvoicesController : ControllerBase
     [Authorize(Policy = "AdminOnly")]
     [ProducesResponseType(typeof(RevenueReportDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<RevenueReportDto>> GetRevenueReport(
-        [FromQuery] DateOnly from,
-        [FromQuery] DateOnly to,
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
         CancellationToken ct)
     {
-        var result = await _sender.Send(new GetRevenueReportQuery(from, to), ct);
+        var result = await _sender.Send(new GetRevenueReportQuery(DateOnly.FromDateTime(from), DateOnly.FromDateTime(to)), ct);
         return Ok(result.Value);
     }
 

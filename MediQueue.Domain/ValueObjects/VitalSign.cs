@@ -51,7 +51,10 @@ public sealed class VitalSign : IEquatable<VitalSign>
         IsAbnormal = value < min || value > max;
     }
 
-    private VitalSign() { } // For EF Core
+    private VitalSign() 
+    { 
+        Unit = null!;
+    }
 
     /// <summary>
     /// Gets the normal range for a specific vital sign type.

@@ -72,18 +72,6 @@ public static class InfrastructureServiceExtensions
             options.InstanceName = "MediQueue:";
         });
 
-        // 6. Hangfire (SQL Server storage)
-        services.AddHangfire(config => config
-            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-            .UseSimpleAssemblyNameTypeSerializer()
-            .UseRecommendedSerializerSettings()
-            .UseSqlServerStorage(connectionString));
-
-        services.AddHangfireServer(options =>
-        {
-            options.WorkerCount = Environment.ProcessorCount * 2;
-        });
-
         // 7. Azure Blob Storage — FIXED: register BlobServiceClient as singleton
         var blobConnStr = configuration["AzureBlob:ConnectionString"]
             ?? "UseDevelopmentStorage=true"; // fallback to Azurite for local dev

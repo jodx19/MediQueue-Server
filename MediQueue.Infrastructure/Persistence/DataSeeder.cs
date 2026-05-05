@@ -23,9 +23,9 @@ public class DataSeeder : IDataSeeder
     // Fixed Guids for relationships
     private readonly Guid AdminId = Guid.Parse("A1111111-1111-1111-1111-111111111111");
     private readonly Guid DoctorAhmedId = Guid.Parse("D1111111-1111-1111-1111-111111111111");
-    private readonly Guid DoctorAhmedUserId = Guid.Parse("U1111111-1111-1111-1111-111111111111");
-    private readonly Guid Patient1Id = Guid.Parse("P1111111-1111-1111-1111-111111111111");
-    private readonly Guid ClinicId = Guid.Parse("C1111111-1111-1111-1111-111111111111");
+    private readonly Guid DoctorAhmedUserId = Guid.Parse("01111111-1111-1111-1111-111111111111");
+    private readonly Guid Patient1Id = Guid.Parse("02222222-2222-2222-2222-222222222222");
+    private readonly Guid ClinicId = Guid.Parse("03333333-3333-3333-3333-333333333333");
 
     public DataSeeder(
         ClinicDbContext context, 
@@ -39,14 +39,14 @@ public class DataSeeder : IDataSeeder
 
     public async Task SeedAsync()
     {
-        await _context.Database.EnsureCreatedAsync();
-
+        Console.WriteLine("--- Starting Database Seeding ---");
         await SeedUsersAsync();
         await SeedDoctorsAsync();
         await SeedPatientsAsync();
         await SeedAppointmentsAsync();
 
         await _context.SaveChangesAsync();
+        Console.WriteLine("--- Database Seeding Completed Successfully ---");
     }
 
     private async Task SeedUsersAsync()
