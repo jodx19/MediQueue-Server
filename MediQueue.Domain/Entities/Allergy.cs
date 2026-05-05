@@ -38,7 +38,11 @@ public class Allergy : BaseEntity
     /// </summary>
     public DateOnly? DiagnosedAt { get; private set; }
 
-    private Allergy() { } // For EF Core
+    private Allergy() 
+    { 
+        Allergen = null!;
+        Reaction = null!;
+    }
 
     internal Allergy(string allergen, AllergySeverity severity, string reaction, DateOnly? diagnosedAt = null)
     {

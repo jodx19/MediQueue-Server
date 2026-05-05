@@ -11,7 +11,6 @@ namespace MediQueue.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[ApiVersion("1.0")]
 [Authorize(Roles = "Admin")]
 public class DashboardController : ControllerBase
 {

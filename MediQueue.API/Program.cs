@@ -119,6 +119,9 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Multi-Specialty Clinic Electronic Medical Records System"
     });
 
+    // Handle duplicate Schema IDs (e.g. PatientDto in multiple namespaces)
+    options.CustomSchemaIds(type => type.FullName);
+
     // JWT Bearer in Swagger UI
     var scheme = new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
@@ -161,11 +164,28 @@ builder.Services.AddHealthChecks()
     .AddRedis(
         builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379",
         name: "redis",
-        tags: ["cache"])
+        tags: ["cache"]);
+    /*
     .AddHangfire(
         options => { options.MinimumAvailableServers = 1; },
         name: "hangfire",
         tags: ["jobs"]);
+    */
+
+// ── Hangfire (SQL Server storage) ─────────────────────────────────────────────
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(connectionString));
+
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = Environment.ProcessorCount * 2;
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 var app = builder.Build();

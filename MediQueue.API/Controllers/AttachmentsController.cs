@@ -11,7 +11,6 @@ namespace MediQueue.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[ApiVersion("1.0")]
 public class AttachmentsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -22,28 +21,24 @@ public class AttachmentsController : ControllerBase
     }
 
     [HttpPost("upload")]
-    public async Task<ActionResult<Guid>> Upload(
-        [FromForm] Guid patientId, 
-        [FromForm] IFormFile file, 
-        [FromForm] AttachmentType type,
-        [FromForm] Guid? clinicalVisitId = null,
-        [FromForm] string? description = null)
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<Guid>> Upload(AttachmentUploadRequest request)
     {
-        if (file == null || file.Length == 0)
+        if (request.File == null || request.File.Length == 0)
         {
             return BadRequest("No file uploaded.");
         }
 
-        using var stream = file.OpenReadStream();
+        using var stream = request.File.OpenReadStream();
         var command = new UploadAttachmentCommand(
-            patientId,
-            file.FileName,
+            request.PatientId,
+            request.File.FileName,
             stream,
-            file.ContentType,
-            file.Length,
-            type,
-            clinicalVisitId,
-            description);
+            request.File.ContentType,
+            request.File.Length,
+            request.Type,
+            request.ClinicalVisitId,
+            request.Description);
 
         var result = await _mediator.Send(command);
         if (!result.IsSuccess)

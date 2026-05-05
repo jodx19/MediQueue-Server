@@ -21,7 +21,7 @@ public class Notification : BaseEntity
     public string Message { get; private set; }
     public NotificationType Type { get; private set; }
     public bool IsRead { get; private set; }
-    public DateTime CreatedAt { get; private set; }
+    public new DateTime CreatedAt { get; private set; }
 
     private Notification() 
     { 
