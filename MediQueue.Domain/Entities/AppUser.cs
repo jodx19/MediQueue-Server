@@ -16,6 +16,9 @@ public class AppUser : AuditableEntity
 {
     public string Username { get; private set; }
     public string Email { get; private set; }
+    public string FirstName { get; private set; }
+    public string LastName { get; private set; }
+    public string? PhoneNumber { get; private set; }
     public string PasswordHash { get; private set; }
     public UserRole Role { get; private set; }
     public Guid? DoctorId { get; private set; }
@@ -28,13 +31,18 @@ public class AppUser : AuditableEntity
     { 
         Username = null!;
         Email = null!;
+        FirstName = null!;
+        LastName = null!;
         PasswordHash = null!;
     }
 
-    private AppUser(string username, string email, string passwordHash, UserRole role, Guid? doctorId = null, Guid? patientId = null)
+    private AppUser(string username, string email, string firstName, string lastName, string? phoneNumber, string passwordHash, UserRole role, Guid? doctorId = null, Guid? patientId = null)
     {
         Username = username;
         Email = email;
+        FirstName = firstName;
+        LastName = lastName;
+        PhoneNumber = phoneNumber;
         PasswordHash = passwordHash;
         Role = role;
         DoctorId = doctorId;
@@ -42,9 +50,9 @@ public class AppUser : AuditableEntity
         IsActive = true;
     }
 
-    public static AppUser Create(string username, string email, string passwordHash, UserRole role, Guid? doctorId = null, Guid? patientId = null)
+    public static AppUser Create(string username, string email, string firstName, string lastName, string? phoneNumber, string passwordHash, UserRole role, Guid? doctorId = null, Guid? patientId = null)
     {
-        return new AppUser(username, email, passwordHash, role, doctorId, patientId);
+        return new AppUser(username, email, firstName, lastName, phoneNumber, passwordHash, role, doctorId, patientId);
     }
 
     public void SetPasswordHash(string passwordHash)
@@ -56,6 +64,11 @@ public class AppUser : AuditableEntity
     {
         RefreshToken = refreshToken;
         RefreshTokenExpiryTime = expiryTime;
+    }
+
+    public void LinkToPatient(Guid patientId)
+    {
+        PatientId = patientId;
     }
 
     public void Deactivate()

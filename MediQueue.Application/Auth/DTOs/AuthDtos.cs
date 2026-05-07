@@ -9,10 +9,10 @@ public record LoginRequestDto(string Username, string Password);
 public record RegisterRequestDto(
     string Username, 
     string Email, 
-    string Password, 
-    UserRole Role, 
-    Guid? DoctorId = null, 
-    Guid? PatientId = null);
+    string Password,
+    string FirstName,
+    string LastName,
+    string PhoneNumber);
 
 public record RefreshTokenRequestDto(string Token, string RefreshToken);
 

@@ -20,24 +20,39 @@ public class RedisCacheService : ICacheService
 
     public async Task<T?> GetAsync<T>(string key)
     {
-        var cachedData = await _cache.GetStringAsync(key);
-        if (string.IsNullOrEmpty(cachedData))
+        try
         {
+            var cachedData = await _cache.GetStringAsync(key);
+            if (string.IsNullOrEmpty(cachedData))
+            {
+                return default;
+            }
+
+            return JsonSerializer.Deserialize<T>(cachedData);
+        }
+        catch (Exception)
+        {
+            // Fail gracefully - return default to force a database fetch
             return default;
         }
-
-        return JsonSerializer.Deserialize<T>(cachedData);
     }
 
     public async Task SetAsync<T>(string key, T value, TimeSpan expiry)
     {
-        var options = new DistributedCacheEntryOptions
+        try
         {
-            AbsoluteExpirationRelativeToNow = expiry
-        };
+            var options = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = expiry
+            };
 
-        var serializedData = JsonSerializer.Serialize(value);
-        await _cache.SetStringAsync(key, serializedData, options);
+            var serializedData = JsonSerializer.Serialize(value);
+            await _cache.SetStringAsync(key, serializedData, options);
+        }
+        catch (Exception)
+        {
+            // Do nothing if caching fails
+        }
     }
 
     public async Task RemoveAsync(string key)
@@ -47,18 +62,25 @@ public class RedisCacheService : ICacheService
 
     public async Task RemoveByPrefixAsync(string prefix)
     {
-        // Using StackExchange.Redis directly to scan and delete by prefix
-        var endpoints = _connectionMultiplexer.GetEndPoints();
-        foreach (var endpoint in endpoints)
+        try
         {
-            var server = _connectionMultiplexer.GetServer(endpoint);
-            var keys = server.Keys(pattern: $"{prefix}*");
-            
-            var db = _connectionMultiplexer.GetDatabase();
-            foreach (var key in keys)
+            // Using StackExchange.Redis directly to scan and delete by prefix
+            var endpoints = _connectionMultiplexer.GetEndPoints();
+            foreach (var endpoint in endpoints)
             {
-                await db.KeyDeleteAsync(key);
+                var server = _connectionMultiplexer.GetServer(endpoint);
+                var keys = server.Keys(pattern: $"{prefix}*");
+                
+                var db = _connectionMultiplexer.GetDatabase();
+                foreach (var key in keys)
+                {
+                    await db.KeyDeleteAsync(key);
+                }
             }
+        }
+        catch (Exception)
+        {
+            // Do nothing if cleanup fails
         }
     }
 }

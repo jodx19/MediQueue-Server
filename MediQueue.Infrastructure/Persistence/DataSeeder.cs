@@ -53,15 +53,15 @@ public class DataSeeder : IDataSeeder
     {
         if (_context.Users.Any()) return;
 
-        var admin = AppUser.Create(_settings.Admin.Username, _settings.Admin.Email, "", UserRole.Admin);
+        var admin = AppUser.Create(_settings.Admin.Username, _settings.Admin.Email, "System", "Admin", "0000000000", "", UserRole.Admin);
         admin.SetPasswordHash(_passwordHasher.HashPassword(admin, _settings.Admin.Password));
         typeof(BaseEntity).GetProperty("Id")?.SetValue(admin, AdminId);
 
-        var doctorUser = AppUser.Create(_settings.Doctor.Username, _settings.Doctor.Email, "", UserRole.Doctor, doctorId: DoctorAhmedId);
+        var doctorUser = AppUser.Create(_settings.Doctor.Username, _settings.Doctor.Email, "Ahmed", "Kamal", "01012345678", "", UserRole.Doctor, doctorId: DoctorAhmedId);
         doctorUser.SetPasswordHash(_passwordHasher.HashPassword(doctorUser, _settings.Doctor.Password));
         typeof(BaseEntity).GetProperty("Id")?.SetValue(doctorUser, DoctorAhmedUserId);
 
-        var staff = AppUser.Create(_settings.Receptionist.Username, _settings.Receptionist.Email, "", UserRole.Receptionist);
+        var staff = AppUser.Create(_settings.Receptionist.Username, _settings.Receptionist.Email, "Staff", "User", "01122334455", "", UserRole.Receptionist);
         staff.SetPasswordHash(_passwordHasher.HashPassword(staff, _settings.Receptionist.Password));
 
         await _context.Users.AddRangeAsync(admin, doctorUser, staff);

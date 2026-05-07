@@ -173,6 +173,7 @@ builder.Services.AddHealthChecks()
     */
 
 // ── Hangfire (SQL Server storage) ─────────────────────────────────────────────
+// ── Hangfire (SQL Server storage) ─────────────────────────────────────────────
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
@@ -200,6 +201,20 @@ if (app.Environment.IsDevelopment())
 }
 
 // ── Global Exception Middleware (must be first) ───────────────────────────────
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var error = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = error?.Error.Message,
+            inner = error?.Error.InnerException?.Message,
+            stack = error?.Error.StackTrace
+        });
+    });
+});
+
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // ── Serilog request logging ───────────────────────────────────────────────────

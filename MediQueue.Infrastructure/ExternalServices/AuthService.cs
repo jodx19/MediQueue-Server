@@ -22,15 +22,18 @@ public class AuthService : IAuthService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IConfiguration _configuration;
     private readonly IPasswordHasher<AppUser> _passwordHasher;
+    private readonly ITokenService _tokenService;
 
     public AuthService(
         IUnitOfWork unitOfWork, 
         IConfiguration configuration,
-        IPasswordHasher<AppUser> passwordHasher)
+        IPasswordHasher<AppUser> passwordHasher,
+        ITokenService tokenService)
     {
         _unitOfWork = unitOfWork;
         _configuration = configuration;
         _passwordHasher = passwordHasher;
+        _tokenService = tokenService;
     }
 
     public async Task<Result<AuthResponseDto>> LoginAsync(LoginRequestDto request)
@@ -47,7 +50,14 @@ public class AuthService : IAuthService
             return Result<AuthResponseDto>.Failure("Invalid username or password.");
         }
 
-        var tokenResponse = GenerateJwtToken(user);
+        var tokenString = _tokenService.GenerateJwtToken(user);
+        var refreshToken = _tokenService.GenerateRefreshToken();
+        
+        var jwtSettings = _configuration.GetSection("JwtSettings");
+        var expiryMinutes = int.Parse(jwtSettings["ExpiryMinutes"] ?? "60");
+        var expiryTime = DateTime.UtcNow.AddMinutes(expiryMinutes);
+
+        var tokenResponse = new AuthResponseDto(tokenString, refreshToken, expiryTime, user.Username, user.Role.ToString());
         
         user.UpdateRefreshToken(tokenResponse.RefreshToken, DateTime.UtcNow.AddDays(7));
         await _unitOfWork.Users.UpdateAsync(user);
@@ -56,75 +66,10 @@ public class AuthService : IAuthService
         return Result<AuthResponseDto>.Success(tokenResponse);
     }
 
-    public async Task<Result<bool>> RegisterAsync(RegisterRequestDto request)
-    {
-        var existingUser = await _unitOfWork.Users.GetByUsernameAsync(request.Username);
-        if (existingUser != null)
-        {
-            return Result<bool>.Failure("Username already exists.");
-        }
-
-        var existingEmail = await _unitOfWork.Users.GetByEmailAsync(request.Email);
-        if (existingEmail != null)
-        {
-            return Result<bool>.Failure("Email already exists.");
-        }
-
-        var user = AppUser.Create(
-            request.Username, 
-            request.Email, 
-            "", 
-            request.Role, 
-            request.DoctorId, 
-            request.PatientId);
-
-        var hashedPassword = _passwordHasher.HashPassword(user, request.Password);
-        user.SetPasswordHash(hashedPassword);
-
-        await _unitOfWork.Users.AddAsync(user);
-        await _unitOfWork.SaveChangesAsync();
-
-        return Result<bool>.Success(true);
-    }
-
     public async Task<Result<AuthResponseDto>> RefreshTokenAsync(RefreshTokenRequestDto request)
     {
         // Implementation for RefreshToken
         return await Task.FromResult(Result<AuthResponseDto>.Failure("Not implemented yet"));
     }
 
-    private AuthResponseDto GenerateJwtToken(AppUser user)
-    {
-        var jwtSettings = _configuration.GetSection("JwtSettings");
-        var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("SecretKey is missing.");
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Role, user.Role.ToString()),
-            new Claim("Email", user.Email)
-        };
-
-        if (user.DoctorId.HasValue) claims.Add(new Claim("DoctorId", user.DoctorId.Value.ToString()));
-        if (user.PatientId.HasValue) claims.Add(new Claim("PatientId", user.PatientId.Value.ToString()));
-
-        var expiryMinutes = int.Parse(jwtSettings["ExpiryMinutes"] ?? "60");
-        var expiryTime = DateTime.UtcNow.AddMinutes(expiryMinutes);
-
-        var token = new JwtSecurityToken(
-            issuer: jwtSettings["Issuer"],
-            audience: jwtSettings["Audience"],
-            claims: claims,
-            expires: expiryTime,
-            signingCredentials: creds
-        );
-
-        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-        var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-
-        return new AuthResponseDto(tokenString, refreshToken, expiryTime, user.Username, user.Role.ToString());
-    }
 }
