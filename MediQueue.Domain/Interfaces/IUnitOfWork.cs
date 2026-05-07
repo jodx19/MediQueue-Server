@@ -20,4 +20,5 @@ public interface IUnitOfWork
     Task BeginTransactionAsync();
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();
+    Task ExecuteStrategyAsync(Func<Task> action);
 }

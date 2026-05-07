@@ -8,6 +8,5 @@ namespace MediQueue.Application.Interfaces;
 public interface IAuthService
 {
     Task<Result<AuthResponseDto>> LoginAsync(LoginRequestDto request);
-    Task<Result<bool>> RegisterAsync(RegisterRequestDto request);
     Task<Result<AuthResponseDto>> RefreshTokenAsync(RefreshTokenRequestDto request);
 }

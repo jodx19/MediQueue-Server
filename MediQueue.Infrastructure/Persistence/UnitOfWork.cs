@@ -88,4 +88,18 @@ public class UnitOfWork : IUnitOfWork
             }
         }
     }
+
+    public async Task ExecuteStrategyAsync(Func<Task> action)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync<object?, bool>(
+            null,
+            async (context, state, ct) =>
+            {
+                await action();
+                return true;
+            },
+            null,
+            default);
+    }
 }

@@ -57,14 +57,23 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<InvoiceOverdueJob>();
         services.AddScoped<DashboardJobs>();
 
-        // 4. SignalR
+        // 4. Auth & Context
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, MediQueue.Infrastructure.Services.CurrentUserService>();
+        services.AddScoped<ITokenService, MediQueue.Infrastructure.Services.TokenService>();
+
+        // 5. SignalR
         services.AddSignalR();
 
         // 5. Redis — StackExchange client (for prefix-scan) + distributed cache
         var redisConnStr = configuration["Redis:ConnectionString"] ?? "localhost:6379";
 
         services.AddSingleton<IConnectionMultiplexer>(_ =>
-            ConnectionMultiplexer.Connect(redisConnStr));
+        {
+            var options = ConfigurationOptions.Parse(redisConnStr);
+            options.AbortOnConnectFail = false;
+            return ConnectionMultiplexer.Connect(options);
+        });
 
         services.AddStackExchangeRedisCache(options =>
         {

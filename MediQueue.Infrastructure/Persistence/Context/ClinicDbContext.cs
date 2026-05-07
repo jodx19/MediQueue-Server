@@ -8,16 +8,22 @@ using Microsoft.EntityFrameworkCore;
 using MediQueue.Domain.Common;
 using MediQueue.Domain.Entities;
 using MediQueue.Infrastructure.Persistence.Configurations;
+using MediQueue.Application.Interfaces;
 
 namespace MediQueue.Infrastructure.Persistence.Context;
 
 public class ClinicDbContext : DbContext
 {
     private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ClinicDbContext(DbContextOptions<ClinicDbContext> options, IMediator mediator) : base(options)
+    public ClinicDbContext(
+        DbContextOptions<ClinicDbContext> options, 
+        IMediator mediator,
+        ICurrentUserService currentUserService) : base(options)
     {
         _mediator = mediator;
+        _currentUserService = currentUserService;
     }
 
     public DbSet<Patient> Patients => Set<Patient>();
@@ -62,16 +68,13 @@ public class ClinicDbContext : DbContext
         {
             if (entry.State == EntityState.Added)
             {
-                // Reflection to set internal/private setter if necessary, or assuming properties have protected/internal setters accessible.
-                // In our domain, AuditableEntity has `CreatedAt { get; private set; }`. 
-                // We'll use reflection if EF can't set it via shadow properties, but EF can write to private setters if mapped.
-                // However, we can use the SetCreated/SetUpdated methods we added or set it via reflection.
-                // If the domain didn't expose methods, we set it via EF Property.
                 entry.Property(a => a.CreatedAt).CurrentValue = now;
+                entry.Property(a => a.CreatedBy).CurrentValue = _currentUserService.UserId ?? "System";
             }
             else if (entry.State == EntityState.Modified)
             {
                 entry.Property(a => a.UpdatedAt).CurrentValue = now;
+                entry.Property(a => a.UpdatedBy).CurrentValue = _currentUserService.UserId ?? "System";
             }
         }
 
@@ -85,8 +88,6 @@ public class ClinicDbContext : DbContext
             .SelectMany(e => e.DomainEvents)
             .ToList();
 
-        entitiesWithEvents.ForEach(e => e.ClearDomainEvents());
-
         var result = await base.SaveChangesAsync(cancellationToken);
 
         // Dispatch events
@@ -94,6 +95,8 @@ public class ClinicDbContext : DbContext
         {
             await _mediator.Publish(domainEvent, cancellationToken);
         }
+        
+        entitiesWithEvents.ForEach(e => e.ClearDomainEvents());
 
         return result;
     }
