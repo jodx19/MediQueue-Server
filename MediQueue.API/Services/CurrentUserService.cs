@@ -3,7 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using MediQueue.Application.Interfaces;
 
-namespace MediQueue.Infrastructure.Services;
+namespace MediQueue.API.Services;
 
 public class CurrentUserService : ICurrentUserService
 {

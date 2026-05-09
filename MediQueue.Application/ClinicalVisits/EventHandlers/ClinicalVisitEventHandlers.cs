@@ -10,9 +10,11 @@ using MediQueue.Domain.Events;
 using MediQueue.Domain.Interfaces;
 using MediQueue.Domain.ValueObjects;
 
+using MediQueue.Application.Common;
+
 namespace MediQueue.Application.ClinicalVisits.EventHandlers;
 
-public class VisitFinalizedEventHandler : INotificationHandler<VisitFinalizedEvent>
+public class VisitFinalizedEventHandler : INotificationHandler<DomainEventNotification<VisitFinalizedEvent>>
 {
     private readonly IEmailService _emailService;
     private readonly IUnitOfWork _unitOfWork;
@@ -25,10 +27,11 @@ public class VisitFinalizedEventHandler : INotificationHandler<VisitFinalizedEve
         _unitOfWork = unitOfWork;
     }
 
-    public async Task Handle(VisitFinalizedEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(DomainEventNotification<VisitFinalizedEvent> notification, CancellationToken cancellationToken)
     {
+        var domainEvent = notification.DomainEvent;
         // 1. Update appointment status to Completed
-        var visit = await _unitOfWork.ClinicalVisits.GetByIdAsync(notification.VisitId);
+        var visit = await _unitOfWork.ClinicalVisits.GetByIdAsync(domainEvent.VisitId);
         if (visit == null) return;
 
         var appointment = await _unitOfWork.Appointments.GetByIdAsync(visit.AppointmentId);
@@ -61,7 +64,7 @@ public class VisitFinalizedEventHandler : INotificationHandler<VisitFinalizedEve
     }
 }
 
-public class PrescriptionCreatedEventHandler : INotificationHandler<PrescriptionCreatedEvent>
+public class PrescriptionCreatedEventHandler : INotificationHandler<DomainEventNotification<PrescriptionCreatedEvent>>
 {
     private readonly IEmailService _emailService;
     private readonly IUnitOfWork _unitOfWork;
@@ -72,16 +75,17 @@ public class PrescriptionCreatedEventHandler : INotificationHandler<Prescription
         _unitOfWork = unitOfWork;
     }
 
-    public async Task Handle(PrescriptionCreatedEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(DomainEventNotification<PrescriptionCreatedEvent> notification, CancellationToken cancellationToken)
     {
-        var visit = await _unitOfWork.ClinicalVisits.GetByIdAsync(notification.VisitId);
+        var domainEvent = notification.DomainEvent;
+        var visit = await _unitOfWork.ClinicalVisits.GetByIdAsync(domainEvent.VisitId);
         if (visit == null) return;
 
         var patient = await _unitOfWork.Patients.GetByIdAsync(visit.PatientId);
         
         if (patient != null && !string.IsNullOrEmpty(patient.ContactInfo.Email))
         {
-            var prescriptionDetails = $"Prescription {notification.PrescriptionId} created for your visit.";
+            var prescriptionDetails = $"Prescription {domainEvent.PrescriptionId} created for your visit.";
             _ = _emailService.SendPrescriptionAsync(patient.ContactInfo.Email, prescriptionDetails);
         }
     }

@@ -35,4 +35,5 @@ public interface IInvoiceRepository
 
     Task<int> CountByStatusAsync(InvoiceStatus status);
     Task<decimal> GetRevenueInRangeAsync(DateTime from, DateTime to);
+    Task<List<Invoice>> GetOverdueInvoicesAsync(DateOnly threshold);
 }

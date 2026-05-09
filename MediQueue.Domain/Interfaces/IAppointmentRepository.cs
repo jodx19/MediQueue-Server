@@ -23,4 +23,5 @@ public interface IAppointmentRepository
     Task AddAsync(Appointment appointment);
     Task UpdateAsync(Appointment appointment);
     Task<int> CountByDateAsync(DateTime date);
+    Task<List<Appointment>> GetMissedAppointmentsAsync(DateTime threshold);
 }

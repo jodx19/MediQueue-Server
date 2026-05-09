@@ -13,6 +13,7 @@ using MediQueue.Infrastructure.Persistence.Context;
 using MediQueue.Infrastructure.Persistence.Repositories;
 using MediQueue.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Builder;
 
 namespace MediQueue.Infrastructure;
 
@@ -50,7 +51,6 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITokenService, Services.TokenService>();
         services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
-        services.AddScoped<IRealtimeService, SignalRRealtimeService>();
         services.AddScoped<ISchedulerService, HangfireSchedulerService>();
         services.AddScoped<IStorageService, AzureBlobStorageService>();
         services.AddScoped<ICacheService, RedisCacheService>();
@@ -59,10 +59,6 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<DashboardJobs>();
 
         // 4. Auth & Context
-        services.AddHttpContextAccessor();
-        services.AddScoped<ICurrentUserService, MediQueue.Infrastructure.Services.CurrentUserService>();
-        // 6. SignalR
-        services.AddSignalR();
 
         // 5. Redis — StackExchange client (for prefix-scan) + distributed cache
         var redisConnStr = configuration["Redis:ConnectionString"] ?? "localhost:6379";
@@ -87,5 +83,26 @@ public static class InfrastructureServiceExtensions
         services.AddSingleton(_ => new BlobServiceClient(blobConnStr));
 
         return services;
+    }
+
+    public static void UseInfrastructure(this IApplicationBuilder app)
+    {
+        using var scope = app.ApplicationServices.CreateScope();
+        var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+
+        recurringJobManager.AddOrUpdate<DashboardJobs>(
+            "daily-revenue-report", 
+            job => job.SendDailyRevenueReportAsync(), 
+            Cron.Daily);
+
+        recurringJobManager.AddOrUpdate<MissedAppointmentJob>(
+            "check-missed-appointments",
+            job => job.ExecuteAsync(),
+            "*/15 * * * *");
+
+        recurringJobManager.AddOrUpdate<InvoiceOverdueJob>(
+            "check-overdue-invoices",
+            job => job.ExecuteAsync(),
+            Cron.Daily);
     }
 }

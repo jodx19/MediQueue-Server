@@ -7,9 +7,11 @@ using MediQueue.Application.Interfaces;
 using MediQueue.Domain.Events;
 using MediQueue.Domain.Interfaces;
 
+using MediQueue.Application.Common;
+
 namespace MediQueue.Application.Appointments.EventHandlers;
 
-public class AppointmentBookedEventHandler : INotificationHandler<AppointmentBookedEvent>
+public class AppointmentBookedEventHandler : INotificationHandler<DomainEventNotification<AppointmentBookedEvent>>
 {
     private readonly ISmsService _smsService;
     private readonly ISchedulerService _schedulerService;
@@ -28,10 +30,11 @@ public class AppointmentBookedEventHandler : INotificationHandler<AppointmentBoo
         _unitOfWork = unitOfWork;
     }
 
-    public async Task Handle(AppointmentBookedEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(DomainEventNotification<AppointmentBookedEvent> notification, CancellationToken cancellationToken)
     {
-        var patient = await _unitOfWork.Patients.GetByIdAsync(notification.PatientId);
-        var doctor = await _unitOfWork.Doctors.GetByIdAsync(notification.DoctorId);
+        var domainEvent = notification.DomainEvent;
+        var patient = await _unitOfWork.Patients.GetByIdAsync(domainEvent.PatientId);
+        var doctor = await _unitOfWork.Doctors.GetByIdAsync(domainEvent.DoctorId);
 
         if (patient != null && doctor != null)
         {
@@ -39,16 +42,16 @@ public class AppointmentBookedEventHandler : INotificationHandler<AppointmentBoo
             var patientPhone = patient.ContactInfo.Phone;
             var doctorName = doctor.PersonName.FullName;
 
-            await _smsService.SendAppointmentConfirmationAsync(patientPhone, patientName, doctorName, notification.ScheduledAt);
+            await _smsService.SendAppointmentConfirmationAsync(patientPhone, patientName, doctorName, domainEvent.ScheduledAt);
 
             // Create In-App Notification
-            var user = await _unitOfWork.Users.GetByPatientIdAsync(notification.PatientId);
+            var user = await _unitOfWork.Users.GetByPatientIdAsync(domainEvent.PatientId);
             if (user != null)
             {
                 var appNotification = MediQueue.Domain.Entities.Notification.Create(
                     user.Id,
                     "Appointment Booked",
-                    $"Your appointment with {doctorName} is confirmed for {notification.ScheduledAt:f}",
+                    $"Your appointment with {doctorName} is confirmed for {domainEvent.ScheduledAt:f}",
                     MediQueue.Domain.Entities.NotificationType.Success);
                 
                 await _unitOfWork.Notifications.AddAsync(appNotification);
@@ -56,17 +59,17 @@ public class AppointmentBookedEventHandler : INotificationHandler<AppointmentBoo
             }
         }
 
-        var reminderTime = notification.ScheduledAt.AddDays(-1);
+        var reminderTime = domainEvent.ScheduledAt.AddDays(-1);
         if (reminderTime > DateTime.UtcNow)
         {
-            await _schedulerService.ScheduleReminderAsync(notification.AppointmentId, reminderTime);
+            await _schedulerService.ScheduleReminderAsync(domainEvent.AppointmentId, reminderTime);
         }
 
-        await _realtimeService.BroadcastAsync("AppointmentBooked", new { notification.AppointmentId, notification.DoctorId, notification.ScheduledAt });
+        await _realtimeService.BroadcastAsync("AppointmentBooked", new { domainEvent.AppointmentId, domainEvent.DoctorId, domainEvent.ScheduledAt });
     }
 }
 
-public class AppointmentCancelledEventHandler : INotificationHandler<AppointmentCancelledEvent>
+public class AppointmentCancelledEventHandler : INotificationHandler<DomainEventNotification<AppointmentCancelledEvent>>
 {
     private readonly ISmsService _smsService;
     private readonly ISchedulerService _schedulerService;
@@ -82,13 +85,14 @@ public class AppointmentCancelledEventHandler : INotificationHandler<Appointment
         _cacheService = cacheService;
     }
 
-    public async Task Handle(AppointmentCancelledEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(DomainEventNotification<AppointmentCancelledEvent> notification, CancellationToken cancellationToken)
     {
+        var domainEvent = notification.DomainEvent;
         var patientPhone = "01000000000"; // Placeholder
 
-        _ = _smsService.SendAppointmentCancellationAsync(patientPhone, notification.Reason);
+        _ = _smsService.SendAppointmentCancellationAsync(patientPhone, domainEvent.Reason);
 
-        _ = _schedulerService.CancelReminderAsync(notification.AppointmentId.ToString());
+        _ = _schedulerService.CancelReminderAsync(domainEvent.AppointmentId.ToString());
 
         _ = _cacheService.RemoveByPrefixAsync("availability:");
 
@@ -96,7 +100,7 @@ public class AppointmentCancelledEventHandler : INotificationHandler<Appointment
     }
 }
 
-public class AppointmentRescheduledEventHandler : INotificationHandler<AppointmentRescheduledEvent>
+public class AppointmentRescheduledEventHandler : INotificationHandler<DomainEventNotification<AppointmentRescheduledEvent>>
 {
     private readonly ISmsService _smsService;
     private readonly ISchedulerService _schedulerService;
@@ -112,19 +116,20 @@ public class AppointmentRescheduledEventHandler : INotificationHandler<Appointme
         _cacheService = cacheService;
     }
 
-    public async Task Handle(AppointmentRescheduledEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(DomainEventNotification<AppointmentRescheduledEvent> notification, CancellationToken cancellationToken)
     {
+        var domainEvent = notification.DomainEvent;
         var patientPhone = "01000000000"; // Placeholder
         var patientName = "Patient"; 
         var doctorName = "Doctor";
 
-        _ = _smsService.SendAppointmentReminderAsync(patientPhone, patientName, doctorName, notification.NewDateTime);
+        _ = _smsService.SendAppointmentReminderAsync(patientPhone, patientName, doctorName, domainEvent.NewDateTime);
 
-        _ = _schedulerService.CancelReminderAsync(notification.AppointmentId.ToString());
-        var reminderTime = notification.NewDateTime.AddDays(-1);
+        _ = _schedulerService.CancelReminderAsync(domainEvent.AppointmentId.ToString());
+        var reminderTime = domainEvent.NewDateTime.AddDays(-1);
         if (reminderTime > DateTime.UtcNow)
         {
-            _ = _schedulerService.ScheduleReminderAsync(notification.AppointmentId, reminderTime);
+            _ = _schedulerService.ScheduleReminderAsync(domainEvent.AppointmentId, reminderTime);
         }
 
         _ = _cacheService.RemoveByPrefixAsync("availability:");
@@ -133,7 +138,7 @@ public class AppointmentRescheduledEventHandler : INotificationHandler<Appointme
     }
 }
 
-public class AppointmentNoShowEventHandler : INotificationHandler<AppointmentNoShowEvent>
+public class AppointmentNoShowEventHandler : INotificationHandler<DomainEventNotification<AppointmentNoShowEvent>>
 {
     private readonly ISmsService _smsService;
 
@@ -142,8 +147,9 @@ public class AppointmentNoShowEventHandler : INotificationHandler<AppointmentNoS
         _smsService = smsService;
     }
 
-    public async Task Handle(AppointmentNoShowEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(DomainEventNotification<AppointmentNoShowEvent> notification, CancellationToken cancellationToken)
     {
+        var domainEvent = notification.DomainEvent;
         var patientPhone = "01000000000"; // Placeholder
         
         _ = _smsService.SendAppointmentCancellationAsync(patientPhone, "Appointment marked as No-Show.");

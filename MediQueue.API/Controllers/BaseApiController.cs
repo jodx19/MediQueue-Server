@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MediQueue.Application.Common;
 using Microsoft.Extensions.DependencyInjection;
+using MediQueue.API.Models;
 
 namespace MediQueue.API.Controllers;
 
@@ -22,29 +23,19 @@ public abstract class BaseApiController : ControllerBase
 
     /// <summary>
     /// Processes a <see cref="Result{T}"/> and returns the appropriate <see cref="ActionResult"/>.
-    /// Maps success/failure to HTTP status codes following REST best practices.
+    /// Maps success/failure to HTTP status codes and wraps them in <see cref="ApiResponse{T}"/>.
     /// </summary>
     protected ActionResult HandleResult<T>(Result<T> result)
     {
-        if (result == null) return NotFound();
+        if (result == null) return NotFound(ApiResponse<object>.Failure("Resource not found."));
         
         if (result.IsSuccess)
         {
-            if (result.Value == null) return NotFound();
-            return Ok(result.Value);
+            if (result.Value == null) return NotFound(ApiResponse<object>.Failure("Resource not found."));
+            return Ok(ApiResponse<T>.Success(result.Value));
         }
 
-        // Logic for mapping failure messages to status codes
-        if (result.Error.Contains("not found", StringComparison.OrdinalIgnoreCase))
-            return NotFound(new { error = result.Error });
-
-        if (result.Error.Contains("unauthorized", StringComparison.OrdinalIgnoreCase))
-            return Unauthorized(new { error = result.Error });
-
-        if (result.Error.Contains("conflict", StringComparison.OrdinalIgnoreCase))
-            return Conflict(new { error = result.Error });
-
-        return BadRequest(new { error = result.Error });
+        return MapFailure(result.Error!);
     }
 
     /// <summary>
@@ -52,13 +43,38 @@ public abstract class BaseApiController : ControllerBase
     /// </summary>
     protected ActionResult HandleResult(Result result)
     {
-        if (result == null) return NotFound();
+        if (result == null) return NotFound(ApiResponse<object>.Failure("Resource not found."));
         
-        if (result.IsSuccess) return NoContent();
+        if (result.IsSuccess) 
+            return Ok(ApiResponse<object>.Success(new { }, "Operation completed successfully."));
 
-        if (result.Error.Contains("not found", StringComparison.OrdinalIgnoreCase))
-            return NotFound(new { error = result.Error });
+        return MapFailure(result.Error!);
+    }
 
-        return BadRequest(new { error = result.Error });
+    private ActionResult MapFailure(string error)
+    {
+        if (error.Contains("not found", StringComparison.OrdinalIgnoreCase))
+            return NotFound(ApiResponse<object>.Failure(error));
+
+        if (error.Contains("unauthorized", StringComparison.OrdinalIgnoreCase))
+            return Unauthorized(ApiResponse<object>.Failure(error));
+
+        if (error.Contains("conflict", StringComparison.OrdinalIgnoreCase))
+            return Conflict(ApiResponse<object>.Failure(error));
+
+        if (error.Contains("forbidden", StringComparison.OrdinalIgnoreCase))
+            return Forbid(); // Or custom response
+
+        return BadRequest(ApiResponse<object>.Failure(error));
+    }
+
+    protected ActionResult Success<T>(T data, string? message = null)
+    {
+        return Ok(ApiResponse<T>.Success(data, message));
+    }
+
+    protected ActionResult Failure(string error, string? message = null)
+    {
+        return BadRequest(ApiResponse<object>.Failure(error, message));
     }
 }

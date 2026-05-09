@@ -11,6 +11,7 @@ using MediQueue.Application.Doctors.Commands;
 using MediQueue.Application.Doctors.Queries;
 using MediQueue.Application.Doctors.DTOs;
 using MediQueue.Domain.Enums;
+using MediQueue.API.Models;
 
 namespace MediQueue.API.Controllers;
 
@@ -19,35 +20,25 @@ namespace MediQueue.API.Controllers;
 [Route("api/[controller]")]
 [Authorize]
 [Produces("application/json")]
-public class DoctorsController : ControllerBase
+public class DoctorsController : BaseApiController
 {
-    private readonly ISender _sender;
-    public DoctorsController(ISender sender) => _sender = sender;
-
     /// <summary>Create a new doctor profile.</summary>
     [HttpPost]
     [Authorize(Policy = "AdminOnly")]
-    [ProducesResponseType(typeof(DoctorDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(ApiResponse<DoctorDto>), StatusCodes.Status201Created)]
     public async Task<ActionResult<DoctorDto>> Create(
         [FromBody] CreateDoctorCommand command,
         CancellationToken ct)
     {
-        var result = await _sender.Send(command, ct);
-        if (!result.IsSuccess) return UnprocessableEntity(result.Error);
-        return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
+        return HandleResult(await Sender.Send(command, ct));
     }
 
     /// <summary>Get a doctor by their unique ID.</summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(typeof(DoctorDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<DoctorDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<DoctorDto>> GetById(Guid id, CancellationToken ct)
     {
-        var result = await _sender.Send(new GetDoctorByIdQuery(id), ct);
-        if (!result.IsSuccess) return NotFound(result.Error);
-        return Ok(result.Value);
+        return HandleResult(await Sender.Send(new GetDoctorByIdQuery(id), ct));
     }
 
     /// <summary>Get all doctors, paginated.</summary>
@@ -58,7 +49,7 @@ public class DoctorsController : ControllerBase
         [FromQuery] int size = 20,
         CancellationToken ct = default)
     {
-        var result = await _sender.Send(new GetAllDoctorsQuery(page, size), ct);
+        var result = await Sender.Send(new GetAllDoctorsQuery(page, size), ct);
         return Ok(result.Value);
     }
 
@@ -69,7 +60,7 @@ public class DoctorsController : ControllerBase
         MedicalSpecialty specialty,
         CancellationToken ct)
     {
-        var result = await _sender.Send(new GetDoctorsBySpecialtyQuery(specialty), ct);
+        var result = await Sender.Send(new GetDoctorsBySpecialtyQuery(specialty), ct);
         return Ok(result.Value);
     }
 
@@ -82,7 +73,7 @@ public class DoctorsController : ControllerBase
         [FromQuery] DateTime date,
         CancellationToken ct)
     {
-        var result = await _sender.Send(new GetDoctorAvailabilityQuery(id, date), ct);
+        var result = await Sender.Send(new GetDoctorAvailabilityQuery(id, date), ct);
         if (!result.IsSuccess) return NotFound(result.Error);
         return Ok(result.Value);
     }
@@ -98,7 +89,7 @@ public class DoctorsController : ControllerBase
         CancellationToken ct)
     {
         if (id != command.DoctorId) return BadRequest("Route ID must match command DoctorId.");
-        var result = await _sender.Send(command, ct);
+        var result = await Sender.Send(command, ct);
         if (!result.IsSuccess) return NotFound(result.Error);
         return NoContent();
     }
@@ -114,7 +105,7 @@ public class DoctorsController : ControllerBase
         CancellationToken ct)
     {
         if (id != command.DoctorId) return BadRequest("Route ID must match command DoctorId.");
-        var result = await _sender.Send(command, ct);
+        var result = await Sender.Send(command, ct);
         if (!result.IsSuccess) return UnprocessableEntity(result.Error);
         return NoContent();
     }
@@ -129,7 +120,7 @@ public class DoctorsController : ControllerBase
         DayOfWeek dayOfWeek,
         CancellationToken ct)
     {
-        var result = await _sender.Send(new RemoveWorkingShiftCommand(id, dayOfWeek), ct);
+        var result = await Sender.Send(new RemoveWorkingShiftCommand(id, dayOfWeek), ct);
         if (!result.IsSuccess) return NotFound(result.Error);
         return NoContent();
     }
@@ -145,7 +136,7 @@ public class DoctorsController : ControllerBase
         CancellationToken ct)
     {
         if (id != command.DoctorId) return BadRequest("Route ID must match command DoctorId.");
-        var result = await _sender.Send(command, ct);
+        var result = await Sender.Send(command, ct);
         if (!result.IsSuccess) return NotFound(result.Error);
         return NoContent();
     }

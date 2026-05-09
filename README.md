@@ -371,6 +371,17 @@ Each repository implements the domain interface using EF Core:
 
 ### Middleware
 
+**`ApiResponseFilter`** — A global action filter that intercepts all successful responses and wraps them in a standard `ApiResponse<T>` format, ensuring the frontend always receives a consistent structure:
+
+```json
+{
+  "isSuccess": true,
+  "data": { ... },
+  "message": "Operation completed successfully.",
+  "errors": null
+}
+```
+
 **`GlobalExceptionMiddleware`** — catches all unhandled exceptions and maps them to structured JSON responses:
 
 ```json
@@ -645,6 +656,10 @@ connection.on('InvoicePaid',       (data) => { ... });
 | Job Name | Schedule | Action |
 |---|---|---|
 | `daily-revenue-report` | `Cron.Daily` | Computes daily revenue and sends summary email to admin |
+| `invoice-overdue-checker` | `Cron.Daily` | Scans for unpaid invoices past due date and marks them overdue |
+| `missed-appointment-processor` | `Cron.Minutely` | Scans for un-attended appointments past their scheduled time and marks them as No-Show |
+
+*Note: All background jobs dispatch MediatR commands, completely decoupling the Hangfire infrastructure from the Entity Framework context.*
 
 Hangfire Dashboard: `/hangfire` (Admin only in production)
 

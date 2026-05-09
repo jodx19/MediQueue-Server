@@ -1,37 +1,19 @@
-using Microsoft.EntityFrameworkCore;
-using MediQueue.Domain.Entities;
-using MediQueue.Domain.Enums;
-using MediQueue.Infrastructure.Persistence.Context;
+using MediatR;
+using MediQueue.Application.Invoices.Commands;
 
 namespace MediQueue.Infrastructure.ExternalServices;
 
 public class InvoiceOverdueJob
 {
-    private readonly ClinicDbContext _context;
+    private readonly ISender _sender;
 
-    public InvoiceOverdueJob(ClinicDbContext context)
+    public InvoiceOverdueJob(ISender sender)
     {
-        _context = context;
+        _sender = sender;
     }
 
     public async Task ExecuteAsync()
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        
-        var overdueInvoices = await _context.Invoices
-            .Where(i => i.Status == InvoiceStatus.Issued || i.Status == InvoiceStatus.PartiallyPaid)
-            .Where(i => i.DueDate < today)
-            .ToListAsync();
-
-        foreach (var invoice in overdueInvoices)
-        {
-            // Update status using reflection if private setter, or direct assignment
-            typeof(Invoice).GetProperty("Status")?.SetValue(invoice, InvoiceStatus.Overdue);
-        }
-
-        if (overdueInvoices.Any())
-        {
-            await _context.SaveChangesAsync();
-        }
+        await _sender.Send(new UpdateInvoiceStatusToOverdueCommand());
     }
 }

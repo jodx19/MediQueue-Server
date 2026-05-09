@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using MediQueue.Domain.Common;
 using MediQueue.Domain.Entities;
 using MediQueue.Infrastructure.Persistence.Configurations;
+using MediQueue.Application.Common;
 using MediQueue.Application.Interfaces;
 
 namespace MediQueue.Infrastructure.Persistence.Context;
@@ -93,7 +94,12 @@ public class ClinicDbContext : DbContext
         // Dispatch events
         foreach (var domainEvent in domainEvents)
         {
-            await _mediator.Publish(domainEvent, cancellationToken);
+            var notificationType = typeof(DomainEventNotification<>).MakeGenericType(domainEvent.GetType());
+            var notification = Activator.CreateInstance(notificationType, domainEvent);
+            if (notification != null)
+            {
+                await _mediator.Publish(notification, cancellationToken);
+            }
         }
         
         entitiesWithEvents.ForEach(e => e.ClearDomainEvents());
