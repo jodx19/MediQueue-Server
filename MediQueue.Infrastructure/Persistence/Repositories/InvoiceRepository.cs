@@ -119,4 +119,12 @@ public class InvoiceRepository : IInvoiceRepository
 
         return payments.Sum(p => p.Amount.Amount);
     }
+
+    public async Task<List<Invoice>> GetOverdueInvoicesAsync(DateOnly threshold)
+    {
+        return await _context.Invoices
+            .Where(i => i.Status == Domain.Enums.InvoiceStatus.Issued || i.Status == Domain.Enums.InvoiceStatus.PartiallyPaid)
+            .Where(i => i.DueDate < threshold)
+            .ToListAsync();
+    }
 }

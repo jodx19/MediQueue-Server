@@ -2,9 +2,9 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using MediQueue.Application.Interfaces;
-using MediQueue.Infrastructure.Hubs;
+using MediQueue.API.Hubs;
 
-namespace MediQueue.Infrastructure.ExternalServices;
+namespace MediQueue.API.Services;
 
 public class SignalRRealtimeService : IRealtimeService
 {

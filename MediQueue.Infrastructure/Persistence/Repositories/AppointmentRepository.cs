@@ -145,4 +145,12 @@ public class AppointmentRepository : IAppointmentRepository
             .AsNoTracking()
             .CountAsync(a => a.ScheduledAt.Date == date.Date);
     }
+
+    public async Task<List<Appointment>> GetMissedAppointmentsAsync(DateTime threshold)
+    {
+        return await _context.Appointments
+            .Where(a => a.Status == Domain.Enums.AppointmentStatus.Scheduled || a.Status == Domain.Enums.AppointmentStatus.Confirmed)
+            .Where(a => a.ScheduledAt < threshold)
+            .ToListAsync();
+    }
 }

@@ -1,4 +1,4 @@
-// e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.API\Program.cs
+// e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.Server.Host\Program.cs
 using System.Text;
 using Hangfire;
 using HealthChecks.UI.Client;
@@ -7,13 +7,15 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using MediQueue.Application;
 using MediQueue.API.Middleware;
-using MediQueue.Infrastructure;
-using MediQueue.Infrastructure.Hubs;
-using MediQueue.Infrastructure.ExternalServices;
-using MediQueue.Infrastructure.Persistence;
+using MediQueue.API.Hubs;
+using MediQueue.API.Services;
+using MediQueue.Application.Interfaces;
 using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
 using Hangfire.Dashboard;
+using MediQueue.Infrastructure;
+using MediQueue.Infrastructure.Persistence;
+using MediQueue.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,9 +23,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((ctx, cfg) =>
     cfg.ReadFrom.Configuration(ctx.Configuration));
 
-// ── Application + Infrastructure layers ──────────────────────────────────────
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
+
+// ── Web/API Services (Presentation/Web layer concerns) ───────────────────────
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSignalR();
+builder.Services.AddScoped<MediQueue.Application.Interfaces.ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<MediQueue.Application.Interfaces.IRealtimeService, SignalRRealtimeService>();
 
 // ── Hangfire (SQL Server storage) ─────────────────────────────────────────────
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -40,8 +47,13 @@ builder.Services.AddHangfireServer(options =>
     options.WorkerCount = Environment.ProcessorCount * 2;
 });
 
-// ── Controllers ───────────────────────────────────────────────────────────────
-builder.Services.AddControllers();
+// ── Controllers (Reference the API assembly) ──────────────────────────────────
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ApiResponseFilter>();
+})
+    .AddApplicationPart(typeof(MediQueue.API.Controllers.BaseApiController).Assembly);
+
 builder.Services.AddEndpointsApiExplorer();
 
 // ── Rate Limiting ─────────────────────────────────────────────────────────────
@@ -90,7 +102,6 @@ builder.Services.AddAuthentication(options =>
         ClockSkew                = TimeSpan.Zero
     };
 
-    // Allow SignalR to pass the token in the query string
     options.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
@@ -112,7 +123,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("PatientOrDoctor",  p => p.RequireRole("Patient", "Doctor", "Admin"));
 });
 
-// ── CORS — Angular dev origin ─────────────────────────────────────────────────
+// ── CORS ──────────────────────────────────────────────────────────────────────
 var angularOrigin = builder.Configuration["Cors:AllowedOrigin"] ?? "http://localhost:4200";
 builder.Services.AddCors(options =>
 {
@@ -120,10 +131,10 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(angularOrigin)
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials());  // required for SignalR cookies
+              .AllowCredentials());
 });
 
-// ── Swagger / OpenAPI ─────────────────────────────────────────────────────────
+// ── Swagger ───────────────────────────────────────────────────────────────────
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
@@ -133,10 +144,8 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Multi-Specialty Clinic Electronic Medical Records System"
     });
 
-    // Handle duplicate Schema IDs (e.g. PatientDto in multiple namespaces)
     options.CustomSchemaIds(type => type.FullName);
 
-    // JWT Bearer in Swagger UI
     var scheme = new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name         = "Authorization",
@@ -144,7 +153,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme       = "bearer",
         BearerFormat = "JWT",
         In           = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description  = "Enter JWT token (without 'Bearer ' prefix)"
+        Description  = "Enter JWT token"
     };
     options.AddSecurityDefinition("Bearer", scheme);
     options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
@@ -161,41 +170,17 @@ builder.Services.AddSwaggerGen(options =>
             Array.Empty<string>()
         }
     });
-
-    // XML comments for all doc'd endpoints
-    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-        options.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
 });
 
-// ── Health Checks — SQL Server + Redis + Hangfire ─────────────────────────────
-var healthChecks = builder.Services.AddHealthChecks()
-    .AddSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")!,
-        name: "sqlserver",
-        tags: ["db", "sql"]);
-
-if (!builder.Environment.IsDevelopment())
-{
-    healthChecks.AddRedis(
-        builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379",
-        name: "redis",
-        tags: ["cache"]);
-}
-    /*
-    .AddHangfire(
-        options => { options.MinimumAvailableServers = 1; },
-        name: "hangfire",
-        tags: ["jobs"]);
-    */
-
+// ── Health Checks ─────────────────────────────────────────────────────────────
+builder.Services.AddHealthChecks()
+    .AddSqlServer(connectionString, name: "sqlserver", tags: ["db", "sql"]);
 
 // ─────────────────────────────────────────────────────────────────────────────
 var app = builder.Build();
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── Database Seeding (Development Only) ───────────────────────────────────────
+// ── Database Seeding ──────────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
@@ -203,99 +188,45 @@ if (app.Environment.IsDevelopment())
     await seeder.SeedAsync();
 }
 
-// ── Global Exception Middleware (must be first) ───────────────────────────────
-app.UseExceptionHandler(errorApp =>
-{
-    errorApp.Run(async context =>
-    {
-        var error = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
-        await context.Response.WriteAsJsonAsync(new
-        {
-            error = error?.Error.Message,
-            inner = error?.Error.InnerException?.Message,
-            stack = error?.Error.StackTrace
-        });
-    });
-});
-
 app.UseMiddleware<GlobalExceptionMiddleware>();
-
-// ── Serilog request logging ───────────────────────────────────────────────────
 app.UseSerilogRequestLogging();
 
-// ── HTTPS + CORS ──────────────────────────────────────────────────────────────
 if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 
 app.UseCors("AngularPolicy");
-
-// ── Swagger (all environments for developer convenience; lock down in prod via config) ──
 app.UseSwagger();
 app.UseSwaggerUI(opts =>
 {
     opts.SwaggerEndpoint("/swagger/v1/swagger.json", "MediQueue EMR v1");
     opts.RoutePrefix = "swagger";
-    opts.DocumentTitle = "MediQueue EMR API";
-    opts.DefaultModelsExpandDepth(-1);
-    opts.DisplayRequestDuration();
 });
 
 app.UseRateLimiter();
 app.UseRouting();
-
-// ── Auth ──────────────────────────────────────────────────────────────────────
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ── Hangfire Dashboard ────────────────────────────────────────────────────────
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
-    // Require authenticated admin in production
     Authorization = app.Environment.IsDevelopment()
         ? [new Hangfire.Dashboard.LocalRequestsOnlyAuthorizationFilter()]
         : [new AdminHangfireAuthFilter()]
 });
 
-// Schedule recurring jobs
-using (var scope = app.Services.CreateScope())
-{
-    var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
-    recurringJobManager.AddOrUpdate<DashboardJobs>(
-        "daily-revenue-report", 
-        job => job.SendDailyRevenueReportAsync(), 
-        Cron.Daily);
+// ── Infrastructure Jobs & initialization ──────────────────────────────────────
+app.UseInfrastructure();
 
-    recurringJobManager.AddOrUpdate<MissedAppointmentJob>(
-        "check-missed-appointments",
-        job => job.ExecuteAsync(),
-        "*/15 * * * *"); // Every 15 minutes
-
-    recurringJobManager.AddOrUpdate<InvoiceOverdueJob>(
-        "check-overdue-invoices",
-        job => job.ExecuteAsync(),
-        Cron.Daily);
-}
-
-// ── SignalR Hub ───────────────────────────────────────────────────────────────
 app.MapHub<ClinicHub>("/hubs/clinic");
-
-// ── Controllers ───────────────────────────────────────────────────────────────
 app.MapControllers();
 
-// ── Health Checks ─────────────────────────────────────────────────────────────
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
 });
 
-app.MapHealthChecks("/health/live", new HealthCheckOptions
-{
-    Predicate = _ => false  // liveness: always 200 if process is up
-});
-
 await app.RunAsync();
 
-// ── Hangfire auth filter for production ───────────────────────────────────────
 public class AdminHangfireAuthFilter : Hangfire.Dashboard.IDashboardAuthorizationFilter
 {
     public bool Authorize(DashboardContext context)

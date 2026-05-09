@@ -1,42 +1,19 @@
-// Path: MediQueue.Infrastructure/ExternalServices/MissedAppointmentJob.cs
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using MediQueue.Domain.Enums;
-using MediQueue.Domain.Interfaces;
-using MediQueue.Infrastructure.Persistence.Context;
+using MediatR;
+using MediQueue.Application.Appointments.Commands;
 
 namespace MediQueue.Infrastructure.ExternalServices;
 
 public class MissedAppointmentJob
 {
-    private readonly ClinicDbContext _context;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly ISender _sender;
 
-    public MissedAppointmentJob(ClinicDbContext context, IUnitOfWork unitOfWork)
+    public MissedAppointmentJob(ISender sender)
     {
-        _context = context;
-        _unitOfWork = unitOfWork;
+        _sender = sender;
     }
 
     public async Task ExecuteAsync()
     {
-        var threshold = DateTime.UtcNow.AddMinutes(-30);
-        
-        var missedAppointments = await _context.Appointments
-            .Where(a => a.Status == AppointmentStatus.Scheduled || a.Status == AppointmentStatus.Confirmed)
-            .Where(a => a.ScheduledAt < threshold)
-            .ToListAsync();
-
-        foreach (var appointment in missedAppointments)
-        {
-            appointment.MarkNoShow();
-        }
-
-        if (missedAppointments.Any())
-        {
-            await _context.SaveChangesAsync();
-        }
+        await _sender.Send(new ProcessMissedAppointmentsCommand());
     }
 }

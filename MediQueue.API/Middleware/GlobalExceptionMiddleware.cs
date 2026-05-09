@@ -6,6 +6,10 @@ using MediQueue.Application.Common.Behaviors;
 using MediQueue.Domain.Common.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Builder;
 
 namespace MediQueue.API.Middleware;
 

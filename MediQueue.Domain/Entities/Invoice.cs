@@ -163,6 +163,18 @@ public class Invoice : BaseAggregateRoot
         // Could raise an InvoiceCancelledEvent here if needed
     }
 
+    public void MarkAsOverdue()
+    {
+        if (Status != InvoiceStatus.Issued && Status != InvoiceStatus.PartiallyPaid)
+            throw new InvalidOperationException($"Cannot mark invoice as overdue with status {Status}.");
+
+        if (DueDate >= DateOnly.FromDateTime(DateTime.UtcNow))
+            throw new InvalidOperationException("Invoice is not yet overdue.");
+
+        Status = InvoiceStatus.Overdue;
+        SetUpdated();
+    }
+
     private void RecalculateTotals()
     {
         if (_items.Count == 0) return;

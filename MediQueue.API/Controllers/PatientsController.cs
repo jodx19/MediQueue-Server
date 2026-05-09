@@ -10,6 +10,7 @@ using MediQueue.Application.Common;
 using MediQueue.Application.Patients.Commands;
 using MediQueue.Application.Patients.Queries;
 using MediQueue.Application.Patients.DTOs;
+using MediQueue.API.Models;
 
 namespace MediQueue.API.Controllers;
 
@@ -18,36 +19,29 @@ namespace MediQueue.API.Controllers;
 [Route("api/[controller]")]
 [Authorize]
 [Produces("application/json")]
-public class PatientsController : ControllerBase
+public class PatientsController : BaseApiController
 {
-    private readonly ISender _sender;
-    public PatientsController(ISender sender) => _sender = sender;
-
     /// <summary>Get all patients (paginated).</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResult<PatientSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<PatientSummaryDto>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<PatientSummaryDto>>> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int size = 20,
         CancellationToken ct = default)
     {
-        var result = await _sender.Send(new SearchPatientsQuery(string.Empty, page, size), ct);
+        var result = await Sender.Send(new SearchPatientsQuery(string.Empty, page, size), ct);
         return Ok(result.Value);
     }
 
     /// <summary>Register a new patient.</summary>
     [HttpPost]
     [Authorize(Policy = "AdminOnly")]
-    [ProducesResponseType(typeof(PatientDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(ApiResponse<PatientDto>), StatusCodes.Status201Created)]
     public async Task<ActionResult<PatientDto>> Register(
         [FromBody] RegisterPatientCommand command,
         CancellationToken ct)
     {
-        var result = await _sender.Send(command, ct);
-        if (!result.IsSuccess) return UnprocessableEntity(result.Error);
-        return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
+        return HandleResult(await Sender.Send(command, ct));
     }
 
     /// <summary>Get a patient by their unique ID.</summary>
@@ -56,7 +50,7 @@ public class PatientsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PatientDetailDto>> GetById(Guid id, CancellationToken ct)
     {
-        var result = await _sender.Send(new GetPatientByIdQuery(id), ct);
+        var result = await Sender.Send(new GetPatientByIdQuery(id), ct);
         return result.IsSuccess ? Ok(result.Value) : NotFound(result.Error);
     }
 
@@ -66,7 +60,7 @@ public class PatientsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PatientDetailDto>> GetByMRN(string mrn, CancellationToken ct)
     {
-        var result = await _sender.Send(new GetPatientByMRNQuery(mrn), ct);
+        var result = await Sender.Send(new GetPatientByMRNQuery(mrn), ct);
         return result.IsSuccess ? Ok(result.Value) : NotFound(result.Error);
     }
 
@@ -79,7 +73,7 @@ public class PatientsController : ControllerBase
         [FromQuery] int size = 20,
         CancellationToken ct = default)
     {
-        var result = await _sender.Send(new SearchPatientsQuery(term ?? string.Empty, page, size), ct);
+        var result = await Sender.Send(new SearchPatientsQuery(term ?? string.Empty, page, size), ct);
         return Ok(result.Value);
     }
 
@@ -89,7 +83,7 @@ public class PatientsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PatientMedicalHistoryDto>> GetMedicalHistory(Guid id, CancellationToken ct)
     {
-        var result = await _sender.Send(new GetPatientMedicalHistoryQuery(id), ct);
+        var result = await Sender.Send(new GetPatientMedicalHistoryQuery(id), ct);
         return result.IsSuccess ? Ok(result.Value) : NotFound(result.Error);
     }
 
@@ -104,7 +98,7 @@ public class PatientsController : ControllerBase
         CancellationToken ct)
     {
         if (id != command.PatientId) return BadRequest("Route ID must match command PatientId.");
-        var result = await _sender.Send(command, ct);
+        var result = await Sender.Send(command, ct);
         return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
 
@@ -118,7 +112,7 @@ public class PatientsController : ControllerBase
         CancellationToken ct)
     {
         if (id != command.PatientId) return BadRequest("Route ID must match command PatientId.");
-        var result = await _sender.Send(command, ct);
+        var result = await Sender.Send(command, ct);
         return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
 
@@ -128,7 +122,7 @@ public class PatientsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveAllergy(Guid id, Guid allergyId, CancellationToken ct)
     {
-        var result = await _sender.Send(new RemoveAllergyCommand(id, allergyId), ct);
+        var result = await Sender.Send(new RemoveAllergyCommand(id, allergyId), ct);
         return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
 
@@ -142,7 +136,7 @@ public class PatientsController : ControllerBase
         CancellationToken ct)
     {
         if (id != command.PatientId) return BadRequest("Route ID must match command PatientId.");
-        var result = await _sender.Send(command, ct);
+        var result = await Sender.Send(command, ct);
         return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
 
@@ -153,7 +147,7 @@ public class PatientsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken ct)
     {
-        var result = await _sender.Send(new DeactivatePatientCommand(id), ct);
+        var result = await Sender.Send(new DeactivatePatientCommand(id), ct);
         return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
 }
