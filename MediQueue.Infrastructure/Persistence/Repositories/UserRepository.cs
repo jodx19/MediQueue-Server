@@ -38,6 +38,13 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Email == email);
     }
 
+    public async Task<AppUser?> GetByRefreshTokenAsync(string refreshToken)
+    {
+        return await _context.Set<AppUser>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+    }
+
     public async Task<AppUser?> GetByPatientIdAsync(Guid patientId)
     {
         return await _context.Set<AppUser>()

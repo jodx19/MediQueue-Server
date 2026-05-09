@@ -38,16 +38,16 @@ public class AuthService : IAuthService
 
     public async Task<Result<AuthResponseDto>> LoginAsync(LoginRequestDto request)
     {
-        var user = await _unitOfWork.Users.GetByUsernameAsync(request.Username);
+        var user = await _unitOfWork.Users.GetByEmailAsync(request.Email);
         if (user == null || !user.IsActive)
         {
-            return Result<AuthResponseDto>.Failure("Invalid username or password.");
+            return Result<AuthResponseDto>.Failure("Invalid email or password.");
         }
 
         var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
         if (verificationResult == PasswordVerificationResult.Failed)
         {
-            return Result<AuthResponseDto>.Failure("Invalid username or password.");
+            return Result<AuthResponseDto>.Failure("Invalid email or password.");
         }
 
         var tokenString = _tokenService.GenerateJwtToken(user);
@@ -68,8 +68,39 @@ public class AuthService : IAuthService
 
     public async Task<Result<AuthResponseDto>> RefreshTokenAsync(RefreshTokenRequestDto request)
     {
-        // Implementation for RefreshToken
-        return await Task.FromResult(Result<AuthResponseDto>.Failure("Not implemented yet"));
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            return Result<AuthResponseDto>.Failure("Refresh token is required.");
+        }
+
+        var user = await _unitOfWork.Users.GetByRefreshTokenAsync(request.RefreshToken);
+        if (user == null || !user.IsActive)
+        {
+            return Result<AuthResponseDto>.Failure("Invalid refresh token.");
+        }
+
+        if (!user.RefreshTokenExpiryTime.HasValue || user.RefreshTokenExpiryTime.Value <= DateTime.UtcNow)
+        {
+            return Result<AuthResponseDto>.Failure("Refresh token has expired.");
+        }
+
+        var accessToken = _tokenService.GenerateJwtToken(user);
+        var newRefreshToken = _tokenService.GenerateRefreshToken();
+        var expiresAt = DateTime.UtcNow.AddMinutes(
+            int.Parse(_configuration.GetSection("JwtSettings")["ExpiryMinutes"] ?? "60"));
+
+        user.UpdateRefreshToken(newRefreshToken, DateTime.UtcNow.AddDays(7));
+        await _unitOfWork.Users.UpdateAsync(user);
+        await _unitOfWork.SaveChangesAsync();
+
+        var response = new AuthResponseDto(
+            accessToken,
+            newRefreshToken,
+            expiresAt,
+            user.Username,
+            user.Role.ToString());
+
+        return Result<AuthResponseDto>.Success(response);
     }
 
 }

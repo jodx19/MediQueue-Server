@@ -65,18 +65,21 @@ public sealed class WorkingShift : IEquatable<WorkingShift>
     /// <summary>
     /// Generates the available time slots for this shift based on the slot duration.
     /// </summary>
-    public IEnumerable<TimeOnly> GenerateSlots()
+    public List<TimeOnly> GenerateSlots()
     {
+        var slots = new List<TimeOnly>();
         var currentSlot = StartTime;
         while (currentSlot < EndTime)
         {
             var nextSlot = currentSlot.AddMinutes(SlotDurationMinutes);
             if (nextSlot <= EndTime)
             {
-                yield return currentSlot;
+                slots.Add(currentSlot);
             }
             currentSlot = nextSlot;
         }
+
+        return slots;
     }
 
     /// <inheritdoc/>

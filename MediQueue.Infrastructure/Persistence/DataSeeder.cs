@@ -1,164 +1,293 @@
-// Path: MediQueue.Infrastructure/Persistence/DataSeeder.cs
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MediQueue.Domain.Common;
 using MediQueue.Domain.Entities;
 using MediQueue.Domain.Enums;
 using MediQueue.Domain.ValueObjects;
 using MediQueue.Infrastructure.Persistence.Context;
-using MediQueue.Infrastructure.Persistence.Settings;
 
 namespace MediQueue.Infrastructure.Persistence;
 
 public class DataSeeder : IDataSeeder
 {
-    private readonly ClinicDbContext _context;
-    private readonly IPasswordHasher<AppUser> _passwordHasher;
-    private readonly SeedingSettings _settings;
+    private static readonly Guid AdminUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+    private static readonly Guid DoctorUserId = Guid.Parse("00000000-0000-0000-0000-000000000002");
+    private static readonly Guid ReceptionUserId = Guid.Parse("00000000-0000-0000-0000-000000000003");
 
-    // Fixed Guids for relationships
-    private readonly Guid AdminId = Guid.Parse("A1111111-1111-1111-1111-111111111111");
-    private readonly Guid DoctorAhmedId = Guid.Parse("D1111111-1111-1111-1111-111111111111");
-    private readonly Guid DoctorAhmedUserId = Guid.Parse("01111111-1111-1111-1111-111111111111");
-    private readonly Guid Patient1Id = Guid.Parse("02222222-2222-2222-2222-222222222222");
-    private readonly Guid ClinicId = Guid.Parse("03333333-3333-3333-3333-333333333333");
+    private static readonly Guid DoctorAhmedId = Guid.Parse("00000000-0000-0000-0000-000000000010");
+    private static readonly Guid DoctorSaraId = Guid.Parse("00000000-0000-0000-0000-000000000011");
+    private static readonly Guid DoctorKhaledId = Guid.Parse("00000000-0000-0000-0000-000000000012");
+
+    private static readonly Guid PatientMohamedId = Guid.Parse("00000000-0000-0000-0000-000000000020");
+    private static readonly Guid PatientFatmaId = Guid.Parse("00000000-0000-0000-0000-000000000021");
+    private static readonly Guid PatientOmarId = Guid.Parse("00000000-0000-0000-0000-000000000022");
+    private static readonly Guid PatientNourId = Guid.Parse("00000000-0000-0000-0000-000000000023");
+    private static readonly Guid PatientYoussefId = Guid.Parse("00000000-0000-0000-0000-000000000024");
+
+    private static readonly Guid ClinicId = Guid.Parse("00000000-0000-0000-0000-000000000100");
+
+    private readonly ClinicDbContext _context;
+    private readonly IPasswordHasher<AppUser> _hasher;
+    private readonly ILogger<DataSeeder> _logger;
 
     public DataSeeder(
-        ClinicDbContext context, 
-        IPasswordHasher<AppUser> passwordHasher,
-        IOptions<SeedingSettings> settings)
+        ClinicDbContext context,
+        IPasswordHasher<AppUser> hasher,
+        ILogger<DataSeeder> logger)
     {
         _context = context;
-        _passwordHasher = passwordHasher;
-        _settings = settings.Value;
+        _hasher = hasher;
+        _logger = logger;
     }
 
     public async Task SeedAsync()
     {
-        Console.WriteLine("--- Starting Database Seeding ---");
+        if (await _context.Users.AnyAsync())
+        {
+            _logger.LogInformation("Seed skipped because users already exist.");
+            return;
+        }
+
         await SeedUsersAsync();
         await SeedDoctorsAsync();
         await SeedPatientsAsync();
         await SeedAppointmentsAsync();
-
         await _context.SaveChangesAsync();
-        Console.WriteLine("--- Database Seeding Completed Successfully ---");
+
+        _logger.LogInformation("Seed data applied successfully.");
     }
 
     private async Task SeedUsersAsync()
     {
-        if (_context.Users.Any()) return;
+        var users = new[]
+        {
+            CreateUser(
+                AdminUserId,
+                "admin",
+                "admin@mediqueue.com",
+                "Admin",
+                "System",
+                "01000000000",
+                "Admin@123456",
+                UserRole.Admin),
+            CreateUser(
+                DoctorUserId,
+                "dr.ahmed",
+                "dr.ahmed@mediqueue.com",
+                "Ahmed",
+                "Hassan",
+                "01010000000",
+                "Doctor@123456",
+                UserRole.Doctor,
+                doctorId: DoctorAhmedId),
+            CreateUser(
+                ReceptionUserId,
+                "reception",
+                "reception@mediqueue.com",
+                "Reception",
+                "Desk",
+                "01020000000",
+                "Recept@123456",
+                UserRole.Receptionist)
+        };
 
-        var admin = AppUser.Create(_settings.Admin.Username, _settings.Admin.Email, "System", "Admin", "0000000000", "", UserRole.Admin);
-        admin.SetPasswordHash(_passwordHasher.HashPassword(admin, _settings.Admin.Password));
-        typeof(BaseEntity).GetProperty("Id")?.SetValue(admin, AdminId);
+        await _context.Users.AddRangeAsync(users);
+    }
 
-        var doctorUser = AppUser.Create(_settings.Doctor.Username, _settings.Doctor.Email, "Ahmed", "Kamal", "01012345678", "", UserRole.Doctor, doctorId: DoctorAhmedId);
-        doctorUser.SetPasswordHash(_passwordHasher.HashPassword(doctorUser, _settings.Doctor.Password));
-        typeof(BaseEntity).GetProperty("Id")?.SetValue(doctorUser, DoctorAhmedUserId);
+    private AppUser CreateUser(
+        Guid id,
+        string username,
+        string email,
+        string firstName,
+        string lastName,
+        string phone,
+        string password,
+        UserRole role,
+        Guid? doctorId = null,
+        Guid? patientId = null)
+    {
+        var user = AppUser.Create(
+            username,
+            email,
+            firstName,
+            lastName,
+            phone,
+            string.Empty,
+            role,
+            doctorId,
+            patientId);
 
-        var staff = AppUser.Create(_settings.Receptionist.Username, _settings.Receptionist.Email, "Staff", "User", "01122334455", "", UserRole.Receptionist);
-        staff.SetPasswordHash(_passwordHasher.HashPassword(staff, _settings.Receptionist.Password));
-
-        await _context.Users.AddRangeAsync(admin, doctorUser, staff);
+        user.SetPasswordHash(_hasher.HashPassword(user, password));
+        SetEntityId(user, id);
+        return user;
     }
 
     private async Task SeedDoctorsAsync()
     {
-        if (_context.Doctors.Any()) return;
+        var drAhmed = Doctor.Create(
+            new PersonName("Ahmed", "Hassan"),
+            MedicalSpecialty.Cardiology,
+            "LIC-CARD-001",
+            new ContactInfo("01010000000", "dr.ahmed@mediqueue.com"),
+            new Money(500),
+            new Money(250),
+            yearsOfExperience: 12);
+        SetEntityId(drAhmed, DoctorAhmedId);
 
-        var name = new PersonName("Ahmed", "Kamal", "M.");
-        var contact = new ContactInfo("01012345678", "ahmed.k@mediqueue.com");
-        var fee = new Money(500, "EGP");
-        var followUp = new Money(200, "EGP");
+        foreach (var day in new[]
+                 {
+                     DayOfWeek.Saturday, DayOfWeek.Sunday, DayOfWeek.Monday,
+                     DayOfWeek.Tuesday, DayOfWeek.Wednesday
+                 })
+        {
+            drAhmed.AddWorkingShift(new WorkingShift(day, new TimeOnly(9, 0), new TimeOnly(17, 0)));
+        }
 
-        var drAhmed = Doctor.Create(name, MedicalSpecialty.Cardiology, "LIC-12345", contact, fee, followUp, subSpecialty: "Interventional Cardiology", yearsOfExperience: 15);
-        typeof(BaseEntity).GetProperty("Id")?.SetValue(drAhmed, DoctorAhmedId);
-        
-        drAhmed.AddWorkingShift(new WorkingShift(DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(17, 0)));
-        drAhmed.AddWorkingShift(new WorkingShift(DayOfWeek.Wednesday, new TimeOnly(9, 0), new TimeOnly(17, 0)));
+        var drSara = Doctor.Create(
+            new PersonName("Sara", "Mohamed"),
+            MedicalSpecialty.Pediatrics,
+            "LIC-PED-002",
+            new ContactInfo("01011000000", "dr.sara@mediqueue.com"),
+            new Money(450),
+            new Money(225),
+            yearsOfExperience: 9);
+        SetEntityId(drSara, DoctorSaraId);
 
-        var drSara = Doctor.Create(new PersonName("Sara", "Ali"), MedicalSpecialty.Pediatrics, "LIC-67890", new ContactInfo("01122334455"), new Money(400), new Money(150), yearsOfExperience: 8);
-        drSara.AddWorkingShift(new WorkingShift(DayOfWeek.Monday, new TimeOnly(10, 0), new TimeOnly(14, 0))); // Overlaps with Ahmed on Monday
+        foreach (var day in new[]
+                 {
+                     DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday,
+                     DayOfWeek.Wednesday, DayOfWeek.Thursday
+                 })
+        {
+            drSara.AddWorkingShift(new WorkingShift(day, new TimeOnly(10, 0), new TimeOnly(18, 0)));
+        }
 
-        await _context.Doctors.AddRangeAsync(drAhmed, drSara);
+        var drKhaled = Doctor.Create(
+            new PersonName("Khaled", "Ibrahim"),
+            MedicalSpecialty.Orthopedics,
+            "LIC-ORTH-003",
+            new ContactInfo("01012000000", "dr.khaled@mediqueue.com"),
+            new Money(475),
+            new Money(230),
+            yearsOfExperience: 10);
+        SetEntityId(drKhaled, DoctorKhaledId);
+
+        foreach (var day in new[] { DayOfWeek.Monday, DayOfWeek.Wednesday, DayOfWeek.Friday })
+        {
+            drKhaled.AddWorkingShift(new WorkingShift(day, new TimeOnly(8, 0), new TimeOnly(14, 0)));
+        }
+
+        await _context.Doctors.AddRangeAsync(drAhmed, drSara, drKhaled);
     }
 
     private async Task SeedPatientsAsync()
     {
-        if (_context.Patients.Any()) return;
+        var mohamed = Patient.Register(
+            new PersonName("Mohamed", "Ali"),
+            new DateOnly(1985, 3, 15),
+            Gender.Male,
+            BloodType.APos,
+            "28503151234567",
+            new ContactInfo("01130000001", "mohamed.ali@demo.local"),
+            new Address("12 Tahrir St", "Cairo", "Cairo"),
+            MaritalStatus.Married);
+        SetEntityId(mohamed, PatientMohamedId);
+        mohamed.AddAllergy("Penicillin", MediQueue.Domain.Entities.AllergySeverity.Severe, "Severe allergic reaction");
+        mohamed.AddChronicCondition("Hypertension", new DateOnly(2020, 1, 1), "I10");
 
-        var patient1 = Patient.Register(
-            new PersonName("John", "Doe"),
-            new DateOnly(1985, 5, 20),
+        var fatma = Patient.Register(
+            new PersonName("Fatma", "Hassan"),
+            new DateOnly(1990, 7, 22),
+            Gender.Female,
+            BloodType.OPos,
+            "29007221234567",
+            new ContactInfo("01130000002", "fatma.hassan@demo.local"),
+            new Address("4 Nile Corniche", "Cairo", "Cairo"),
+            MaritalStatus.Married);
+        SetEntityId(fatma, PatientFatmaId);
+        fatma.AddChronicCondition("Type 2 Diabetes", new DateOnly(2019, 6, 1), "E11");
+
+        var omar = Patient.Register(
+            new PersonName("Omar", "Samir"),
+            new DateOnly(1978, 11, 8),
+            Gender.Male,
+            BloodType.BNeg,
+            "27811081234567",
+            new ContactInfo("01130000003", "omar.samir@demo.local"),
+            new Address("50 Zamalek Rd", "Cairo", "Cairo"),
+            MaritalStatus.Married);
+        SetEntityId(omar, PatientOmarId);
+
+        var nour = Patient.Register(
+            new PersonName("Nour", "Ahmed"),
+            new DateOnly(1995, 4, 30),
+            Gender.Female,
+            BloodType.ABPos,
+            "29504301234567",
+            new ContactInfo("01130000004", "nour.ahmed@demo.local"),
+            new Address("17 Gamal Abd El Nasser", "Alexandria", "Alexandria"),
+            MaritalStatus.Single);
+        SetEntityId(nour, PatientNourId);
+        nour.AddAllergy("Aspirin", MediQueue.Domain.Entities.AllergySeverity.Moderate, "Moderate skin rash");
+
+        var youssef = Patient.Register(
+            new PersonName("Youssef", "Kamal"),
+            new DateOnly(2010, 1, 20),
             Gender.Male,
             BloodType.OPos,
-            "28505201234567",
-            new ContactInfo("01234567890", "john.doe@email.com"),
-            new Address("123 Nile St", "Cairo", "Cairo"),
-            MaritalStatus.Married
-        );
-        typeof(BaseEntity).GetProperty("Id")?.SetValue(patient1, Patient1Id);
-        patient1.AddAllergy("Penicillin", MediQueue.Domain.Entities.AllergySeverity.Severe, "Anaphylaxis");
-        patient1.AddChronicCondition("Hypertension", diagnosedAt: new DateOnly(2020, 1, 1));
+            "31001201234567",
+            new ContactInfo("01130000005", "youssef.kamal@demo.local"),
+            new Address("9 El-Horreya", "Giza", "Giza"),
+            MaritalStatus.Single);
+        SetEntityId(youssef, PatientYoussefId);
 
-        var patient2 = Patient.Register(
-            new PersonName("Mariam", "Zaki"),
-            new DateOnly(1992, 10, 12),
-            Gender.Female,
-            BloodType.ANeg,
-            "29210121234568",
-            new ContactInfo("01556677889"),
-            new Address("45 Giza St", "Giza", "Giza"),
-            MaritalStatus.Single
-        );
-
-        var patient3 = Patient.Register(
-            new PersonName("Youssef", "Mansour"),
-            new DateOnly(1978, 3, 15),
-            Gender.Male,
-            BloodType.BPos,
-            "27803151234569",
-            new ContactInfo("01288990011"),
-            new Address("10 Maadi St", "Cairo", "Cairo"),
-            MaritalStatus.Divorced
-        );
-
-        await _context.Patients.AddRangeAsync(patient1, patient2, patient3);
+        await _context.Patients.AddRangeAsync(mohamed, fatma, omar, nour, youssef);
     }
 
     private async Task SeedAppointmentsAsync()
     {
-        if (_context.Appointments.Any()) return;
-
         var today = DateTime.UtcNow.Date;
-        
-        var appt1 = Appointment.Book(
-            Patient1Id,
+
+        var appointment1 = Appointment.Book(
+            PatientMohamedId,
             DoctorAhmedId,
             ClinicId,
             today.AddHours(10),
             30,
             AppointmentPriority.Routine,
             VisitType.Consultation,
-            "Regular heart checkup"
-        );
+            "Cardiology follow-up");
+        appointment1.Confirm();
+        appointment1.ClearDomainEvents();
 
-        var appt2 = Appointment.Book(
-            Patient1Id,
-            DoctorAhmedId,
+        var appointment2 = Appointment.Book(
+            PatientFatmaId,
+            DoctorSaraId,
             ClinicId,
-            DateTime.UtcNow.AddDays(1).Date.AddHours(14),
-            20,
-            AppointmentPriority.Urgent,
-            VisitType.FollowUp,
-            "Results review"
-        );
+            today.AddHours(11),
+            30,
+            AppointmentPriority.Routine,
+            VisitType.Consultation,
+            "Pediatric consultation");
+        appointment2.ClearDomainEvents();
 
-        await _context.Appointments.AddRangeAsync(appt1, appt2);
+        var appointment3 = Appointment.Book(
+            PatientOmarId,
+            DoctorKhaledId,
+            ClinicId,
+            today.AddDays(1).AddHours(9),
+            30,
+            AppointmentPriority.Routine,
+            VisitType.FollowUp,
+            "Orthopedic follow-up");
+        appointment3.ClearDomainEvents();
+
+        await _context.Appointments.AddRangeAsync(appointment1, appointment2, appointment3);
+    }
+
+    private static void SetEntityId(BaseEntity entity, Guid id)
+    {
+        typeof(BaseEntity).GetProperty(nameof(BaseEntity.Id))?.SetValue(entity, id);
     }
 }

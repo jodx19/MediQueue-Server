@@ -25,6 +25,21 @@ builder.Host.UseSerilog((ctx, cfg) =>
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
+// ── Hangfire (SQL Server storage) ─────────────────────────────────────────────
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(connectionString));
+
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = Environment.ProcessorCount * 2;
+});
+
 // ── Controllers ───────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -32,18 +47,17 @@ builder.Services.AddEndpointsApiExplorer();
 // ── Rate Limiting ─────────────────────────────────────────────────────────────
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddFixedWindowLimiter("FixedPolicy", opt =>
+    options.AddFixedWindowLimiter("global", opt =>
     {
         opt.Window = TimeSpan.FromMinutes(1);
         opt.PermitLimit = 100;
-        opt.QueueLimit = 10;
-        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
     });
 
-    options.AddFixedWindowLimiter("AuthPolicy", opt =>
+    options.AddFixedWindowLimiter("auth", opt =>
     {
         opt.Window = TimeSpan.FromMinutes(1);
-        opt.PermitLimit = 10;
+        opt.PermitLimit = 5;
         opt.QueueLimit = 0;
     });
 
@@ -156,15 +170,19 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // ── Health Checks — SQL Server + Redis + Hangfire ─────────────────────────────
-builder.Services.AddHealthChecks()
+var healthChecks = builder.Services.AddHealthChecks()
     .AddSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")!,
         name: "sqlserver",
-        tags: ["db", "sql"])
-    .AddRedis(
+        tags: ["db", "sql"]);
+
+if (!builder.Environment.IsDevelopment())
+{
+    healthChecks.AddRedis(
         builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379",
         name: "redis",
         tags: ["cache"]);
+}
     /*
     .AddHangfire(
         options => { options.MinimumAvailableServers = 1; },
@@ -172,21 +190,6 @@ builder.Services.AddHealthChecks()
         tags: ["jobs"]);
     */
 
-// ── Hangfire (SQL Server storage) ─────────────────────────────────────────────
-// ── Hangfire (SQL Server storage) ─────────────────────────────────────────────
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-
-builder.Services.AddHangfire(config => config
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings()
-    .UseSqlServerStorage(connectionString));
-
-builder.Services.AddHangfireServer(options =>
-{
-    options.WorkerCount = Environment.ProcessorCount * 2;
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
 var app = builder.Build();

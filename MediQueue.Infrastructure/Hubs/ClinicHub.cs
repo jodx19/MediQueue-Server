@@ -1,5 +1,6 @@
 // e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.Infrastructure\Hubs\ClinicHub.cs
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -84,9 +85,13 @@ public class ClinicHub : Hub
     /// </summary>
     public async Task JoinAdminGroup()
     {
-        const string groupName = "admin";
-        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-        _logger.LogDebug("Connection {ConnectionId} joined admin group", Context.ConnectionId);
+        var role = Context.User?.FindFirst(ClaimTypes.Role)?.Value;
+        if (string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            const string groupName = "admin";
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+            _logger.LogDebug("Connection {ConnectionId} joined admin group", Context.ConnectionId);
+        }
     }
 
     /// <summary>
@@ -106,4 +111,19 @@ public class ClinicHub : Hub
     {
         await Clients.Group(groupName).SendAsync(eventName, data);
     }
+
+    public async Task NotifyAppointmentConfirmed(Guid appointmentId, string patientName)
+        => await Clients.All.SendAsync("NotifyAppointmentConfirmed", appointmentId, patientName);
+
+    public async Task NotifyAppointmentCancelled(Guid appointmentId, string reason)
+        => await Clients.All.SendAsync("NotifyAppointmentCancelled", appointmentId, reason);
+
+    public async Task NotifyAppointmentRescheduled(Guid appointmentId, DateTime newDateTime)
+        => await Clients.All.SendAsync("NotifyAppointmentRescheduled", appointmentId, newDateTime);
+
+    public async Task NotifySlotUpdated(Guid doctorId, DateOnly date)
+        => await Clients.All.SendAsync("NotifySlotUpdated", doctorId, date.ToString("yyyy-MM-dd"));
+
+    public async Task NotifyPrescriptionReady(Guid patientId, Guid visitId)
+        => await Clients.Group($"patient:{patientId}").SendAsync("NotifyPrescriptionReady", patientId, visitId);
 }

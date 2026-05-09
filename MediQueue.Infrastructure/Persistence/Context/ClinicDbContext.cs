@@ -69,12 +69,12 @@ public class ClinicDbContext : DbContext
             if (entry.State == EntityState.Added)
             {
                 entry.Property(a => a.CreatedAt).CurrentValue = now;
-                entry.Property(a => a.CreatedBy).CurrentValue = _currentUserService.UserId ?? "System";
+                entry.Property(a => a.CreatedBy).CurrentValue = _currentUserService.UserId?.ToString() ?? "System";
             }
             else if (entry.State == EntityState.Modified)
             {
                 entry.Property(a => a.UpdatedAt).CurrentValue = now;
-                entry.Property(a => a.UpdatedBy).CurrentValue = _currentUserService.UserId ?? "System";
+                entry.Property(a => a.UpdatedBy).CurrentValue = _currentUserService.UserId?.ToString() ?? "System";
             }
         }
 

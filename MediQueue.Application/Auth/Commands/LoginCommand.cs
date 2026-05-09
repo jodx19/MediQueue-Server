@@ -11,7 +11,7 @@ namespace MediQueue.Application.Auth.Commands;
 
 public class LoginCommand : IRequest<Result<AuthResponseDto>>
 {
-    public string Username { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
 }
 
@@ -19,7 +19,7 @@ public class LoginCommandValidator : AbstractValidator<LoginCommand>
 {
     public LoginCommandValidator()
     {
-        RuleFor(x => x.Username).NotEmpty();
+        RuleFor(x => x.Email).NotEmpty().EmailAddress();
         RuleFor(x => x.Password).NotEmpty();
     }
 }
@@ -35,6 +35,6 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<AuthResp
 
     public async Task<Result<AuthResponseDto>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-        return await _authService.LoginAsync(new LoginRequestDto(request.Username, request.Password));
+        return await _authService.LoginAsync(new LoginRequestDto(request.Email, request.Password));
     }
 }

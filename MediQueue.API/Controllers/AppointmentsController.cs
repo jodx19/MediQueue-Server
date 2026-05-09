@@ -46,8 +46,8 @@ public class AppointmentsController : ControllerBase
 
     /// <summary>Get today's appointments (cached 1 min).</summary>
     [HttpGet("today")]
-    public async Task<IActionResult> GetToday(CancellationToken ct)
-        => Ok((await _sender.Send(new GetTodaysAppointmentsQuery(), ct)).Value);
+    public async Task<IActionResult> GetToday([FromQuery] Guid? doctorId, CancellationToken ct)
+        => Ok((await _sender.Send(new GetTodaysAppointmentsQuery { DoctorId = doctorId }, ct)).Value);
 
     /// <summary>Get upcoming appointments.</summary>
     [HttpGet("upcoming")]
@@ -66,38 +66,38 @@ public class AppointmentsController : ControllerBase
         => Ok((await _sender.Send(new GetPatientAppointmentsQuery(patientId, page, size), ct)).Value);
 
     /// <summary>Confirm a scheduled appointment.</summary>
-    [HttpPost("{id:guid}/confirm")]
+    [HttpPut("{id:guid}/confirm")]
     [Authorize(Policy = "AdminOnly")]
-    public async Task<IActionResult> Confirm(Guid id, CancellationToken ct)
+    public async Task<ActionResult<AppointmentDto>> Confirm(Guid id, CancellationToken ct)
     {
         var result = await _sender.Send(new ConfirmAppointmentCommand(id), ct);
-        return result.IsSuccess ? NoContent() : UnprocessableEntity(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : UnprocessableEntity(result.Error);
     }
 
     /// <summary>Check in the patient.</summary>
-    [HttpPost("{id:guid}/check-in")]
-    public async Task<IActionResult> CheckIn(Guid id, CancellationToken ct)
+    [HttpPut("{id:guid}/check-in")]
+    public async Task<ActionResult<AppointmentDto>> CheckIn(Guid id, CancellationToken ct)
     {
         var result = await _sender.Send(new CheckInAppointmentCommand(id), ct);
-        return result.IsSuccess ? NoContent() : UnprocessableEntity(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : UnprocessableEntity(result.Error);
     }
 
     /// <summary>Start the appointment (doctor begins).</summary>
-    [HttpPost("{id:guid}/start")]
+    [HttpPut("{id:guid}/start")]
     [Authorize(Policy = "DoctorOnly")]
-    public async Task<IActionResult> Start(Guid id, CancellationToken ct)
+    public async Task<ActionResult<AppointmentDto>> Start(Guid id, CancellationToken ct)
     {
         var result = await _sender.Send(new StartAppointmentCommand(id), ct);
-        return result.IsSuccess ? NoContent() : UnprocessableEntity(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : UnprocessableEntity(result.Error);
     }
 
     /// <summary>Complete the appointment.</summary>
-    [HttpPost("{id:guid}/complete")]
+    [HttpPut("{id:guid}/complete")]
     [Authorize(Policy = "DoctorOnly")]
-    public async Task<IActionResult> Complete(Guid id, CancellationToken ct)
+    public async Task<ActionResult<AppointmentDto>> Complete(Guid id, CancellationToken ct)
     {
         var result = await _sender.Send(new CompleteAppointmentCommand(id), ct);
-        return result.IsSuccess ? NoContent() : UnprocessableEntity(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : UnprocessableEntity(result.Error);
     }
 
     /// <summary>Cancel the appointment.</summary>
@@ -119,10 +119,10 @@ public class AppointmentsController : ControllerBase
     }
 
     /// <summary>Mark patient as no-show.</summary>
-    [HttpPost("{id:guid}/no-show")]
-    public async Task<IActionResult> MarkNoShow(Guid id, CancellationToken ct)
+    [HttpPut("{id:guid}/no-show")]
+    public async Task<ActionResult<AppointmentDto>> MarkNoShow(Guid id, CancellationToken ct)
     {
         var result = await _sender.Send(new MarkNoShowCommand(id), ct);
-        return result.IsSuccess ? NoContent() : UnprocessableEntity(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : UnprocessableEntity(result.Error);
     }
 }
