@@ -2,15 +2,17 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
 using FluentValidation;
 using MediatR;
+using MediQueue.Application.Appointments.DTOs;
 using MediQueue.Application.Common;
 using MediQueue.Domain.Exceptions;
 using MediQueue.Domain.Interfaces;
 
 namespace MediQueue.Application.Appointments.Commands;
 
-public record CompleteAppointmentCommand(Guid AppointmentId) : ICommand;
+public record CompleteAppointmentCommand(Guid AppointmentId) : ICommand<AppointmentDto>;
 
 public class CompleteAppointmentCommandValidator : AbstractValidator<CompleteAppointmentCommand>
 {
@@ -20,23 +22,25 @@ public class CompleteAppointmentCommandValidator : AbstractValidator<CompleteApp
     }
 }
 
-public class CompleteAppointmentCommandHandler : IRequestHandler<CompleteAppointmentCommand, Result>
+public class CompleteAppointmentCommandHandler : IRequestHandler<CompleteAppointmentCommand, Result<AppointmentDto>>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
 
-    public CompleteAppointmentCommandHandler(IUnitOfWork unitOfWork)
+    public CompleteAppointmentCommandHandler(IUnitOfWork unitOfWork, IMapper mapper)
     {
         _unitOfWork = unitOfWork;
+        _mapper = mapper;
     }
 
-    public async Task<Result> Handle(CompleteAppointmentCommand request, CancellationToken cancellationToken)
+    public async Task<Result<AppointmentDto>> Handle(CompleteAppointmentCommand request, CancellationToken cancellationToken)
     {
         try
         {
             var appointment = await _unitOfWork.Appointments.GetByIdAsync(request.AppointmentId);
             if (appointment == null)
             {
-                return Result.Failure($"Appointment with ID '{request.AppointmentId}' was not found.");
+                return Result<AppointmentDto>.Failure($"Appointment with ID '{request.AppointmentId}' was not found.");
             }
 
             appointment.Complete();
@@ -44,11 +48,11 @@ public class CompleteAppointmentCommandHandler : IRequestHandler<CompleteAppoint
             await _unitOfWork.Appointments.UpdateAsync(appointment);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            return Result.Success();
+            return Result<AppointmentDto>.Success(_mapper.Map<AppointmentDto>(appointment));
         }
         catch (DomainException ex)
         {
-            return Result.Failure(ex.Message);
+            return Result<AppointmentDto>.Failure(ex.Message);
         }
     }
 }

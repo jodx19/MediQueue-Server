@@ -4,7 +4,7 @@ using MediQueue.Domain.Entities;
 
 namespace MediQueue.Application.Auth.DTOs;
 
-public record LoginRequestDto(string Username, string Password);
+public record LoginRequestDto(string Email, string Password);
 
 public record RegisterRequestDto(
     string Username, 

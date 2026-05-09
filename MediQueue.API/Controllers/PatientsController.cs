@@ -23,6 +23,18 @@ public class PatientsController : ControllerBase
     private readonly ISender _sender;
     public PatientsController(ISender sender) => _sender = sender;
 
+    /// <summary>Get all patients (paginated).</summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<PatientSummaryDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<PatientSummaryDto>>> GetAll(
+        [FromQuery] int page = 1,
+        [FromQuery] int size = 20,
+        CancellationToken ct = default)
+    {
+        var result = await _sender.Send(new SearchPatientsQuery(string.Empty, page, size), ct);
+        return Ok(result.Value);
+    }
+
     /// <summary>Register a new patient.</summary>
     [HttpPost]
     [Authorize(Policy = "AdminOnly")]

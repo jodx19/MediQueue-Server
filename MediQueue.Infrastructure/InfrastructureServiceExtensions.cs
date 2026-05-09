@@ -26,9 +26,9 @@ public static class InfrastructureServiceExtensions
         services.Configure<MediQueue.Infrastructure.Persistence.Settings.SeedingSettings>(
             configuration.GetSection("SeedingSettings"));
 
-        // 1. DbContext — uses ClinicDbContext (the correct, clean-architecture context)
+        // 1. DbContext
         var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found in configuration.");
 
         services.AddDbContext<ClinicDbContext>(options =>
             options.UseSqlServer(connectionString, sql =>
@@ -48,6 +48,7 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IEmailService, EmailNotificationService>();
         services.AddScoped<ISmsService, ConsoleSmsService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITokenService, Services.TokenService>();
         services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
         services.AddScoped<IRealtimeService, SignalRRealtimeService>();
         services.AddScoped<ISchedulerService, HangfireSchedulerService>();
@@ -60,9 +61,7 @@ public static class InfrastructureServiceExtensions
         // 4. Auth & Context
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, MediQueue.Infrastructure.Services.CurrentUserService>();
-        services.AddScoped<ITokenService, MediQueue.Infrastructure.Services.TokenService>();
-
-        // 5. SignalR
+        // 6. SignalR
         services.AddSignalR();
 
         // 5. Redis — StackExchange client (for prefix-scan) + distributed cache

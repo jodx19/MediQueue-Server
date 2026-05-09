@@ -34,4 +34,23 @@ public class SignalRRealtimeService : IRealtimeService
     {
         await _hubContext.Clients.All.SendAsync(eventName, data);
     }
+
+    public async Task NotifySlotUpdatedAsync(Guid doctorId, DateOnly date)
+    {
+        await _hubContext.Clients.Group($"doctor:{doctorId}")
+            .SendAsync("NotifySlotUpdated", doctorId, date.ToString("yyyy-MM-dd"));
+        await _hubContext.Clients.Group("admin")
+            .SendAsync("NotifySlotUpdated", doctorId, date.ToString("yyyy-MM-dd"));
+    }
+
+    public async Task NotifyPrescriptionReadyAsync(Guid patientId, Guid visitId)
+    {
+        await _hubContext.Clients.Group($"patient:{patientId}")
+            .SendAsync("NotifyPrescriptionReady", patientId, visitId);
+    }
+
+    public async Task NotifyAppointmentCancelledAsync(Guid appointmentId, string reason)
+    {
+        await _hubContext.Clients.All.SendAsync("NotifyAppointmentCancelled", appointmentId, reason);
+    }
 }

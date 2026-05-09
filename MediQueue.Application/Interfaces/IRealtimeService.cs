@@ -13,4 +13,7 @@ public interface IRealtimeService
     Task SendToDoctorAsync(Guid doctorId, string eventName, object data);
     Task SendToGroupAsync(string groupName, string eventName, object data);
     Task BroadcastAsync(string eventName, object data);
+    Task NotifySlotUpdatedAsync(Guid doctorId, DateOnly date);
+    Task NotifyPrescriptionReadyAsync(Guid patientId, Guid visitId);
+    Task NotifyAppointmentCancelledAsync(Guid appointmentId, string reason);
 }

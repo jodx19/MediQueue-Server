@@ -14,29 +14,21 @@ public class CurrentUserService : ICurrentUserService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public string? UserId => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-    
-    public string? Username => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Name);
-    
+    public Guid? UserId
+    {
+        get
+        {
+            var claim = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            return Guid.TryParse(claim, out var id) ? id : null;
+        }
+    }
+
+    public string? Email => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Email)
+        ?? _httpContextAccessor.HttpContext?.User?.FindFirstValue("Email");
+
     public string? Role => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Role);
-    
+
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
 
-    public Guid? DoctorId 
-    {
-        get
-        {
-            var claim = _httpContextAccessor.HttpContext?.User?.FindFirstValue("DoctorId");
-            return Guid.TryParse(claim, out var guid) ? guid : null;
-        }
-    }
-
-    public Guid? PatientId 
-    {
-        get
-        {
-            var claim = _httpContextAccessor.HttpContext?.User?.FindFirstValue("PatientId");
-            return Guid.TryParse(claim, out var guid) ? guid : null;
-        }
-    }
+    public bool IsInRole(string role) => _httpContextAccessor.HttpContext?.User?.IsInRole(role) ?? false;
 }
