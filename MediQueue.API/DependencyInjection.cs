@@ -1,0 +1,87 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.OpenApi.Models;
+using MediQueue.Application.Interfaces;
+
+namespace MediQueue.API;
+
+/// <summary>
+/// Extension methods that register all Presentation-layer (API) services.
+/// Called once from the Composition Root (Program.cs).
+/// Does NOT reference SQL, EF Core, Redis, or Hangfire — those are Infrastructure concerns.
+/// </summary>
+public static class DependencyInjection
+{
+    public static IServiceCollection AddApiServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        // 1. Controllers — thin layer, no business logic
+        services.AddControllers();
+        services.AddEndpointsApiExplorer();
+
+        // 2. Swagger / OpenAPI
+        services.AddSwaggerGen(options =>
+        {
+            options.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title       = "MediQueue EMR API",
+                Version     = "v1",
+                Description = "RESTful API for MediQueue Electronic Medical Records System",
+                Contact     = new OpenApiContact
+                {
+                    Name = "MediQueue Team"
+                }
+            });
+
+            // JWT Bearer authentication support in Swagger UI
+            var jwtScheme = new OpenApiSecurityScheme
+            {
+                BearerFormat = "JWT",
+                Name         = "Authorization",
+                In           = ParameterLocation.Header,
+                Type         = SecuritySchemeType.ApiKey,
+                Scheme       = "Bearer",
+                Description  = "Enter: Bearer {your JWT token}",
+                Reference    = new OpenApiReference
+                {
+                    Id   = "Bearer",
+                    Type = ReferenceType.SecurityScheme
+                }
+            };
+            options.AddSecurityDefinition("Bearer", jwtScheme);
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                { jwtScheme, Array.Empty<string>() }
+            });
+
+            // Fix for schema ID conflicts (e.g., RevenueReportDto in different namespaces)
+            options.CustomSchemaIds(type => type.FullName?.Replace("+", "."));
+        });
+
+        // 3. CORS — configured from appsettings, not hardcoded
+        var allowedOrigin = configuration["Cors:AllowedOrigin"] ?? "http://localhost:4200";
+        services.AddCors(opts =>
+        {
+            opts.AddDefaultPolicy(policy => policy
+                .WithOrigins(allowedOrigin)
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials());
+        });
+
+        // 4. Real-time (SignalR)
+        services.AddSignalR();
+
+        // 5. HTTP context accessor (required by CurrentUserService)
+        services.AddHttpContextAccessor();
+
+        // 6. Register presentation-layer service implementations
+        //    These implement Application interfaces but live in the API project
+        //    because they depend on ASP.NET Core HTTP / SignalR infrastructure.
+        services.AddScoped<ICurrentUserService, Services.CurrentUserService>();
+        services.AddScoped<IRealtimeService,    Services.SignalRRealtimeService>();
+
+        return services;
+    }
+}
