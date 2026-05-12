@@ -1,0 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --mq-navy: #0F172A;
+    --mq-navy-800: #1E293B;
+    --mq-navy-700: #334155;
+    --mq-teal: #0D9488;
+    --mq-teal-400: #2DD4BF;
+    --mq-teal-900: #042F2E;
+    --mq-slate: #F8FAFC;
+    --mq-slate-200: #E2E8F0;
+    --mq-slate-600: #475569;
+  }
+
+  body {
+    @apply font-sans bg-[var(--mq-slate)] text-[var(--mq-navy)];
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--mq-navy-800);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--mq-teal);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--mq-teal-400);
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(13, 148, 136, 0.2);
+    border-radius: 20px;
+  }
+
+  .glass-light {
+    background: rgba(248, 250, 252, 0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 16px;
+  }
+
+  .btn-neon {
+    padding: 14px 32px;
+    border-radius: 12px;
+    background: transparent;
+    border: 1.5px solid #0D9488;
+    color: #2DD4BF;
+    font-size: 15px;
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+    transition: color 300ms ease;
+    z-index: 1;
+  }
+
+  .btn-neon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #0D9488, #0F766E);
+    transform: translateX(-101%);
+    transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: -1;
+  }
+
+  .btn-neon:hover::before {
+    transform: translateX(0);
+  }
+
+  .btn-neon:hover {
+    color: #fff;
+  }
+
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: auto;
+    gap: 16px;
+  }
+
+  .bento-wide { grid-column: span 8; }
+  .bento-narrow { grid-column: span 4; }
+  .bento-half { grid-column: span 6; }
+  .bento-third { grid-column: span 4; }
+  .bento-full { grid-column: span 12; }
+
+  .mq-card {
+    transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 250ms ease;
+  }
+
+  .mq-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 60px rgba(13, 148, 136, 0.15);
+  }
+
+  .flip-container {
+    perspective: 1000px;
+  }
+
+  .flip-card {
+    transform-style: preserve-3d;
+    transition: transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 200px;
+  }
+
+  .flip-card:hover {
+    transform: rotateY(180deg);
+  }
+
+  .flip-front, .flip-back {
+    backface-visibility: hidden;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .flip-back {
+    transform: rotateY(180deg);
+  }
+
+  .ticker-track {
+    display: flex;
+    width: max-content;
+    animation: ticker 20s linear infinite;
+  }
+
+  .ticker-track:hover {
+    animation-play-state: paused;
+  }
+
+  [scrollReveal] {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 600ms cubic-bezier(0.4, 0, 0.2, 1), transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  [scrollReveal].revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

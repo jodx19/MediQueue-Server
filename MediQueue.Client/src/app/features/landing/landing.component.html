@@ -1,0 +1,486 @@
+<div class="min-h-screen bg-[var(--mq-navy)] text-white overflow-x-hidden font-sans" @pageEnter>
+  <!-- NAVBAR -->
+  <nav [class.bg-opacity-90]="scrolled()" [class.backdrop-blur-md]="scrolled()" [class.shadow-teal-glow]="scrolled()" class="fixed top-0 w-full z-50 transition-all duration-300 py-4 px-6 md:px-12 flex justify-between items-center glass-card border-x-0 border-t-0 rounded-none">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--mq-teal)] to-[var(--mq-teal-900)] flex items-center justify-center text-white font-bold text-xl">MQ</div>
+      <span class="text-xl font-bold tracking-tight">MediQueue</span>
+    </div>
+    <div class="hidden md:flex items-center gap-8">
+      <a href="#features" class="text-sm font-medium text-[var(--mq-slate-200)] hover:text-white transition-colors">Features</a>
+      <a href="#pricing" class="text-sm font-medium text-[var(--mq-slate-200)] hover:text-white transition-colors">Pricing</a>
+      <a href="#about" class="text-sm font-medium text-[var(--mq-slate-200)] hover:text-white transition-colors">About</a>
+    </div>
+    <div class="hidden md:flex items-center gap-4">
+      <button class="text-sm font-medium text-white hover:text-[var(--mq-teal-400)] transition-colors">Book Appointment</button>
+      <button class="btn-neon" routerLink="/dashboard">Staff Login</button>
+    </div>
+    <button class="md:hidden text-white" (click)="toggleMobileMenu()">
+      <lucide-icon [name]="mobileMenuOpen() ? 'X' : 'Menu'"></lucide-icon>
+    </button>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div *ngIf="mobileMenuOpen()" class="fixed inset-0 z-40 bg-[var(--mq-navy)] pt-24 px-6 flex flex-col gap-6 md:hidden">
+    <a href="#features" class="text-xl font-medium" (click)="toggleMobileMenu()">Features</a>
+    <a href="#pricing" class="text-xl font-medium" (click)="toggleMobileMenu()">Pricing</a>
+    <a href="#about" class="text-xl font-medium" (click)="toggleMobileMenu()">About</a>
+    <div class="flex flex-col gap-4 mt-8">
+      <button class="py-3 text-center border border-[var(--mq-slate-600)] rounded-xl">Book Appointment</button>
+      <button class="btn-neon text-center" routerLink="/dashboard">Staff Login</button>
+    </div>
+  </div>
+
+  <!-- SECTION 1: HERO -->
+  <section class="pt-32 pb-20 md:pt-48 md:pb-32 px-6 md:px-12 relative">
+    <!-- SVG Grid Background -->
+    <div class="absolute inset-0 z-0 opacity-20" style="background-image: linear-gradient(rgba(13,148,136,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(13,148,136,0.1) 1px, transparent 1px); background-size: 40px 40px;"></div>
+    <!-- Glowing Orbs -->
+    <div class="absolute top-20 left-1/4 w-64 h-64 bg-[var(--mq-teal)] rounded-full blur-[120px] opacity-20 z-0"></div>
+    <div class="absolute bottom-10 right-1/4 w-80 h-80 bg-[var(--mq-teal-900)] rounded-full blur-[100px] opacity-40 z-0"></div>
+    <div class="absolute top-1/2 left-1/2 w-48 h-48 bg-[var(--mq-teal-400)] rounded-full blur-[150px] opacity-10 z-0"></div>
+
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 relative z-10">
+      <!-- Left Content -->
+      <div class="flex-1 text-center md:text-left">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border-[var(--mq-teal)]/30 mb-8">
+          <div class="w-2 h-2 rounded-full bg-[var(--mq-teal-400)] animate-pulse-dot"></div>
+          <span class="text-xs font-medium tracking-wide uppercase text-[var(--mq-teal-400)]">Live — 247 patients served today</span>
+        </div>
+        
+        <h1 class="text-5xl md:text-[64px] font-bold leading-[1.05] tracking-tight mb-6" [@list]>
+          <span class="block">Healthcare OS</span>
+          <span class="block">Built for the</span>
+          <span class="block text-[var(--mq-teal)]">Modern Clinic</span>
+        </h1>
+        
+        <p class="text-lg md:text-xl text-[var(--mq-slate-400)] mb-10 max-w-xl mx-auto md:mx-0 leading-relaxed">
+          The all-in-one platform connecting doctors, patients, and admins with real-time intelligence and seamless workflows.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 mb-10">
+          <button class="btn-neon w-full sm:w-auto">Book Appointment <lucide-icon name="ArrowRight" class="inline w-4 h-4 ml-2"></lucide-icon></button>
+          <button class="px-6 py-3 rounded-xl border border-[var(--mq-slate-600)] hover:bg-[var(--mq-slate-800)] transition-colors flex items-center gap-2 w-full sm:w-auto justify-center">
+            <lucide-icon name="Play" class="w-4 h-4"></lucide-icon> Watch Demo
+          </button>
+        </div>
+        
+        <div class="text-sm text-[var(--mq-slate-400)] flex items-center justify-center md:justify-start gap-2">
+          <span>Trusted by 50+ clinics</span>
+          <span class="w-1 h-1 rounded-full bg-[var(--mq-slate-600)]"></span>
+          <span>12,000+ patients</span>
+          <span class="w-1 h-1 rounded-full bg-[var(--mq-slate-600)]"></span>
+          <span class="text-yellow-400">4.9★</span>
+        </div>
+      </div>
+
+      <!-- Right Floating Dashboard -->
+      <div class="flex-1 hidden md:block relative animate-float">
+        <div class="glass-card p-6 w-full max-w-lg mx-auto shadow-2xl relative z-10 border-[var(--mq-teal)]/30">
+          <div class="flex justify-between items-center mb-6">
+            <div class="text-sm font-semibold text-[var(--mq-slate-200)]">MediQueue OS v2</div>
+            <div class="flex gap-1.5">
+              <div class="w-3 h-3 rounded-full bg-red-500"></div>
+              <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div class="w-3 h-3 rounded-full bg-green-500"></div>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-3 gap-3 mb-6">
+            <div class="bg-[var(--mq-navy-800)] rounded-lg p-3 text-center border border-[var(--mq-navy-700)]">
+              <div class="text-xs text-[var(--mq-slate-400)] mb-1">Patients Today</div>
+              <div class="text-lg font-bold text-white">124</div>
+            </div>
+            <div class="bg-[var(--mq-navy-800)] rounded-lg p-3 text-center border border-[var(--mq-navy-700)]">
+              <div class="text-xs text-[var(--mq-slate-400)] mb-1">Revenue</div>
+              <div class="text-lg font-bold text-[var(--mq-teal-400)]">EGP 14K</div>
+            </div>
+            <div class="bg-[var(--mq-navy-800)] rounded-lg p-3 text-center border border-[var(--mq-navy-700)]">
+              <div class="text-xs text-[var(--mq-slate-400)] mb-1">Active Staff</div>
+              <div class="text-lg font-bold text-white">12</div>
+            </div>
+          </div>
+
+          <div class="space-y-3 mb-6">
+            <div class="flex items-center justify-between p-3 bg-[var(--mq-navy-800)] rounded-lg border border-[var(--mq-navy-700)]">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs font-bold">AS</div>
+                <div class="text-sm">Ahmed Samy</div>
+              </div>
+              <div class="text-xs px-2 py-1 bg-green-500/20 text-green-400 rounded-full">In Visit</div>
+            </div>
+            <div class="flex items-center justify-between p-3 bg-[var(--mq-navy-800)] rounded-lg border border-[var(--mq-navy-700)]">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs font-bold">SM</div>
+                <div class="text-sm">Sara Magdy</div>
+              </div>
+              <div class="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full">Waiting</div>
+            </div>
+          </div>
+
+          <div class="h-16 w-full bg-[var(--mq-navy-800)] rounded-lg border border-[var(--mq-navy-700)] flex items-end p-2 gap-1">
+             <div class="w-1/6 bg-[var(--mq-teal)]/20 h-[30%] rounded-t"></div>
+             <div class="w-1/6 bg-[var(--mq-teal)]/40 h-[50%] rounded-t"></div>
+             <div class="w-1/6 bg-[var(--mq-teal)]/60 h-[40%] rounded-t"></div>
+             <div class="w-1/6 bg-[var(--mq-teal)]/80 h-[70%] rounded-t"></div>
+             <div class="w-1/6 bg-[var(--mq-teal)] h-[60%] rounded-t"></div>
+             <div class="w-1/6 bg-[var(--mq-teal-400)] h-[90%] rounded-t"></div>
+          </div>
+        </div>
+
+        <!-- Floating Pills -->
+        <div class="absolute -top-4 -left-8 px-4 py-2 glass-card rounded-full text-xs font-bold flex items-center gap-2 border-[var(--mq-teal)]/40 animate-[float_5s_ease-in-out_infinite]" style="animation-delay: 0s;">
+          ❤️ 98 bpm
+        </div>
+        <div class="absolute top-1/4 -right-12 px-4 py-2 glass-card rounded-full text-xs font-bold flex items-center gap-2 border-[var(--mq-teal)]/40 animate-[float_6s_ease-in-out_infinite]" style="animation-delay: 1.5s;">
+          🩺 Dr. Ahmed
+        </div>
+        <div class="absolute bottom-1/4 -left-12 px-4 py-2 glass-card rounded-full text-xs font-bold flex items-center gap-2 border-[var(--mq-teal)]/40 animate-[float_5.5s_ease-in-out_infinite]" style="animation-delay: 3s;">
+          💊 Rx Ready
+        </div>
+        <div class="absolute -bottom-6 right-0 px-4 py-2 glass-card rounded-full text-xs font-bold flex items-center gap-2 border-[var(--mq-teal)]/40 animate-[float_4.5s_ease-in-out_infinite]" style="animation-delay: 4.5s;">
+          📊 Revenue ↑12%
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: LIVE PULSE TICKER -->
+  <div class="bg-[var(--mq-navy-800)] border-y border-[var(--mq-navy-700)] py-4 overflow-hidden">
+    <div class="ticker-track text-sm font-medium tracking-wide">
+      <div class="flex items-center gap-12 px-6" *ngFor="let i of [1,2]">
+        <span class="text-[var(--mq-teal-400)] flex items-center gap-2">✦ <span class="text-white">247 Patients Today</span></span>
+        <span class="text-[var(--mq-teal-400)] flex items-center gap-2">✦ <span class="text-white">98% Satisfaction</span></span>
+        <span class="text-[var(--mq-teal-400)] flex items-center gap-2">✦ <span class="text-white">12 Active Doctors</span></span>
+        <span class="text-[var(--mq-teal-400)] flex items-center gap-2">✦ <span class="text-white">3 min Avg Wait</span></span>
+        <span class="text-[var(--mq-teal-400)] flex items-center gap-2">✦ <span class="text-white">EGP 84,200 Revenue</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: THE PULSE FLOW -->
+  <section class="py-24 px-6 md:px-12 max-w-7xl mx-auto" scrollReveal>
+    <div class="text-center mb-16">
+      <h2 class="text-3xl md:text-[40px] font-semibold tracking-tight mb-4">How Care Flows</h2>
+      <p class="text-[var(--mq-slate-400)] max-w-2xl mx-auto">A seamless journey from booking to billing, fully automated.</p>
+    </div>
+
+    <div class="flex flex-col md:flex-row items-center justify-between gap-8 relative">
+      <!-- Connector Line (Desktop) -->
+      <div class="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-[var(--mq-navy-700)] -z-10 transform -translate-y-1/2">
+        <div class="h-full bg-[var(--mq-teal)] w-full origin-left animate-[reveal_1.5s_ease-out_forwards]"></div>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="glass-card p-8 flex-1 w-full text-center relative mq-card border-[var(--mq-teal)]/20">
+        <div class="w-16 h-16 mx-auto bg-[var(--mq-navy-800)] border border-[var(--mq-navy-700)] rounded-2xl flex items-center justify-center mb-6 text-[var(--mq-teal-400)]">
+          <lucide-icon name="CalendarPlus" class="w-8 h-8"></lucide-icon>
+        </div>
+        <h3 class="text-xl font-bold mb-2">Patient Books</h3>
+        <p class="text-[var(--mq-slate-400)] text-sm mb-6">Self-service booking with smart slot prediction.</p>
+        <div class="bg-[var(--mq-navy-800)] p-3 rounded-lg text-xs text-left border border-[var(--mq-navy-700)] text-[var(--mq-slate-200)]">
+          <div class="flex justify-between mb-2"><span>Tomorrow, 10:00 AM</span> <span class="text-[var(--mq-teal-400)]">Confirmed</span></div>
+          <div class="font-bold">General Checkup</div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="glass-card p-8 flex-1 w-full text-center relative mq-card border-[var(--mq-teal)]/20">
+        <div class="w-16 h-16 mx-auto bg-[var(--mq-navy-800)] border border-[var(--mq-navy-700)] rounded-2xl flex items-center justify-center mb-6 text-[var(--mq-teal-400)]">
+          <lucide-icon name="Stethoscope" class="w-8 h-8"></lucide-icon>
+        </div>
+        <h3 class="text-xl font-bold mb-2">Doctor Visits</h3>
+        <p class="text-[var(--mq-slate-400)] text-sm mb-6">Comprehensive SOAP notes and e-prescriptions.</p>
+        <div class="bg-[var(--mq-navy-800)] p-3 rounded-lg text-xs text-left border border-[var(--mq-navy-700)] text-[var(--mq-slate-200)]">
+          <div class="text-[var(--mq-teal-400)] mb-1">SOAP Note Saved</div>
+          <div class="text-gray-400">Rx: Amoxicillin 500mg</div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="glass-card p-8 flex-1 w-full text-center relative mq-card border-[var(--mq-teal)]/20">
+        <div class="w-16 h-16 mx-auto bg-[var(--mq-navy-800)] border border-[var(--mq-navy-700)] rounded-2xl flex items-center justify-center mb-6 text-[var(--mq-teal-400)]">
+          <lucide-icon name="Receipt" class="w-8 h-8"></lucide-icon>
+        </div>
+        <h3 class="text-xl font-bold mb-2">Invoice Created</h3>
+        <p class="text-[var(--mq-slate-400)] text-sm mb-6">Auto-generated billing ready for checkout.</p>
+        <div class="bg-[var(--mq-navy-800)] p-3 rounded-lg text-xs text-left border border-[var(--mq-navy-700)] text-[var(--mq-slate-200)]">
+          <div class="flex justify-between mb-1"><span>Total</span> <span>EGP 450</span></div>
+          <button class="w-full bg-[var(--mq-teal)] text-white py-1 rounded mt-1">Pay Now</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: FEATURE SHOWCASE (Flip Cards) -->
+  <section class="py-24 px-6 md:px-12 bg-[var(--mq-navy-800)] relative" id="features" scrollReveal>
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-[40px] font-semibold tracking-tight mb-4">Designed for Every Role</h2>
+        <p class="text-[var(--mq-slate-400)] max-w-2xl mx-auto">Powerful tools customized for exactly what you need to do.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        
+        <!-- Card 1 -->
+        <div class="flip-container h-64 cursor-pointer">
+          <div class="flip-card">
+            <div class="flip-front glass-card p-8 flex flex-col items-center justify-center text-center">
+              <lucide-icon name="Users" class="w-12 h-12 text-[var(--mq-teal-400)] mb-4"></lucide-icon>
+              <h3 class="text-xl font-bold mb-2">Smart Queue</h3>
+              <p class="text-[var(--mq-slate-400)] text-sm">Real-time queue management</p>
+            </div>
+            <div class="flip-back glass-card p-8 flex flex-col justify-center items-center text-center bg-gradient-to-br from-[var(--mq-navy)] to-[var(--mq-navy-800)] border-[var(--mq-teal)]">
+              <p class="text-sm text-[var(--mq-slate-200)] mb-6 leading-relaxed">Live SignalR updates · Auto-priority · Wait time prediction for enhanced patient satisfaction.</p>
+              <button class="text-[var(--mq-teal-400)] font-semibold text-sm hover:text-white transition-colors">Learn More &rarr;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="flip-container h-64 cursor-pointer">
+          <div class="flip-card">
+            <div class="flip-front glass-card p-8 flex flex-col items-center justify-center text-center">
+              <lucide-icon name="FileText" class="w-12 h-12 text-[var(--mq-teal-400)] mb-4"></lucide-icon>
+              <h3 class="text-xl font-bold mb-2">Clinical EMR</h3>
+              <p class="text-[var(--mq-slate-400)] text-sm">Full SOAP documentation</p>
+            </div>
+            <div class="flip-back glass-card p-8 flex flex-col justify-center items-center text-center bg-gradient-to-br from-[var(--mq-navy)] to-[var(--mq-navy-800)] border-[var(--mq-teal)]">
+              <p class="text-sm text-[var(--mq-slate-200)] mb-6 leading-relaxed">Vitals · Diagnoses · Prescriptions · Lab Requests · Attachments all in one fluid interface.</p>
+              <button class="text-[var(--mq-teal-400)] font-semibold text-sm hover:text-white transition-colors">Learn More &rarr;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="flip-container h-64 cursor-pointer">
+          <div class="flip-card">
+            <div class="flip-front glass-card p-8 flex flex-col items-center justify-center text-center">
+              <lucide-icon name="DollarSign" class="w-12 h-12 text-[var(--mq-teal-400)] mb-4"></lucide-icon>
+              <h3 class="text-xl font-bold mb-2">Instant Billing</h3>
+              <p class="text-[var(--mq-slate-400)] text-sm">One-click invoicing</p>
+            </div>
+            <div class="flip-back glass-card p-8 flex flex-col justify-center items-center text-center bg-gradient-to-br from-[var(--mq-navy)] to-[var(--mq-navy-800)] border-[var(--mq-teal)]">
+              <p class="text-sm text-[var(--mq-slate-200)] mb-6 leading-relaxed">Auto-generated from visits · Discounts · Multi-payment methods seamlessly integrated.</p>
+              <button class="text-[var(--mq-teal-400)] font-semibold text-sm hover:text-white transition-colors">Learn More &rarr;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="flip-container h-64 cursor-pointer">
+          <div class="flip-card">
+            <div class="flip-front glass-card p-8 flex flex-col items-center justify-center text-center">
+              <lucide-icon name="Shield" class="w-12 h-12 text-[var(--mq-teal-400)] mb-4"></lucide-icon>
+              <h3 class="text-xl font-bold mb-2">Role Access</h3>
+              <p class="text-[var(--mq-slate-400)] text-sm">3 specialized portals</p>
+            </div>
+            <div class="flip-back glass-card p-8 flex flex-col justify-center items-center text-center bg-gradient-to-br from-[var(--mq-navy)] to-[var(--mq-navy-800)] border-[var(--mq-teal)]">
+              <p class="text-sm text-[var(--mq-slate-200)] mb-6 leading-relaxed">Admin · Doctor · Receptionist — each sees only what they need with strict JWT security.</p>
+              <button class="text-[var(--mq-teal-400)] font-semibold text-sm hover:text-white transition-colors">Learn More &rarr;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="flip-container h-64 cursor-pointer">
+          <div class="flip-card">
+            <div class="flip-front glass-card p-8 flex flex-col items-center justify-center text-center">
+              <lucide-icon name="ActivitySquare" class="w-12 h-12 text-[var(--mq-teal-400)] mb-4"></lucide-icon>
+              <h3 class="text-xl font-bold mb-2">Analytics</h3>
+              <p class="text-[var(--mq-slate-400)] text-sm">Revenue intelligence</p>
+            </div>
+            <div class="flip-back glass-card p-8 flex flex-col justify-center items-center text-center bg-gradient-to-br from-[var(--mq-navy)] to-[var(--mq-navy-800)] border-[var(--mq-teal)]">
+              <p class="text-sm text-[var(--mq-slate-200)] mb-6 leading-relaxed">Daily/weekly/monthly charts · Export · Trend analysis to optimize clinic performance.</p>
+              <button class="text-[var(--mq-teal-400)] font-semibold text-sm hover:text-white transition-colors">Learn More &rarr;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="flip-container h-64 cursor-pointer">
+          <div class="flip-card">
+            <div class="flip-front glass-card p-8 flex flex-col items-center justify-center text-center">
+              <lucide-icon name="HeartPulse" class="w-12 h-12 text-[var(--mq-teal-400)] mb-4"></lucide-icon>
+              <h3 class="text-xl font-bold mb-2">Secure Records</h3>
+              <p class="text-[var(--mq-slate-400)] text-sm">Patient-first privacy</p>
+            </div>
+            <div class="flip-back glass-card p-8 flex flex-col justify-center items-center text-center bg-gradient-to-br from-[var(--mq-navy)] to-[var(--mq-navy-800)] border-[var(--mq-teal)]">
+              <p class="text-sm text-[var(--mq-slate-200)] mb-6 leading-relaxed">JWT encrypted · Role-gated · Full audit trail ensuring complete compliance and safety.</p>
+              <button class="text-[var(--mq-teal-400)] font-semibold text-sm hover:text-white transition-colors">Learn More &rarr;</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: ROLE SHOWCASE (Tab switcher) -->
+  <section class="py-24 px-6 md:px-12 max-w-7xl mx-auto" scrollReveal>
+    <div class="text-center mb-16">
+      <h2 class="text-3xl md:text-[40px] font-semibold tracking-tight mb-4">One Platform, Three Portals</h2>
+      <p class="text-[var(--mq-slate-400)] max-w-2xl mx-auto">Tailored experiences for every user in the clinic.</p>
+    </div>
+
+    <div class="flex justify-center mb-12">
+      <div class="glass-card p-1 inline-flex rounded-xl bg-[var(--mq-navy-800)]">
+        <button *ngFor="let tab of ['Patient', 'Doctor', 'Admin']" 
+                (click)="setTab($any(tab))"
+                [ngClass]="{'bg-[var(--mq-teal)]': activeTab() === tab}"
+                [class.text-white]="activeTab() === tab"
+                [ngClass]="{'text-[var(--mq-slate-400)]': activeTab() !== tab}"
+                class="px-6 py-2 rounded-lg text-sm font-medium transition-all duration-300">
+          {{ tab }}
+        </button>
+      </div>
+    </div>
+
+    <div class="glass-card border-[var(--mq-teal)]/30 overflow-hidden relative">
+      <div class="absolute inset-0 bg-gradient-to-br from-[var(--mq-teal)]/5 to-transparent"></div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 md:p-12 relative z-10">
+        
+        <div class="flex flex-col justify-center transition-all duration-500 transform" [class.translate-x-0]="true" [class.opacity-100]="true">
+          <h3 class="text-3xl font-bold mb-6 text-white">{{ activeTab() }} Portal</h3>
+          
+          <ul class="space-y-4" *ngIf="activeTab() === 'Admin'">
+            <li class="flex items-start gap-3"><lucide-icon name="CheckCircle" class="w-6 h-6 text-[var(--mq-teal-400)] shrink-0"></lucide-icon> <span class="text-[var(--mq-slate-200)]">Comprehensive revenue analytics dashboard.</span></li>
+            <li class="flex items-start gap-3"><lucide-icon name="CheckCircle" class="w-6 h-6 text-[var(--mq-teal-400)] shrink-0"></lucide-icon> <span class="text-[var(--mq-slate-200)]">Staff and role management with fine-grained access control.</span></li>
+            <li class="flex items-start gap-3"><lucide-icon name="CheckCircle" class="w-6 h-6 text-[var(--mq-teal-400)] shrink-0"></lucide-icon> <span class="text-[var(--mq-slate-200)]">Global clinic settings and multi-branch support.</span></li>
+          </ul>
+
+          <ul class="space-y-4" *ngIf="activeTab() === 'Doctor'">
+            <li class="flex items-start gap-3"><lucide-icon name="CheckCircle" class="w-6 h-6 text-[var(--mq-teal-400)] shrink-0"></lucide-icon> <span class="text-[var(--mq-slate-200)]">Streamlined Clinical Command Center for fast consultations.</span></li>
+            <li class="flex items-start gap-3"><lucide-icon name="CheckCircle" class="w-6 h-6 text-[var(--mq-teal-400)] shrink-0"></lucide-icon> <span class="text-[var(--mq-slate-200)]">Rapid SOAP note entry with auto-save capabilities.</span></li>
+            <li class="flex items-start gap-3"><lucide-icon name="CheckCircle" class="w-6 h-6 text-[var(--mq-teal-400)] shrink-0"></lucide-icon> <span class="text-[var(--mq-slate-200)]">Complete patient medical history at a glance.</span></li>
+          </ul>
+
+          <ul class="space-y-4" *ngIf="activeTab() === 'Patient'">
+            <li class="flex items-start gap-3"><lucide-icon name="CheckCircle" class="w-6 h-6 text-[var(--mq-teal-400)] shrink-0"></lucide-icon> <span class="text-[var(--mq-slate-200)]">Easy self-service booking with live slot availability.</span></li>
+            <li class="flex items-start gap-3"><lucide-icon name="CheckCircle" class="w-6 h-6 text-[var(--mq-teal-400)] shrink-0"></lucide-icon> <span class="text-[var(--mq-slate-200)]">Access to past visit notes, prescriptions, and invoices.</span></li>
+            <li class="flex items-start gap-3"><lucide-icon name="CheckCircle" class="w-6 h-6 text-[var(--mq-teal-400)] shrink-0"></lucide-icon> <span class="text-[var(--mq-slate-200)]">Secure profile management.</span></li>
+          </ul>
+          
+          <button class="mt-8 text-left text-[var(--mq-teal-400)] font-semibold hover:text-white transition-colors w-max">Explore {{activeTab()}} Features &rarr;</button>
+        </div>
+
+        <div class="bg-[var(--mq-navy-800)] rounded-xl border border-[var(--mq-navy-700)] p-4 shadow-2xl relative h-80 overflow-hidden group">
+           <!-- Mockup Window Header -->
+           <div class="flex gap-1.5 mb-4 border-b border-[var(--mq-navy-700)] pb-3">
+            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+          </div>
+          <!-- Mockup Content based on Tab -->
+          <div class="space-y-4 opacity-70 group-hover:opacity-100 transition-opacity">
+            <div class="h-8 w-1/3 bg-[var(--mq-navy-700)] rounded"></div>
+            <div class="flex gap-4">
+               <div class="h-24 flex-1 bg-[var(--mq-teal)]/20 border border-[var(--mq-teal)]/30 rounded-lg"></div>
+               <div class="h-24 flex-1 bg-[var(--mq-teal)]/20 border border-[var(--mq-teal)]/30 rounded-lg"></div>
+            </div>
+            <div class="h-32 w-full bg-[var(--mq-navy-700)] rounded-lg"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: SOCIAL PROOF -->
+  <section class="py-24 bg-[var(--mq-navy)] border-y border-[var(--mq-navy-800)] px-6" scrollReveal>
+    <div class="max-w-7xl mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <div class="glass-card p-8 mq-card" *ngFor="let i of [1,2,3]">
+          <div class="flex text-yellow-400 mb-4">★★★★★</div>
+          <p class="text-[var(--mq-slate-200)] italic mb-6">"MediQueue completely transformed how our clinic operates. The real-time updates and seamless EMR integration saved us hours daily."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-[var(--mq-navy-700)]"></div>
+            <div>
+              <div class="font-bold text-sm">Dr. {{ i === 1 ? 'Ahmed Hassan' : i === 2 ? 'Sara Ali' : 'Omar Tarek' }}</div>
+              <div class="text-xs text-[var(--mq-slate-400)]">Chief Medical Officer</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex flex-wrap justify-center gap-8 md:gap-16 text-center">
+        <div>
+          <div class="text-3xl md:text-4xl font-bold text-[var(--mq-teal-400)] mb-1">50+</div>
+          <div class="text-sm text-[var(--mq-slate-400)] uppercase tracking-wider font-semibold">Clinics</div>
+        </div>
+        <div>
+          <div class="text-3xl md:text-4xl font-bold text-[var(--mq-teal-400)] mb-1">12K</div>
+          <div class="text-sm text-[var(--mq-slate-400)] uppercase tracking-wider font-semibold">Patients</div>
+        </div>
+        <div>
+          <div class="text-3xl md:text-4xl font-bold text-[var(--mq-teal-400)] mb-1">99.9%</div>
+          <div class="text-sm text-[var(--mq-slate-400)] uppercase tracking-wider font-semibold">Uptime</div>
+        </div>
+        <div>
+          <div class="text-3xl md:text-4xl font-bold text-[var(--mq-teal-400)] mb-1">4.9/5</div>
+          <div class="text-sm text-[var(--mq-slate-400)] uppercase tracking-wider font-semibold">Rating</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 7: CTA FINAL -->
+  <section class="py-32 px-6 relative overflow-hidden text-center" scrollReveal>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(13,148,136,0.15)_0%,transparent_50%)]"></div>
+    <div class="max-w-3xl mx-auto relative z-10">
+      <h2 class="text-4xl md:text-5xl font-bold mb-6 tracking-tight">Ready to Transform Your Clinic?</h2>
+      <p class="text-xl text-[var(--mq-slate-400)] mb-10">Join the next generation of healthcare management. Simple, secure, and built for scale.</p>
+      <div class="flex flex-col sm:flex-row justify-center gap-4">
+        <button class="btn-neon">Book for Patient <lucide-icon name="ArrowRight" class="inline w-4 h-4 ml-2"></lucide-icon></button>
+        <button class="px-8 py-4 rounded-xl border border-[var(--mq-slate-600)] hover:bg-[var(--mq-slate-800)] transition-colors font-semibold bg-[var(--mq-navy-800)]" routerLink="/dashboard">Staff Login</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="bg-[var(--mq-navy-800)] pt-16 pb-8 px-6 border-t border-[var(--mq-navy-700)]">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+      <div class="col-span-1 md:col-span-1">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-8 h-8 rounded-lg bg-[var(--mq-teal)] flex items-center justify-center text-white font-bold text-sm">MQ</div>
+          <span class="text-lg font-bold">MediQueue</span>
+        </div>
+        <p class="text-sm text-[var(--mq-slate-400)]">Healthcare OS built for the modern clinic. Streamlining operations from booking to billing.</p>
+      </div>
+      
+      <div>
+        <h4 class="font-bold mb-4 text-[var(--mq-slate-200)]">Product</h4>
+        <ul class="space-y-2 text-sm text-[var(--mq-slate-400)]">
+          <li><a href="#" class="hover:text-[var(--mq-teal-400)]">Features</a></li>
+          <li><a href="#" class="hover:text-[var(--mq-teal-400)]">Pricing</a></li>
+          <li><a href="#" class="hover:text-[var(--mq-teal-400)]">Security</a></li>
+          <li><a href="#" class="hover:text-[var(--mq-teal-400)]">Updates</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="font-bold mb-4 text-[var(--mq-slate-200)]">Roles</h4>
+        <ul class="space-y-2 text-sm text-[var(--mq-slate-400)]">
+          <li><a href="#" class="hover:text-[var(--mq-teal-400)]">For Doctors</a></li>
+          <li><a href="#" class="hover:text-[var(--mq-teal-400)]">For Admins</a></li>
+          <li><a href="#" class="hover:text-[var(--mq-teal-400)]">For Receptionists</a></li>
+          <li><a href="#" class="hover:text-[var(--mq-teal-400)]">For Patients</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="font-bold mb-4 text-[var(--mq-slate-200)]">Connect</h4>
+        <div class="flex gap-4">
+          <div class="w-10 h-10 rounded-full bg-[var(--mq-navy-700)] flex items-center justify-center hover:bg-[var(--mq-teal)] transition-colors cursor-pointer">X</div>
+          <div class="w-10 h-10 rounded-full bg-[var(--mq-navy-700)] flex items-center justify-center hover:bg-[var(--mq-teal)] transition-colors cursor-pointer">In</div>
+        </div>
+      </div>
+    </div>
+    <div class="max-w-7xl mx-auto pt-8 border-t border-[var(--mq-navy-700)] text-sm text-[var(--mq-slate-500)] flex flex-col md:flex-row justify-between items-center">
+      <p>&copy; 2026 MediQueue EMR. All rights reserved.</p>
+      <div class="flex gap-4 mt-4 md:mt-0">
+        <a href="#" class="hover:text-[var(--mq-slate-300)]">Privacy Policy</a>
+        <a href="#" class="hover:text-[var(--mq-slate-300)]">Terms of Service</a>
+      </div>
+    </div>
+  </footer>
+</div>

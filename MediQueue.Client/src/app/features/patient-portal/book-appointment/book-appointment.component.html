@@ -1,0 +1,194 @@
+<div class="max-w-4xl mx-auto p-4 md:p-8">
+  <!-- Stepper Header -->
+  <div class="mb-12" *ngIf="currentStep() < 5">
+    <div class="flex items-center justify-between relative">
+      <div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-[var(--mq-slate-200)] -z-10 rounded-full"></div>
+      <div class="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-[var(--mq-teal)] -z-10 rounded-full transition-all duration-500" [style.width.%]="(currentStep() - 1) * 33.33"></div>
+      
+      <div *ngFor="let step of [1,2,3,4]; let i = index" class="flex flex-col items-center gap-2">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors duration-300 shadow-sm"
+             [ngClass]="{'bg-[var(--mq-teal)]': currentStep() >= step}"
+             [class.text-white]="currentStep() >= step"
+             [class.bg-white]="currentStep() < step"
+             [ngClass]="{'text-[var(--mq-slate-400)]': currentStep() < step}"
+             [class.border-2]="currentStep() < step"
+             [ngClass]="{'border-[var(--mq-slate-200)]': currentStep() < step}">
+          <lucide-icon *ngIf="currentStep() > step" name="CheckCircle" class="w-5 h-5"></lucide-icon>
+          <span *ngIf="currentStep() <= step">{{ step }}</span>
+        </div>
+        <div class="text-xs font-semibold uppercase tracking-wider text-[var(--mq-slate-600)] hidden md:block">
+          {{ i === 0 ? 'Identity' : i === 1 ? 'Specialty' : i === 2 ? 'Doctor & Time' : 'Confirm' }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-light p-6 md:p-10 shadow-lg relative overflow-hidden min-h-[400px]">
+    
+    <!-- STEP 1: Identity -->
+    <div *ngIf="currentStep() === 1" @stepEnter class="h-full flex flex-col justify-center max-w-md mx-auto">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-white rounded-full mx-auto flex items-center justify-center text-[var(--mq-teal)] shadow-sm mb-4">
+          <lucide-icon name="UserCircle" class="w-8 h-8"></lucide-icon>
+        </div>
+        <h2 class="text-2xl font-bold text-[var(--mq-navy)] mb-2">Let's find your profile</h2>
+        <p class="text-[var(--mq-slate-600)]">Enter your MRN or National ID to proceed.</p>
+      </div>
+      
+      <div class="mb-6 relative">
+        <input type="text" [value]="patientIdentity()" (input)="patientIdentity.set($any($event.target).value)"
+               placeholder="e.g. 12345678901234"
+               class="w-full bg-white border border-[var(--mq-slate-200)] rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-[var(--mq-teal)] focus:border-transparent transition-all shadow-sm">
+      </div>
+      
+      <button (click)="nextStep()" [disabled]="!patientIdentity()" 
+              class="w-full bg-[var(--mq-teal)] text-white py-3 rounded-xl font-bold hover:bg-[var(--mq-teal-900)] transition-colors shadow-teal-glow disabled:opacity-50 disabled:cursor-not-allowed">
+        Continue
+      </button>
+
+      <div class="mt-6 text-center text-sm text-[var(--mq-slate-600)]">
+        New patient? <a href="#" class="text-[var(--mq-teal)] font-bold hover:underline">Register here</a>
+      </div>
+    </div>
+
+    <!-- STEP 2: Specialty -->
+    <div *ngIf="currentStep() === 2" @stepEnter>
+      <div class="flex items-center gap-4 mb-8">
+        <button (click)="prevStep()" class="p-2 hover:bg-white rounded-full transition-colors text-[var(--mq-slate-600)]">
+          <lucide-icon name="ArrowLeft"></lucide-icon>
+        </button>
+        <div>
+          <h2 class="text-2xl font-bold text-[var(--mq-navy)]">Choose Specialty</h2>
+          <p class="text-[var(--mq-slate-600)]">Select the department you wish to visit.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" [@list]>
+        <button *ngFor="let spec of specialties" 
+                (click)="selectSpecialty(spec.name)"
+                class="bg-white p-4 rounded-xl border border-[var(--mq-slate-200)] hover:border-[var(--mq-teal)] hover:shadow-teal-glow transition-all text-left group mq-card">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-[var(--mq-slate)] group-hover:bg-[var(--mq-teal)] group-hover:text-white rounded-lg flex items-center justify-center text-[var(--mq-teal)] transition-colors">
+              <lucide-icon name="Stethoscope"></lucide-icon>
+            </div>
+            <div>
+              <div class="font-bold text-lg text-[var(--mq-navy)]">{{ spec.name }}</div>
+              <div class="text-sm text-[var(--mq-slate-400)]">5 Doctors Available</div>
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Doctor & Slot -->
+    <div *ngIf="currentStep() === 3" @stepEnter>
+      <div class="flex items-center gap-4 mb-8">
+        <button (click)="prevStep()" class="p-2 hover:bg-white rounded-full transition-colors text-[var(--mq-slate-600)]">
+          <lucide-icon name="ArrowLeft"></lucide-icon>
+        </button>
+        <div>
+          <h2 class="text-2xl font-bold text-[var(--mq-navy)]">Select Doctor & Time</h2>
+          <p class="text-[var(--mq-slate-600)]">Department: <span class="font-bold">{{ selectedSpecialty() }}</span></p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Doctors List -->
+        <div>
+          <h3 class="font-semibold text-[var(--mq-slate-600)] mb-4 uppercase tracking-wider text-xs">Available Doctors</h3>
+          <div class="space-y-3">
+            <div *ngFor="let doc of doctors" 
+                 (click)="selectDoctor(doc)"
+                 [ngClass]="{'border-[var(--mq-teal)]': selectedDoctor()?.id === doc.id}"
+                 [ngClass]="{'bg-[var(--mq-teal)]': selectedDoctor()?.id === doc.id}"
+                 [class.bg-white]="selectedDoctor()?.id !== doc.id"
+                 class="p-4 rounded-xl border border-[var(--mq-slate-200)] cursor-pointer transition-all hover:shadow-md flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-[var(--mq-slate-200)] shrink-0"></div>
+              <div>
+                <div class="font-bold" [class.text-white]="selectedDoctor()?.id === doc.id">{{ doc.name }}</div>
+                <div class="text-xs" [class.text-white]="selectedDoctor()?.id === doc.id" [ngClass]="{'text-[var(--mq-slate-500)]': selectedDoctor()?.id !== doc.id}">{{ doc.availability }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slots -->
+        <div *ngIf="selectedDoctor()" @stepEnter>
+          <h3 class="font-semibold text-[var(--mq-slate-600)] mb-4 uppercase tracking-wider text-xs">Available Time Slots</h3>
+          <div class="grid grid-cols-2 gap-3">
+             <button *ngFor="let slot of slots"
+                     (click)="selectSlot(slot)"
+                     [disabled]="slot.status === 'booked'"
+                     [ngClass]="{'bg-[var(--mq-teal)]': selectedSlot()?.id === slot.id}"
+                     [class.text-white]="selectedSlot()?.id === slot.id"
+                     [ngClass]="{'border-[var(--mq-teal)]': selectedSlot()?.id === slot.id}"
+                     [class.opacity-50]="slot.status === 'booked'"
+                     [class.cursor-not-allowed]="slot.status === 'booked'"
+                     class="bg-white border border-[var(--mq-slate-200)] p-3 rounded-lg text-sm font-semibold hover:border-[var(--mq-teal)] transition-colors text-center">
+               {{ slot.time }}
+             </button>
+          </div>
+          <div class="mt-8 flex justify-end">
+            <button (click)="nextStep()" [disabled]="!selectedSlot()" class="bg-[var(--mq-teal)] text-white px-8 py-2.5 rounded-xl font-bold disabled:opacity-50">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Confirm -->
+    <div *ngIf="currentStep() === 4" @stepEnter class="max-w-md mx-auto">
+      <div class="flex items-center gap-4 mb-8">
+        <button (click)="prevStep()" class="p-2 hover:bg-white rounded-full transition-colors text-[var(--mq-slate-600)]">
+          <lucide-icon name="ArrowLeft"></lucide-icon>
+        </button>
+        <h2 class="text-2xl font-bold text-[var(--mq-navy)]">Confirm Booking</h2>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl border border-[var(--mq-slate-200)] shadow-sm mb-6">
+        <h3 class="text-lg font-bold text-[var(--mq-navy)] mb-4">Summary</h3>
+        
+        <div class="space-y-4">
+          <div class="flex justify-between items-center border-b border-[var(--mq-slate-100)] pb-3">
+            <span class="text-[var(--mq-slate-500)] text-sm">Patient ID</span>
+            <span class="font-semibold text-[var(--mq-navy)]">{{ patientIdentity() }}</span>
+          </div>
+          <div class="flex justify-between items-center border-b border-[var(--mq-slate-100)] pb-3">
+            <span class="text-[var(--mq-slate-500)] text-sm">Department</span>
+            <span class="font-semibold text-[var(--mq-navy)]">{{ selectedSpecialty() }}</span>
+          </div>
+          <div class="flex justify-between items-center border-b border-[var(--mq-slate-100)] pb-3">
+            <span class="text-[var(--mq-slate-500)] text-sm">Doctor</span>
+            <span class="font-semibold text-[var(--mq-navy)]">{{ selectedDoctor()?.name }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-[var(--mq-slate-500)] text-sm">Time</span>
+            <span class="font-semibold text-[var(--mq-teal)] bg-[var(--mq-teal)]/10 px-3 py-1 rounded-full text-xs">{{ selectedSlot()?.time }}</span>
+          </div>
+        </div>
+      </div>
+
+      <button (click)="nextStep()" class="w-full bg-[var(--mq-navy)] text-white py-3.5 rounded-xl font-bold hover:bg-[var(--mq-navy-800)] transition-colors shadow-lg">
+        Confirm Booking
+      </button>
+    </div>
+
+    <!-- STEP 5: Success -->
+    <div *ngIf="currentStep() === 5" @stepEnter class="text-center py-12">
+      <div class="w-24 h-24 bg-green-100 text-green-500 rounded-full mx-auto flex items-center justify-center mb-6 animate-[pulse-dot_2s_ease-in-out_infinite]">
+        <lucide-icon name="CheckCircle" class="w-12 h-12"></lucide-icon>
+      </div>
+      <h2 class="text-3xl font-bold text-[var(--mq-navy)] mb-2">Booking Confirmed!</h2>
+      <p class="text-[var(--mq-slate-600)] mb-8">Your appointment with {{ selectedDoctor()?.name }} is confirmed for {{ selectedSlot()?.time }}.</p>
+      
+      <div class="flex justify-center gap-4">
+        <button class="bg-white border border-[var(--mq-slate-200)] text-[var(--mq-navy)] px-6 py-2 rounded-xl font-bold hover:bg-[var(--mq-slate)] transition-colors">
+          Download Details
+        </button>
+        <button class="bg-[var(--mq-teal)] text-white px-6 py-2 rounded-xl font-bold hover:bg-[var(--mq-teal-900)] transition-colors shadow-teal-glow" routerLink="/dashboard">
+          Go to Dashboard
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

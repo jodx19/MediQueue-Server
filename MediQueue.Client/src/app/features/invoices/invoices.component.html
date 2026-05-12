@@ -1,0 +1,106 @@
+<div class="space-y-6 max-w-7xl mx-auto">
+  
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-[var(--mq-navy)]">Invoices & Billing</h1>
+      <p class="text-[var(--mq-slate-500)] text-sm">Manage clinic finances, payments, and billing history.</p>
+    </div>
+    <div class="flex gap-3">
+      <button class="bg-white border border-[var(--mq-slate-200)] px-4 py-2 rounded-xl text-sm font-semibold text-[var(--mq-navy-700)] hover:bg-[var(--mq-slate)] transition-colors flex items-center gap-2">
+        <lucide-icon name="Download" class="w-4 h-4"></lucide-icon> Export
+      </button>
+      <button class="bg-[var(--mq-teal)] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[var(--mq-teal-900)] transition-colors shadow-teal-glow flex items-center gap-2">
+        <lucide-icon name="Plus" class="w-4 h-4"></lucide-icon> Create Invoice
+      </button>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-[var(--mq-slate-200)] shadow-sm overflow-hidden min-h-[500px]">
+    
+    <!-- Top Bar -->
+    <div class="p-4 border-b border-[var(--mq-slate-200)] flex flex-col lg:flex-row justify-between items-center gap-4 bg-[var(--mq-slate)]/50">
+      
+      <!-- Filter Pills -->
+      <div class="flex bg-[var(--mq-slate-200)] p-1 rounded-lg w-full lg:w-auto overflow-x-auto">
+        <button *ngFor="let f of ['All', 'Pending', 'Paid', 'Cancelled']"
+                (click)="setFilter($any(f))"
+                [class.bg-white]="filter() === f"
+                [class.shadow-sm]="filter() === f"
+                [ngClass]="{'text-[var(--mq-navy)]': filter() === f}"
+                [ngClass]="{'text-[var(--mq-slate-500)]': filter() !== f}"
+                class="px-4 py-1.5 rounded-md text-sm font-semibold transition-all whitespace-nowrap flex-1 lg:flex-none text-center">
+          {{ f }}
+        </button>
+      </div>
+
+      <div class="flex gap-3 w-full lg:w-auto">
+         <!-- Date Range (Mock) -->
+         <div class="bg-white border border-[var(--mq-slate-300)] rounded-lg px-3 py-2 text-sm flex items-center gap-2 text-[var(--mq-slate-600)] cursor-pointer hidden sm:flex">
+           <lucide-icon name="Clock" class="w-4 h-4"></lucide-icon>
+           <span>Last 30 Days</span>
+         </div>
+         
+         <!-- Search (Glass) -->
+         <div class="relative flex-1 lg:w-64">
+           <lucide-icon name="Search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--mq-slate-400)]"></lucide-icon>
+           <input type="text" placeholder="Search invoice #..." 
+                  class="w-full bg-white border border-[var(--mq-slate-300)] rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--mq-teal-400)] transition-all">
+         </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto" @fade>
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-white text-[var(--mq-slate-500)] text-xs uppercase tracking-wider border-b border-[var(--mq-slate-200)]">
+            <th class="p-4 font-semibold">Invoice #</th>
+            <th class="p-4 font-semibold">Patient</th>
+            <th class="p-4 font-semibold">Doctor</th>
+            <th class="p-4 font-semibold">Date</th>
+            <th class="p-4 font-semibold text-right">Amount</th>
+            <th class="p-4 font-semibold">Status</th>
+            <th class="p-4 font-semibold text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let inv of filteredInvoices" class="border-b border-[var(--mq-slate-100)] hover:bg-[var(--mq-slate)]/50 transition-colors group">
+            <td class="p-4 font-bold text-[var(--mq-navy)] text-sm">
+              <div class="flex items-center gap-2">
+                <lucide-icon name="Receipt" class="w-4 h-4 text-[var(--mq-slate-400)]"></lucide-icon>
+                {{ inv.id }}
+              </div>
+            </td>
+            <td class="p-4 text-[var(--mq-navy)] font-medium">{{ inv.patient }}</td>
+            <td class="p-4 text-[var(--mq-slate-600)] text-sm">{{ inv.doctor }}</td>
+            <td class="p-4 text-[var(--mq-slate-600)] text-sm">{{ inv.date }}</td>
+            <td class="p-4 font-bold text-[var(--mq-navy)] text-right">EGP {{ inv.amount }}</td>
+            <td class="p-4">
+              <span class="px-2.5 py-1 text-xs font-semibold rounded-full inline-flex items-center gap-1"
+                    [class.bg-green-100]="inv.status === 'Paid'" [class.text-green-700]="inv.status === 'Paid'"
+                    [class.bg-yellow-100]="inv.status === 'Pending'" [class.text-yellow-700]="inv.status === 'Pending'"
+                    [ngClass]="{'bg-[var(--mq-slate-200)]': inv.status === 'Cancelled'}" [ngClass]="{'text-[var(--mq-slate-700)]': inv.status === 'Cancelled'}">
+                <lucide-icon *ngIf="inv.status === 'Paid'" name="CheckCircle" class="w-3 h-3"></lucide-icon>
+                {{ inv.status }}
+              </span>
+            </td>
+            <td class="p-4 text-right">
+              <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button class="p-1.5 text-[var(--mq-slate-500)] hover:text-[var(--mq-navy)] hover:bg-[var(--mq-slate-200)] rounded-lg transition-colors" title="Print"><lucide-icon name="Printer" class="w-4 h-4"></lucide-icon></button>
+                <button *ngIf="inv.status === 'Pending'" class="px-3 py-1 bg-[var(--mq-teal)] text-white text-xs font-bold rounded hover:bg-[var(--mq-teal-900)] transition-colors">Pay</button>
+                <button class="px-3 py-1 bg-white border border-[var(--mq-slate-200)] text-[var(--mq-navy)] text-xs font-bold rounded hover:bg-[var(--mq-slate)] transition-colors">View</button>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Empty State -->
+          <tr *ngIf="filteredInvoices.length === 0">
+            <td colspan="7" class="p-12 text-center text-[var(--mq-slate-500)]">
+               No invoices found for the selected filter.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
