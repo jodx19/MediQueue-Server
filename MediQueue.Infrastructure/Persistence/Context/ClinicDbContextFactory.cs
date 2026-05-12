@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System.IO;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -11,20 +11,44 @@ public sealed class ClinicDbContextFactory : IDesignTimeDbContextFactory<ClinicD
 {
     public ClinicDbContext CreateDbContext(string[] args)
     {
-        var apiProjectPath = Path.Combine(Directory.GetCurrentDirectory(), "MediQueue.API");
-        var basePath = Directory.Exists(apiProjectPath)
-            ? apiProjectPath
-            : Directory.GetCurrentDirectory();
+        // Search for appsettings in the Host project first, then API
+        var currentDir = Directory.GetCurrentDirectory();
+        
+        // Potential paths to find appsettings.json
+        var pathsToTry = new[] 
+        {
+            currentDir,
+            Path.Combine(currentDir, "..", "MediQueue.Server.Host"),
+            Path.Combine(currentDir, "..", "MediQueue.API"),
+            Path.Combine(currentDir, "MediQueue.Server.Host"),
+            Path.Combine(currentDir, "MediQueue.API")
+        };
 
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(basePath)
-            .AddJsonFile("appsettings.json", optional: true)
-            .AddJsonFile("appsettings.Development.json", optional: true)
-            .AddEnvironmentVariables()
-            .Build();
+        var configBuilder = new ConfigurationBuilder();
+        bool found = false;
+
+        foreach (var path in pathsToTry)
+        {
+            if (File.Exists(Path.Combine(path, "appsettings.json")))
+            {
+                configBuilder.SetBasePath(path)
+                    .AddJsonFile("appsettings.json", optional: false)
+                    .AddJsonFile("appsettings.Development.json", optional: true);
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            configBuilder.SetBasePath(currentDir)
+                .AddEnvironmentVariables();
+        }
+
+        var configuration = configBuilder.Build();
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Server=(localdb)\\mssqllocaldb;Database=MediQueueDb;Trusted_Connection=True;TrustServerCertificate=True";
+            ?? throw new InvalidOperationException("Could not find 'DefaultConnection' in any appsettings.json.");
 
         var optionsBuilder = new DbContextOptionsBuilder<ClinicDbContext>();
         optionsBuilder.UseSqlServer(connectionString);

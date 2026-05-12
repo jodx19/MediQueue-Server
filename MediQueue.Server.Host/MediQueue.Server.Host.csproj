@@ -1,23 +1,29 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>MediQueue.Server.Host</RootNamespace>
+    <AssemblyName>MediQueue.Server.Host</AssemblyName>
+  </PropertyGroup>
+
+  <!--
+    Composition Root: only project references + bootstrap-level packages.
+    Hangfire, SQL, Redis, EF Core are all wired in Infrastructure.DependencyInjection.
+  -->
   <ItemGroup>
     <ProjectReference Include="..\MediQueue.API\MediQueue.API.csproj" />
     <ProjectReference Include="..\MediQueue.Infrastructure\MediQueue.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AspNetCore.HealthChecks.SqlServer" Version="9.0.0" />
-    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
-    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.23" />
-    <PackageReference Include="Hangfire.SqlServer" Version="1.8.23" />
+    <!-- Logging bootstrap (must live at host level to wrap entire pipeline) -->
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <!-- HealthChecks UI endpoint wiring (presentation) -->
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
 
 </Project>
