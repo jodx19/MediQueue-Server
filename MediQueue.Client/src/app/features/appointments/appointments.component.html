@@ -1,0 +1,201 @@
+<div class="space-y-6 max-w-7xl mx-auto relative">
+
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-[var(--mq-navy)]">Appointments</h1>
+      <p class="text-[var(--mq-slate-500)] text-sm">Manage clinic schedule and bookings.</p>
+    </div>
+    
+    <div class="flex items-center gap-4 w-full sm:w-auto">
+      <!-- Toggle View -->
+      <div class="bg-[var(--mq-slate-200)] p-1 rounded-xl flex">
+        <button (click)="setView('list')" 
+                [class.bg-white]="view() === 'list'" [class.shadow-sm]="view() === 'list'" [ngClass]="{'text-[var(--mq-navy)]': view() === 'list'}"
+                class="px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm font-semibold text-[var(--mq-slate-500)] transition-all">
+          <lucide-icon name="List" class="w-4 h-4"></lucide-icon> List
+        </button>
+        <button (click)="setView('calendar')" 
+                [class.bg-white]="view() === 'calendar'" [class.shadow-sm]="view() === 'calendar'" [ngClass]="{'text-[var(--mq-navy)]': view() === 'calendar'}"
+                class="px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm font-semibold text-[var(--mq-slate-500)] transition-all">
+          <lucide-icon name="CalendarIcon" class="w-4 h-4"></lucide-icon> Calendar
+        </button>
+      </div>
+
+      <button (click)="openBookModal()" class="flex-1 sm:flex-none bg-[var(--mq-teal)] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[var(--mq-teal-900)] transition-colors shadow-teal-glow flex justify-center items-center gap-2">
+        <lucide-icon name="CalendarPlus" class="w-4 h-4"></lucide-icon> Book Slot
+      </button>
+    </div>
+  </div>
+
+  <!-- LIST VIEW -->
+  <div *ngIf="view() === 'list'" @fade class="bg-white rounded-2xl border border-[var(--mq-slate-200)] shadow-sm overflow-hidden min-h-[500px]">
+    <!-- Tabs -->
+    <div class="flex border-b border-[var(--mq-slate-200)] bg-[var(--mq-slate)]/50">
+      <button *ngFor="let tab of ['Today', 'Upcoming', 'Past', 'Cancelled']"
+              (click)="setFilter($any(tab))"
+              [ngClass]="{'border-[var(--mq-teal)]': filter() === tab}"
+              [ngClass]="{'text-[var(--mq-teal)]': filter() === tab}"
+              [class.border-transparent]="filter() !== tab"
+              [ngClass]="{'text-[var(--mq-slate-500)]': filter() !== tab}"
+              class="px-6 py-4 border-b-2 font-semibold text-sm hover:bg-white transition-colors">
+        {{ tab }}
+      </button>
+    </div>
+
+    <!-- Cards List -->
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4" [@listAnimation]>
+      <div *ngFor="let apt of appointments()" class="p-4 rounded-xl border border-[var(--mq-slate-200)] hover:border-[var(--mq-teal)] hover:shadow-teal-glow transition-all bg-white group mq-card">
+        
+        <div class="flex justify-between items-start mb-4">
+          <div class="flex items-center gap-2">
+            <lucide-icon name="Clock" class="w-4 h-4 text-[var(--mq-teal)]"></lucide-icon>
+            <span class="font-bold text-[var(--mq-navy)]">{{ apt.time }}</span>
+          </div>
+          <span class="px-2.5 py-1 text-xs font-semibold rounded-full"
+                [class.bg-green-100]="apt.status === 'Completed'" [class.text-green-700]="apt.status === 'Completed'"
+                [ngClass]="{'bg-[var(--mq-slate-200)]': apt.status === 'Scheduled'}" [ngClass]="{'text-[var(--mq-slate-700)]': apt.status === 'Scheduled'}"
+                [class.bg-red-100]="apt.status === 'Cancelled'" [class.text-red-700]="apt.status === 'Cancelled'">
+            {{ apt.status }}
+          </span>
+        </div>
+
+        <div class="flex items-center gap-4 mb-4">
+          <div class="w-12 h-12 rounded-full bg-[var(--mq-slate)] flex items-center justify-center text-[var(--mq-slate-400)]">
+            <lucide-icon name="User" class="w-6 h-6"></lucide-icon>
+          </div>
+          <div>
+            <div class="font-bold text-lg text-[var(--mq-navy)]">{{ apt.patient }}</div>
+            <div class="text-sm text-[var(--mq-slate-500)]">{{ apt.doctor }} • <span class="text-[var(--mq-teal)]">{{ apt.type }}</span></div>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-[var(--mq-slate-100)] flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button class="px-3 py-1.5 rounded-lg text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors">Cancel</button>
+          <button class="px-3 py-1.5 rounded-lg text-sm font-semibold text-[var(--mq-navy)] hover:bg-[var(--mq-slate)] transition-colors">Reschedule</button>
+          <button class="px-4 py-1.5 rounded-lg text-sm font-semibold text-white bg-[var(--mq-teal)] hover:bg-[var(--mq-teal-900)] transition-colors shadow-sm">Start Visit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALENDAR VIEW -->
+  <div *ngIf="view() === 'calendar'" @fade class="bg-white rounded-2xl border border-[var(--mq-slate-200)] shadow-sm overflow-hidden min-h-[600px] flex flex-col">
+    <div class="p-4 border-b border-[var(--mq-slate-200)] flex justify-between items-center bg-[var(--mq-slate)]/50">
+      <div class="font-bold text-lg text-[var(--mq-navy)] flex items-center gap-4">
+        <button class="p-1 hover:bg-white rounded-lg transition-colors"><lucide-icon name="ChevronLeft" class="w-5 h-5"></lucide-icon></button>
+        May 10 - 16, 2026
+        <button class="p-1 hover:bg-white rounded-lg transition-colors"><lucide-icon name="ChevronRight" class="w-5 h-5"></lucide-icon></button>
+      </div>
+      <button class="px-3 py-1 bg-white border border-[var(--mq-slate-200)] rounded-lg text-sm font-semibold shadow-sm hover:bg-[var(--mq-slate)] transition-colors">Today</button>
+    </div>
+
+    <div class="flex-1 overflow-auto custom-scrollbar relative">
+      <div class="min-w-[800px]">
+        <!-- Header -->
+        <div class="grid grid-cols-8 border-b border-[var(--mq-slate-200)] sticky top-0 bg-white z-10">
+          <div class="p-3 text-center border-r border-[var(--mq-slate-100)]">
+            <div class="text-xs text-[var(--mq-slate-400)] font-semibold uppercase">Time</div>
+          </div>
+          <div *ngFor="let day of weekDays; let i = index" class="p-3 text-center border-r border-[var(--mq-slate-100)]">
+             <div class="text-xs text-[var(--mq-slate-400)] font-semibold uppercase">{{ day }}</div>
+             <div class="text-lg font-bold" [ngClass]="{'text-[var(--mq-teal)]': i === 1}">{{ 10 + i }}</div>
+          </div>
+        </div>
+        
+        <!-- Grid Body -->
+        <div *ngFor="let time of calendarHours" class="grid grid-cols-8 border-b border-[var(--mq-slate-100)] group relative">
+          <div class="p-2 text-right border-r border-[var(--mq-slate-100)] text-xs font-medium text-[var(--mq-slate-500)] sticky left-0 bg-white z-10">
+             {{ time }}
+          </div>
+          <div *ngFor="let day of weekDays; let i = index" class="p-1 border-r border-[var(--mq-slate-100)] min-h-[60px] relative hover:bg-[var(--mq-slate)]/30 transition-colors cursor-pointer group/cell" (click)="openBookModal()">
+             
+             <div class="absolute inset-0 opacity-0 group-hover/cell:opacity-100 bg-[var(--mq-teal)]/5 flex items-center justify-center transition-opacity">
+               <lucide-icon name="Plus" class="w-4 h-4 text-[var(--mq-teal)]"></lucide-icon>
+             </div>
+
+             <!-- Mock Appointment Pill -->
+             <div *ngIf="time === '10:00 AM' && i === 1" class="absolute inset-1 bg-[var(--mq-teal)]/10 border border-[var(--mq-teal)]/30 rounded p-1.5 z-10 hover:shadow-md transition-shadow">
+               <div class="text-[10px] font-bold text-[var(--mq-teal-900)] leading-tight truncate">Omar Tarek</div>
+               <div class="text-[9px] text-[var(--mq-teal)] truncate">Dr. Samy</div>
+             </div>
+             
+             <!-- Mock Appointment Pill 2 -->
+             <div *ngIf="time === '01:00 PM' && i === 3" class="absolute inset-1 bg-purple-100 border border-purple-200 rounded p-1.5 z-10 hover:shadow-md transition-shadow">
+               <div class="text-[10px] font-bold text-purple-900 leading-tight truncate">Mona Zaki</div>
+               <div class="text-[9px] text-purple-600 truncate">Dr. Tarek</div>
+             </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOOK APPOINTMENT MODAL (Overlay) -->
+<div *ngIf="isBookModalOpen()" class="fixed inset-0 bg-[var(--mq-navy)]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div @modalEnter class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    
+    <div class="p-6 border-b border-[var(--mq-slate-200)] flex justify-between items-center bg-[var(--mq-slate)]/50">
+      <h2 class="text-xl font-bold text-[var(--mq-navy)]">New Appointment</h2>
+      <button (click)="closeBookModal()" class="text-[var(--mq-slate-400)] hover:text-red-500 transition-colors">
+        <lucide-icon name="X"></lucide-icon>
+      </button>
+    </div>
+
+    <div class="p-6 overflow-y-auto flex-1 space-y-5 custom-scrollbar">
+      
+      <div>
+        <label class="block text-xs font-bold text-[var(--mq-navy)] uppercase tracking-wider mb-2">Patient Name / MRN</label>
+        <div class="relative">
+          <lucide-icon name="Search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--mq-slate-400)]"></lucide-icon>
+          <input type="text" placeholder="Search patient..." class="w-full border border-[var(--mq-slate-300)] rounded-lg py-2.5 pl-9 pr-3 text-sm focus:ring-2 focus:ring-[var(--mq-teal)] focus:border-transparent outline-none">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-[var(--mq-navy)] uppercase tracking-wider mb-2">Doctor</label>
+        <select class="w-full border border-[var(--mq-slate-300)] rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-[var(--mq-teal)] focus:border-transparent outline-none bg-white">
+          <option>Dr. Ahmed Samy (Cardiology)</option>
+          <option>Dr. Mona Hassan (Pediatrics)</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-[var(--mq-navy)] uppercase tracking-wider mb-2">Date</label>
+          <input type="date" class="w-full border border-[var(--mq-slate-300)] rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-[var(--mq-teal)] focus:border-transparent outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-[var(--mq-navy)] uppercase tracking-wider mb-2">Time</label>
+          <select class="w-full border border-[var(--mq-slate-300)] rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-[var(--mq-teal)] focus:border-transparent outline-none bg-white">
+            <option>10:00 AM</option>
+            <option>10:30 AM</option>
+            <option>11:00 AM</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-[var(--mq-navy)] uppercase tracking-wider mb-2">Reason</label>
+        <textarea rows="3" class="w-full border border-[var(--mq-slate-300)] rounded-lg p-3 text-sm focus:ring-2 focus:ring-[var(--mq-teal)] focus:border-transparent outline-none resize-none" placeholder="Chief complaint or reason for visit..."></textarea>
+      </div>
+
+      <div>
+         <label class="block text-xs font-bold text-[var(--mq-navy)] uppercase tracking-wider mb-2">Priority</label>
+         <div class="flex gap-4">
+           <label class="flex items-center gap-2 text-sm"><input type="radio" name="priority" checked class="text-[var(--mq-teal)]"> Normal</label>
+           <label class="flex items-center gap-2 text-sm text-red-600"><input type="radio" name="priority"> Urgent</label>
+         </div>
+      </div>
+
+    </div>
+
+    <div class="p-6 border-t border-[var(--mq-slate-200)] flex justify-end gap-3 bg-[var(--mq-slate)]/30">
+       <button (click)="closeBookModal()" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-[var(--mq-navy-700)] hover:bg-[var(--mq-slate-200)] transition-colors">Cancel</button>
+       <button class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-[var(--mq-teal)] hover:bg-[var(--mq-teal-900)] transition-colors shadow-md">Confirm Booking</button>
+    </div>
+
+  </div>
+</div>

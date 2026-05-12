@@ -1,0 +1,145 @@
+<div class="space-y-6">
+  
+  <div class="flex justify-between items-center mb-2">
+    <div>
+      <h1 class="text-2xl font-bold text-[var(--mq-navy)]">Clinical Command Center</h1>
+      <p class="text-[var(--mq-slate-500)] text-sm">Real-time queue and active visit overview.</p>
+    </div>
+    <div class="bg-[var(--mq-teal)]/10 text-[var(--mq-teal)] px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2">
+      <div class="w-2 h-2 rounded-full bg-[var(--mq-teal)] animate-pulse"></div>
+      Queue Active
+    </div>
+  </div>
+
+  <!-- Bento Grid -->
+  <div class="bento-grid">
+    
+    <!-- Today's Queue (Span 8) -->
+    <div class="bento-wide glass-light border-[var(--mq-slate-200)] p-6 flex flex-col h-[380px]">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-lg font-bold flex items-center gap-2">
+          <lucide-icon name="Clock" class="w-5 h-5 text-[var(--mq-slate-500)]"></lucide-icon> Today's Queue
+        </h2>
+        <span class="text-xs bg-[var(--mq-slate-200)] px-2 py-1 rounded text-[var(--mq-slate-600)] font-medium">3 Waiting</span>
+      </div>
+      
+      <div class="flex-1 overflow-y-auto custom-scrollbar pr-2" [@staggerList]>
+        <div *ngFor="let patient of queue()" 
+             (click)="selectPatient(patient.id)"
+             [class.border-teal-500]="patient.active"
+             [ngClass]="patient.active ? 'bg-[var(--mq-teal)]/5' : ''"
+             [ngClass]="patient.active ? 'shadow-[0_0_15px_rgba(13,148,136,0.1)]' : ''"
+             [class.bg-white]="!patient.active"
+             class="p-4 rounded-xl border border-[var(--mq-slate-200)] mb-3 cursor-pointer hover:border-[var(--mq-teal)]/50 transition-all flex items-center justify-between mq-card group">
+          
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-full bg-[var(--mq-slate-200)] flex items-center justify-center text-[var(--mq-slate-600)] font-bold shrink-0">
+              <lucide-icon name="User" class="w-5 h-5"></lucide-icon>
+            </div>
+            <div>
+              <div class="font-bold text-[var(--mq-navy)] group-hover:text-[var(--mq-teal)] transition-colors">{{ patient.name }}</div>
+              <div class="text-xs text-[var(--mq-slate-500)]">{{ patient.reason }} • {{ patient.time }}</div>
+            </div>
+          </div>
+
+          <div class="text-xs font-semibold px-3 py-1 rounded-full"
+               [class.bg-yellow-100]="patient.status === 'Waiting'" [class.text-yellow-700]="patient.status === 'Waiting'"
+               [ngClass]="patient.status === 'In Visit' ? 'bg-[var(--mq-teal)]/20 text-[var(--mq-teal-900)]' : ''">
+            {{ patient.status }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vitals Alert (Span 4) -->
+    <div class="bento-narrow bg-[var(--mq-navy-800)] text-white rounded-xl border border-[var(--mq-navy-700)] p-6 flex flex-col h-[380px] shadow-lg relative overflow-hidden">
+      <!-- Glow effect -->
+      <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-500 rounded-full blur-[60px] opacity-20"></div>
+      
+      <div class="flex items-center gap-2 mb-6 text-red-400">
+        <lucide-icon name="AlertCircle" class="w-5 h-5"></lucide-icon>
+        <h2 class="text-lg font-bold">Vitals Alert</h2>
+      </div>
+
+      <div class="text-sm text-[var(--mq-slate-400)] mb-4">Patient: <span class="text-white font-medium">Omar Tarek</span></div>
+
+      <div class="space-y-4 flex-1">
+        <div class="bg-[var(--mq-navy)] p-4 rounded-lg border border-red-500/30 relative overflow-hidden">
+           <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
+           <div class="text-xs text-[var(--mq-slate-400)] mb-1">Blood Pressure</div>
+           <div class="text-2xl font-bold text-red-400">145<span class="text-sm font-normal text-[var(--mq-slate-500)]">/90</span> <span class="text-xs ml-2 uppercase text-red-500 bg-red-500/10 px-2 py-0.5 rounded">High</span></div>
+        </div>
+
+        <div class="bg-[var(--mq-navy)] p-4 rounded-lg border border-[var(--mq-navy-700)] relative overflow-hidden">
+           <div class="absolute left-0 top-0 bottom-0 w-1 bg-yellow-500"></div>
+           <div class="text-xs text-[var(--mq-slate-400)] mb-1">Heart Rate</div>
+           <div class="text-2xl font-bold text-yellow-400">95<span class="text-sm font-normal text-[var(--mq-slate-500)]"> bpm</span></div>
+        </div>
+      </div>
+      
+      <button class="w-full py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-[var(--mq-slate-300)] transition-colors mt-4">View History</button>
+    </div>
+
+    <!-- Quick SOAP Editor (Span 8) -->
+    <div class="bento-wide glass-light border-[var(--mq-slate-200)] p-6">
+      <div class="flex justify-between items-center mb-6 border-b border-[var(--mq-slate-200)] pb-4">
+        <div>
+          <h2 class="text-lg font-bold">Active Visit Note</h2>
+          <div class="text-xs text-[var(--mq-slate-500)]">Omar Tarek • Start: 10:05 AM</div>
+        </div>
+        
+        <div class="flex items-center gap-2 text-xs font-medium" 
+             [ngClass]="{'text-[var(--mq-slate-500)]': saveStatus() === 'Saved'}"
+             [class.text-yellow-500]="saveStatus() === 'Saving...'">
+          <lucide-icon [name]="saveStatus() === 'Saved' ? 'CheckCircle2' : 'RefreshCw'" 
+                       class="w-3 h-3" [class.animate-spin]="saveStatus() === 'Saving...'"></lucide-icon>
+          {{ saveStatus() }}
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <!-- Subjective -->
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-[var(--mq-navy)] uppercase tracking-wider">Subjective</label>
+          <textarea [value]="subjective()" (input)="onInput('S', $any($event.target).value)"
+                    class="w-full bg-white border border-[var(--mq-slate-200)] rounded-lg p-3 text-sm h-24 focus:ring-2 focus:ring-[var(--mq-teal-400)] focus:border-transparent outline-none resize-none" placeholder="Patient's chief complaint..."></textarea>
+        </div>
+        <!-- Objective -->
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-[var(--mq-navy)] uppercase tracking-wider">Objective</label>
+          <textarea [value]="objective()" (input)="onInput('O', $any($event.target).value)"
+                    class="w-full bg-white border border-[var(--mq-slate-200)] rounded-lg p-3 text-sm h-24 focus:ring-2 focus:ring-[var(--mq-teal-400)] focus:border-transparent outline-none resize-none" placeholder="Clinical findings, vitals..."></textarea>
+        </div>
+        <!-- Assessment -->
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-[var(--mq-navy)] uppercase tracking-wider">Assessment</label>
+          <textarea [value]="assessment()" (input)="onInput('A', $any($event.target).value)"
+                    class="w-full bg-white border border-[var(--mq-slate-200)] rounded-lg p-3 text-sm h-24 focus:ring-2 focus:ring-[var(--mq-teal-400)] focus:border-transparent outline-none resize-none" placeholder="Diagnosis..."></textarea>
+        </div>
+        <!-- Plan -->
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-[var(--mq-navy)] uppercase tracking-wider">Plan</label>
+          <textarea [value]="plan()" (input)="onInput('P', $any($event.target).value)"
+                    class="w-full bg-white border border-[var(--mq-slate-200)] rounded-lg p-3 text-sm h-24 focus:ring-2 focus:ring-[var(--mq-teal-400)] focus:border-transparent outline-none resize-none" placeholder="Treatment, medications..."></textarea>
+        </div>
+      </div>
+      
+      <div class="mt-6 flex justify-end gap-3">
+         <button class="px-6 py-2 rounded-lg text-sm font-semibold text-[var(--mq-navy-700)] bg-[var(--mq-slate-200)] hover:bg-[var(--mq-slate-300)] transition-colors">Expand Note</button>
+         <button class="px-6 py-2 rounded-lg text-sm font-semibold text-white bg-[var(--mq-teal)] hover:bg-[var(--mq-teal-900)] transition-colors shadow-md">Finalize Visit &rarr;</button>
+      </div>
+    </div>
+    
+    <!-- Minor Stats (Span 4) below vitals if we want, or just empty space -->
+    <div class="bento-narrow grid grid-cols-2 gap-4">
+       <div class="bg-white rounded-xl border border-[var(--mq-slate-200)] p-4 flex flex-col justify-center items-center text-center shadow-sm">
+         <div class="text-2xl font-bold text-[var(--mq-navy)] mb-1">12</div>
+         <div class="text-xs text-[var(--mq-slate-500)] uppercase tracking-wider font-semibold">Patients Seen</div>
+       </div>
+       <div class="bg-white rounded-xl border border-[var(--mq-slate-200)] p-4 flex flex-col justify-center items-center text-center shadow-sm">
+         <div class="text-2xl font-bold text-[var(--mq-teal)] mb-1">8m</div>
+         <div class="text-xs text-[var(--mq-slate-500)] uppercase tracking-wider font-semibold">Avg. Time</div>
+       </div>
+    </div>
+  </div>
+</div>
