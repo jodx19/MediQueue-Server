@@ -94,10 +94,10 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-        ValidateIssuer           = true,
-        ValidIssuer              = jwtSettings["Issuer"] ?? "MediQueue",
-        ValidateAudience         = true,
-        ValidAudience            = jwtSettings["Audience"] ?? "MediQueueClient",
+        ValidateIssuer           = false,
+        // ValidIssuer              = jwtSettings["Issuer"] ?? "MediQueue",
+        ValidateAudience         = false,
+        // ValidAudience            = jwtSettings["Audience"] ?? "MediQueueClient",
         ValidateLifetime         = true,
         ClockSkew                = TimeSpan.Zero
     };

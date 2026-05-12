@@ -73,6 +73,15 @@ public class DataSeeder : IDataSeeder
                 "Admin@123456",
                 UserRole.Admin),
             CreateUser(
+                Guid.NewGuid(),
+                "ma7moud",
+                "ma7moudmostafa19@gmail.com",
+                "Mahmoud",
+                "Mostafa",
+                "01099999999",
+                "Admin@123456",
+                UserRole.Admin),
+            CreateUser(
                 DoctorUserId,
                 "dr.ahmed",
                 "dr.ahmed@mediqueue.com",
