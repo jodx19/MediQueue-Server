@@ -113,3 +113,4 @@ App available at: `http://localhost:4200`
 ---
 
 *Built with ❤️ — Clean Architecture, SOLID principles, and a focus on scalability.*
+
