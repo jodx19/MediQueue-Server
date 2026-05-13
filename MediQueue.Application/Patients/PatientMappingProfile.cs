@@ -23,7 +23,9 @@ public class PatientMappingProfile : Profile
 
         CreateMap<Patient, PatientSummaryDto>()
             .ForMember(d => d.FullName, opt => opt.MapFrom(s => s.PersonName.FullName))
-            .ForMember(d => d.Phone, opt => opt.MapFrom(s => s.ContactInfo.Phone));
+            .ForMember(d => d.Phone, opt => opt.MapFrom(s => s.ContactInfo.Phone))
+            .ForMember(d => d.BloodType, opt => opt.MapFrom(s => s.BloodType))
+            .ForMember(d => d.LastVisitDate, opt => opt.Ignore()); // Could be populated via a join/subquery if needed
 
         CreateMap<Allergy, AllergyDto>()
             .ForMember(d => d.Severity, opt => opt.MapFrom(s => s.Severity.ToString()));

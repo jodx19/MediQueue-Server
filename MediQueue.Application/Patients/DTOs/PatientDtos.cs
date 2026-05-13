@@ -44,6 +44,8 @@ public class PatientSummaryDto
     public string MedicalRecordNumber { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public DateOnly DateOfBirth { get; set; }
+    public BloodType BloodType { get; set; }
+    public DateTime? LastVisitDate { get; set; }
     public bool IsActive { get; set; }
 }
 

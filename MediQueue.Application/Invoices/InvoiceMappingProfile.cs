@@ -10,6 +10,7 @@ public class InvoiceMappingProfile : Profile
     public InvoiceMappingProfile()
     {
         CreateMap<Invoice, InvoiceDto>()
+            .ForMember(d => d.PatientName, opt => opt.MapFrom(s => s.Patient.PersonName.FullName))
             .ForMember(d => d.TotalAmount, opt => opt.MapFrom(s => s.TotalAmount.Amount))
             .ForMember(d => d.PaidAmount, opt => opt.MapFrom(s => s.PaidAmount.Amount))
             .ForMember(d => d.RemainingAmount, opt => opt.MapFrom(s => s.RemainingAmount.Amount));
