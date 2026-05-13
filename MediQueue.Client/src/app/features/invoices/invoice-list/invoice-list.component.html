@@ -1,0 +1,55 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex bg-[var(--mq-slate-200)] p-1 rounded-xl">
+      <button *ngFor="let f of ['All', 'Pending', 'Paid', 'Cancelled']"
+              (click)="setFilter($any(f))"
+              [class.bg-white]="filter() === f"
+              [class.shadow-sm]="filter() === f"
+              [ngClass]="{'text-[var(--mq-navy)]': filter() === f}"
+              class="px-4 py-1.5 rounded-lg text-sm font-semibold text-[var(--mq-slate-500)] transition-all">
+        {{ f }}
+      </button>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-[var(--mq-slate-200)] shadow-sm overflow-hidden">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="bg-[var(--mq-slate)]/50 text-[var(--mq-slate-500)] text-xs uppercase tracking-wider border-b border-[var(--mq-slate-200)]">
+          <th class="p-4 font-semibold">Invoice #</th>
+          <th class="p-4 font-semibold">Patient</th>
+          <th class="p-4 font-semibold">Amount</th>
+          <th class="p-4 font-semibold">Status</th>
+          <th class="p-4 font-semibold">Date</th>
+          <th class="p-4 font-semibold text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let inv of invoices()" class="border-b border-[var(--mq-slate-100)] hover:bg-[var(--mq-slate)]/30 transition-colors">
+          <td class="p-4 font-bold text-[var(--mq-navy)]">{{ inv.invoiceNumber }}</td>
+          <td class="p-4 text-sm">{{ inv.patientName }}</td>
+          <td class="p-4 font-bold text-[var(--mq-teal)]">{{ inv.totalAmount | currency }}</td>
+          <td class="p-4">
+            <span class="px-2.5 py-1 text-xs font-semibold rounded-full"
+                  [class.bg-green-100]="inv.status === 4" [class.text-green-700]="inv.status === 4"
+                  [class.bg-blue-100]="inv.status === 2" [class.text-blue-700]="inv.status === 2"
+                  [class.bg-yellow-100]="inv.status === 3" [class.text-yellow-700]="inv.status === 3"
+                  [class.bg-red-100]="inv.status === 6" [class.text-red-700]="inv.status === 6">
+              {{ inv.status === 4 ? 'Paid' : (inv.status === 2 ? 'Issued' : (inv.status === 3 ? 'Partial' : (inv.status === 6 ? 'Cancelled' : 'Other'))) }}
+            </span>
+          </td>
+          <td class="p-4 text-sm text-[var(--mq-slate-500)]">{{ inv.issuedAt | date:'mediumDate' }}</td>
+          <td class="p-4 text-right">
+            <button class="p-1.5 hover:bg-[var(--mq-slate-200)] rounded-lg transition-colors"><lucide-icon name="Printer" class="w-4 h-4"></lucide-icon></button>
+          </td>
+        </tr>
+        <tr *ngIf="!isLoading() && invoices().length === 0">
+          <td colspan="6" class="p-12 text-center">
+            <div class="text-[var(--mq-slate-400)] mb-2"><lucide-icon name="Receipt" class="w-8 h-8 mx-auto"></lucide-icon></div>
+            <p class="text-[var(--mq-slate-500)]">No invoices found.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -7,7 +7,16 @@ import { LucideAngularModule, icons } from 'lucide-angular';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
-import { API_BASE_URL, Client } from './core/api/mediqueue-api';
+import { 
+  API_BASE_URL, 
+  AuthClient, 
+  PatientsClient, 
+  DoctorsClient, 
+  AppointmentsClient, 
+  ClinicalVisitsClient, 
+  InvoicesClient, 
+  DashboardClient 
+} from './core/api/mediqueue-api';
 import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
@@ -19,7 +28,13 @@ export const appConfig: ApplicationConfig = {
       withInterceptors([authInterceptor, errorInterceptor])
     ),
     { provide: API_BASE_URL, useValue: environment.apiBaseUrl },
-    Client,
+    AuthClient,
+    PatientsClient,
+    DoctorsClient,
+    AppointmentsClient,
+    ClinicalVisitsClient,
+    InvoicesClient,
+    DashboardClient,
     importProvidersFrom(LucideAngularModule.pick(icons))
   ]
 };

@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideAngularModule, Receipt, Search, Filter, Printer, Download, Plus, CheckCircle, Clock } from 'lucide-angular';
-import { Client as InvoicesClient, InvoiceDto } from '../../../core/api/mediqueue-api';
+import { InvoicesClient, InvoiceDto } from '../../../core/api/mediqueue-api';
 import { NotificationService } from '../../../core/services/notification.service';
 import { firstValueFrom } from 'rxjs';
 

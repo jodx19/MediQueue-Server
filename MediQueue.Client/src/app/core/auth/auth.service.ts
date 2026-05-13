@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { Client as AuthClient, LoginCommand as LoginRequest } from '../api/mediqueue-api';
+import { AuthClient, LoginCommand as LoginRequest, AuthResponseDto } from '../api/mediqueue-api';
 import { firstValueFrom } from 'rxjs';
 
 export interface UserSession {
@@ -25,7 +25,7 @@ export class AuthService {
     try {
       const response = await firstValueFrom(
         this.authClient.login(new LoginRequest({ email, password }))
-      );
+      ) as AuthResponseDto;
 
       // The role comes directly from JWT claims mapped by backend
       const session: UserSession = {

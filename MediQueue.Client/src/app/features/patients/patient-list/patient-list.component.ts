@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideAngularModule, Search, Filter, Plus, MoreVertical, Eye, Edit, CalendarPlus, UserPlus } from 'lucide-angular';
-import { Client as PatientsClient, PatientSummaryDto } from '../../../core/api/mediqueue-api';
+import { PatientsClient, PatientSummaryDto } from '../../../core/api/mediqueue-api';
 import { NotificationService } from '../../../core/services/notification.service';
 import { firstValueFrom } from 'rxjs';
 

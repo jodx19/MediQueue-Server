@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideAngularModule, Calendar as CalendarIcon, Clock, User, CheckCircle2, XCircle, MoreVertical } from 'lucide-angular';
-import { Client as AppointmentsClient, AppointmentDto } from '../../../core/api/mediqueue-api';
+import { AppointmentsClient, AppointmentDto } from '../../../core/api/mediqueue-api';
 import { NotificationService } from '../../../core/services/notification.service';
 import { firstValueFrom } from 'rxjs';
 

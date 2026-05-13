@@ -18,7 +18,7 @@ export const routes: Routes = [
   },
   {
     path: 'register',
-    loadComponent: () => import('./features/patient-portal/patient-self-register/patient-self-register.component')
+    loadComponent: () => import('./features/patient-portal/register/patient-self-register.component')
       .then(m => (m as any).PatientSelfRegisterComponent), // Handle potential naming variations
   },
   {
@@ -51,7 +51,7 @@ export const routes: Routes = [
       {
         path: 'super-admin',
         canActivate: [roleGuard(['Admin'])],
-        loadComponent: () => import('./features/admin/super-admin/super-admin.component')
+        loadComponent: () => import('./features/super-admin/super-admin.component')
           .then(m => (m as any).SuperAdminComponent),
       },
 

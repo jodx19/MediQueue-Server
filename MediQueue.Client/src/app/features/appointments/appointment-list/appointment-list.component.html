@@ -1,0 +1,52 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex bg-[var(--mq-slate-200)] p-1 rounded-xl">
+      <button *ngFor="let tab of ['Today', 'Upcoming', 'Past', 'Cancelled']"
+              (click)="setFilter($any(tab))"
+              [class.bg-white]="filter() === tab"
+              [class.shadow-sm]="filter() === tab"
+              [ngClass]="{'text-[var(--mq-teal)]': filter() === tab}"
+              class="px-4 py-1.5 rounded-lg text-sm font-semibold text-[var(--mq-slate-500)] transition-all">
+        {{ tab }}
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading()" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div *ngFor="let i of [1,2,3,4]" class="p-4 rounded-xl border border-[var(--mq-slate-200)] bg-white animate-pulse h-32"></div>
+  </div>
+
+  <div *ngIf="!isLoading() && appointments().length === 0" class="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-[var(--mq-slate-200)]">
+    <div class="w-16 h-16 bg-[var(--mq-slate)] rounded-full flex items-center justify-center text-[var(--mq-slate-400)] mb-4">
+      <lucide-icon name="CalendarIcon" class="w-8 h-8"></lucide-icon>
+    </div>
+    <h3 class="text-lg font-bold text-[var(--mq-navy)]">No Appointments Found</h3>
+    <p class="text-sm text-[var(--mq-slate-500)]">There are no appointments for the selected filter.</p>
+  </div>
+
+  <div *ngIf="!isLoading() && appointments().length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div *ngFor="let apt of appointments()" class="p-4 rounded-xl border border-[var(--mq-slate-200)] hover:border-[var(--mq-teal)] hover:shadow-teal-glow transition-all bg-white group mq-card">
+      <div class="flex justify-between items-start mb-4">
+        <div class="flex items-center gap-2">
+          <lucide-icon name="Clock" class="w-4 h-4 text-[var(--mq-teal)]"></lucide-icon>
+          <span class="font-bold text-[var(--mq-navy)]">{{ (apt.scheduledAt | date:'shortTime') ?? 'N/A' }}</span>
+        </div>
+        <span class="px-2.5 py-1 text-xs font-semibold rounded-full"
+              [class.bg-green-100]="apt.status === 5" [class.text-green-700]="apt.status === 5"
+              [class.bg-blue-100]="apt.status === 1" [class.text-blue-700]="apt.status === 1">
+          {{ apt.status === 5 ? 'Completed' : (apt.status === 1 ? 'Scheduled' : 'Other') }}
+        </span>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <div class="w-10 h-10 rounded-full bg-[var(--mq-teal)]/10 text-[var(--mq-teal)] flex items-center justify-center">
+          <lucide-icon name="User" class="w-5 h-5"></lucide-icon>
+        </div>
+        <div>
+          <div class="font-bold text-[var(--mq-navy)]">{{ apt.patientName }}</div>
+          <div class="text-xs text-[var(--mq-slate-500)]">{{ apt.doctorName }} • Visit #{{ apt.visitType }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

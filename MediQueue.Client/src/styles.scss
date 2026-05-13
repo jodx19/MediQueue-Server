@@ -1,5 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+:root {
+  --mq-navy: #0F172A;
+  --mq-navy-800: #1E293B;
+  --mq-navy-700: #334155;
+  --mq-teal: #0D9488;
+  --mq-teal-400: #2DD4BF;
+  --mq-teal-600: #0F766E;
+  --mq-teal-900: #042F2E;
+  --mq-slate: #F8FAFC;
+  --mq-slate-200: #E2E8F0;
+  --mq-slate-400: #94A3B8;
+  --mq-slate-600: #475569;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -145,13 +159,13 @@
   .flip-back { transform: rotateY(180deg); }
 
   /* ─── SCROLL REVEAL ─── */
-  [scroll-reveal] {
+  [scrollReveal] {
     opacity: 0;
     transform: translateY(28px);
-    transition: opacity 600ms cubic-bezier(0.4,0,0.2,1),
-                transform 600ms cubic-bezier(0.4,0,0.2,1);
+    transition: opacity 800ms cubic-bezier(0.4,0,0.2,1),
+                transform 800ms cubic-bezier(0.4,0,0.2,1);
   }
-  [scroll-reveal].is-visible {
+  [scrollReveal].revealed {
     opacity: 1;
     transform: translateY(0);
   }

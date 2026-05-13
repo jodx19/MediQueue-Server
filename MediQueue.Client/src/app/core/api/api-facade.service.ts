@@ -6,7 +6,13 @@
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
-  Client,
+  AuthClient,
+  PatientsClient as PatientsGenClient,
+  DoctorsClient as DoctorsGenClient,
+  AppointmentsClient as AppointmentsGenClient,
+  ClinicalVisitsClient as ClinicalVisitsGenClient,
+  InvoicesClient as InvoicesGenClient,
+  DashboardClient as DashboardGenClient,
   RegisterPatientCommand,
   RegisterCommand,
   BookAppointmentCommand,
@@ -200,7 +206,7 @@ export type VitalSignType = typeof VitalSignType[keyof typeof VitalSignType];
 
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
-  private readonly client = inject(Client);
+  private readonly client = inject(AuthClient);
   login(email: string, password: string): Promise<AuthResponseDto> {
     return firstValueFrom(this.client.login(new LoginCommand({ email, password })));
   }
@@ -217,7 +223,7 @@ export class AuthApiService {
 
 @Injectable({ providedIn: 'root' })
 export class PatientsClient {
-  private readonly client = inject(Client);
+  private readonly client = inject(PatientsGenClient);
 
   async getAll(page = 1, size = 50): Promise<PatientSummaryDto[]> {
     const result = (await firstValueFrom(this.client.patientsGET(page, size) as any)) as any;
@@ -258,7 +264,7 @@ export class PatientsClient {
 
 @Injectable({ providedIn: 'root' })
 export class DoctorsClient {
-  private readonly client = inject(Client);
+  private readonly client = inject(DoctorsGenClient);
 
   async getAll(): Promise<DoctorSummaryDto[]> {
     const result = (await firstValueFrom(this.client.doctorsGET() as any)) as any;
@@ -282,7 +288,7 @@ export class DoctorsClient {
 
 @Injectable({ providedIn: 'root' })
 export class AppointmentsClient {
-  private readonly client = inject(Client);
+  private readonly client = inject(AppointmentsGenClient);
 
   async getToday(): Promise<AppointmentSummaryDto[]> {
     const result = (await firstValueFrom(this.client.today() as any)) as any;
@@ -316,7 +322,7 @@ export class AppointmentsClient {
 
 @Injectable({ providedIn: 'root' })
 export class ClinicalVisitsClient {
-  private readonly client = inject(Client);
+  private readonly client = inject(ClinicalVisitsGenClient);
 
   async getById(id: string): Promise<ClinicalVisitDto> {
     return firstValueFrom(this.client.clinicalVisitsGET(id));
@@ -347,11 +353,10 @@ export class ClinicalVisitsClient {
 
 @Injectable({ providedIn: 'root' })
 export class InvoicesClient {
-  private readonly client = inject(Client);
+  private readonly client = inject(InvoicesGenClient);
 
   async getAll(): Promise<InvoiceSummaryDto[]> {
-    const result = await firstValueFrom(this.client.patientsGET as any);
-    return Array.isArray(result) ? result : (result as any)?.items ?? [];
+    return []; // No direct 'get all' endpoint in current API; fallback to empty
   }
 
   async getById(id: string): Promise<InvoiceDto> {
@@ -369,7 +374,7 @@ export class InvoicesClient {
 
 @Injectable({ providedIn: 'root' })
 export class DashboardClient {
-  private readonly client = inject(Client);
+  private readonly client = inject(DashboardGenClient);
 
   async getStats(): Promise<ClinicStatsDto> {
     return firstValueFrom(this.client.stats());

@@ -2,13 +2,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediQueue.Domain", "MediQueue.Domain\MediQueue.Domain.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediQueue.Domain", "MediQueue.Server\MediQueue.Domain\MediQueue.Domain.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediQueue.Application", "MediQueue.Application\MediQueue.Application.csproj", "{B2C3D4E5-F6G7-8901-BCDE-F23456789012}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediQueue.Application", "MediQueue.Server\MediQueue.Application\MediQueue.Application.csproj", "{B2C3D4E5-F6G7-8901-BCDE-F23456789012}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediQueue.Infrastructure", "MediQueue.Infrastructure\MediQueue.Infrastructure.csproj", "{C3D4E5F6-G7H8-9012-CDEF-345678901234}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediQueue.Infrastructure", "MediQueue.Server\MediQueue.Infrastructure\MediQueue.Infrastructure.csproj", "{C3D4E5F6-G7H8-9012-CDEF-345678901234}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediQueue.API", "MediQueue.API\MediQueue.API.csproj", "{D4E5F6G7-H8I9-0123-DEF4-456789012345}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediQueue.API", "MediQueue.Server\MediQueue.API\MediQueue.API.csproj", "{D4E5F6G7-H8I9-0123-DEF4-456789012345}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,7 +35,5 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
 	EndGlobalSection
 EndGlobal
