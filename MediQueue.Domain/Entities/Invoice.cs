@@ -19,6 +19,7 @@ public class Invoice : BaseAggregateRoot
     private readonly List<Payment> _payments = [];
 
     public Guid PatientId { get; private set; }
+    public Patient Patient { get; private set; } = null!;
     public Guid? AppointmentId { get; private set; }
     public string InvoiceNumber { get; private set; }
     public DateTime IssuedAt { get; private set; }

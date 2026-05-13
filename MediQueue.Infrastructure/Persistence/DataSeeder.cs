@@ -70,25 +70,16 @@ public class DataSeeder : IDataSeeder
                 "Admin",
                 "System",
                 "01000000000",
-                "Admin@123456",
-                UserRole.Admin),
-            CreateUser(
-                Guid.NewGuid(),
-                "ma7moud",
-                "ma7moudmostafa19@gmail.com",
-                "Mahmoud",
-                "Mostafa",
-                "01099999999",
-                "Admin@123456",
+                "Admin@123",
                 UserRole.Admin),
             CreateUser(
                 DoctorUserId,
-                "dr.ahmed",
-                "dr.ahmed@mediqueue.com",
+                "doctor",
+                "doctor@mediqueue.com",
                 "Ahmed",
                 "Hassan",
                 "01010000000",
-                "Doctor@123456",
+                "Doctor@123",
                 UserRole.Doctor,
                 doctorId: DoctorAhmedId),
             CreateUser(
@@ -98,7 +89,7 @@ public class DataSeeder : IDataSeeder
                 "Reception",
                 "Desk",
                 "01020000000",
-                "Recept@123456",
+                "Reception@123",
                 UserRole.Receptionist)
         };
 

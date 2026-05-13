@@ -9,7 +9,9 @@ public class AppointmentMappingProfile : Profile
 {
     public AppointmentMappingProfile()
     {
-        CreateMap<Appointment, AppointmentDto>();
+        CreateMap<Appointment, AppointmentDto>()
+            .ForMember(d => d.PatientName, opt => opt.MapFrom(s => s.Patient.PersonName.FullName))
+            .ForMember(d => d.DoctorName, opt => opt.MapFrom(s => s.Doctor.PersonName.FullName));
 
         CreateMap<Appointment, AppointmentDetailDto>()
             .IncludeBase<Appointment, AppointmentDto>();

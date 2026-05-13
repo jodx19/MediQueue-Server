@@ -13,7 +13,9 @@ namespace MediQueue.Domain.Entities;
 public class Appointment : BaseAggregateRoot
 {
     public Guid PatientId { get; private set; }
+    public virtual Patient Patient { get; private set; } = null!;
     public Guid DoctorId { get; private set; }
+    public virtual Doctor Doctor { get; private set; } = null!;
     public Guid ClinicId { get; private set; }
     public DateTime ScheduledAt { get; private set; }
     public int DurationMinutes { get; private set; }

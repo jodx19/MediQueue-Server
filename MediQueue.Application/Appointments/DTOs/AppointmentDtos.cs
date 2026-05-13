@@ -8,7 +8,9 @@ public class AppointmentDto
 {
     public Guid Id { get; set; }
     public Guid PatientId { get; set; }
+    public string PatientName { get; set; } = string.Empty;
     public Guid DoctorId { get; set; }
+    public string DoctorName { get; set; } = string.Empty;
     public Guid ClinicId { get; set; }
     public DateTime ScheduledAt { get; set; }
     public int DurationMinutes { get; set; }

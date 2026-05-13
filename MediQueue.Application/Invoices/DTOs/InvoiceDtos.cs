@@ -29,6 +29,7 @@ public class InvoiceDto
     public Guid Id { get; set; }
     public string InvoiceNumber { get; set; } = string.Empty;
     public Guid PatientId { get; set; }
+    public string PatientName { get; set; } = string.Empty;
     public Guid? AppointmentId { get; set; }
     public DateTime IssuedAt { get; set; }
     public DateOnly DueDate { get; set; }

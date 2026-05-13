@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -6,25 +6,19 @@
     <Nullable>enable</Nullable>
     <RootNamespace>MediQueue.API</RootNamespace>
     <AssemblyName>MediQueue.API</AssemblyName>
-    <OutputType>Library</OutputType>
   </PropertyGroup>
-
-  <!-- API layer only references ASP.NET Core framework (no SQL, no EF, no Hangfire) -->
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
 
   <ItemGroup>
     <!-- Swagger / OpenAPI -->
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Filters" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
-    <!-- DI abstractions only (no concrete implementations) -->
+    <!-- DI abstractions -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
-    <!-- Health checks UI client (presentation concern) -->
+    <!-- Health checks UI client -->
     <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
-    <!-- Serilog for structured request logging -->
+    <!-- Serilog -->
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.2" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
@@ -32,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MediQueue.Application\MediQueue.Application.csproj" />
+    <ProjectReference Include="..\MediQueue.Infrastructure\MediQueue.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
