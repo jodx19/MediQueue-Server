@@ -21,6 +21,7 @@ public class Invoice : BaseAggregateRoot
     public Guid PatientId { get; private set; }
     public Patient Patient { get; private set; } = null!;
     public Guid? AppointmentId { get; private set; }
+    public virtual Appointment? Appointment { get; private set; }
     public string InvoiceNumber { get; private set; }
     public DateTime IssuedAt { get; private set; }
     public DateOnly DueDate { get; private set; }

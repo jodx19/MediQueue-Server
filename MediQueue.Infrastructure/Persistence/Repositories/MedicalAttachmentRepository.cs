@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MediQueue.Domain.Entities;
@@ -33,6 +34,17 @@ public class MedicalAttachmentRepository : IMedicalAttachmentRepository
             .Where(a => a.PatientId == patientId)
             .OrderByDescending(a => a.UploadedAt)
             .ToListAsync();
+    }
+
+    public async Task<List<MedicalAttachment>> GetByClinicalVisitIdAsync(
+        Guid clinicalVisitId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Set<MedicalAttachment>()
+            .AsNoTracking()
+            .Where(a => a.ClinicalVisitId == clinicalVisitId)
+            .OrderByDescending(a => a.UploadedAt)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task AddAsync(MedicalAttachment attachment)

@@ -35,7 +35,7 @@ public class AppointmentScheduleItemDto
     public string PatientName { get; set; } = string.Empty;
     public DateTime ScheduledAt { get; set; }
     public int DurationMinutes { get; set; }
-    public AppointmentStatus Status { get; set; }
+    public string Status { get; set; } = string.Empty;
     public string ChiefComplaint { get; set; } = string.Empty;
 }
 

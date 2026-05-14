@@ -2,10 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MediQueue.Domain.Common;
 using MediQueue.Domain.Entities;
+using MediQueue.Domain.Enums;
 using MediQueue.Domain.Interfaces;
 using MediQueue.Infrastructure.Persistence.Context;
 
@@ -44,6 +46,43 @@ public class InvoiceRepository : IInvoiceRepository
             .Skip((page - 1) * size)
             .Take(size)
             .ToListAsync();
+
+        return new PagedResult<Invoice>(items, total, page, size);
+    }
+
+    /// <inheritdoc />
+    public async Task<PagedResult<Invoice>> GetPagedAsync(
+        string? status,
+        DateTime? from,
+        DateTime? to,
+        int page,
+        int size,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Invoices
+            .AsNoTracking()
+            .Include(i => i.Patient)
+            .Include(i => i.Appointment)
+                .ThenInclude(a => a.Doctor)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status) &&
+            Enum.TryParse<InvoiceStatus>(status, ignoreCase: true, out var parsedStatus))
+            query = query.Where(i => i.Status == parsedStatus);
+
+        if (from.HasValue)
+            query = query.Where(i => i.IssuedAt >= from.Value);
+
+        if (to.HasValue)
+            query = query.Where(i => i.IssuedAt <= to.Value);
+
+        query = query.OrderByDescending(i => i.IssuedAt);
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((page - 1) * size)
+            .Take(size)
+            .ToListAsync(cancellationToken);
 
         return new PagedResult<Invoice>(items, total, page, size);
     }

@@ -10,6 +10,7 @@ using MediQueue.Application.Common;
 using MediQueue.Application.Invoices.Commands;
 using MediQueue.Application.Invoices.Queries;
 using MediQueue.Application.Invoices.DTOs;
+using MediQueue.Domain.Enums;
 
 namespace MediQueue.API.Controllers;
 
@@ -22,6 +23,22 @@ public class InvoicesController : ControllerBase
 {
     private readonly ISender _sender;
     public InvoicesController(ISender sender) => _sender = sender;
+
+    /// <summary>Paginated clinic-wide invoice list with optional status and date filters.</summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<InvoiceListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<InvoiceListItemDto>>> List(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? status = null,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        CancellationToken ct = default)
+    {
+        var result = await _sender.Send(new GetClinicInvoicesQuery(status, from, to, page, pageSize), ct);
+        if (!result.IsSuccess) return BadRequest(result.Error);
+        return Ok(result.Value);
+    }
 
     /// <summary>Create a new invoice (auto-generates INV-YYYYMMDD-XXXX number).</summary>
     [HttpPost]

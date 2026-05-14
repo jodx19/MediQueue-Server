@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MediQueue.Domain.Common;
@@ -106,9 +107,31 @@ public class AppointmentRepository : IAppointmentRepository
     {
         return await _context.Appointments
             .AsNoTracking()
+            .Include(a => a.Patient)
             .Where(a => a.DoctorId == doctorId && a.ScheduledAt.Date == date.Date)
             .OrderBy(a => a.ScheduledAt)
             .ToListAsync();
+    }
+
+    /// <inheritdoc />
+    public async Task<List<Appointment>> GetByDateRangeAsync(
+        DateTime fromUtc,
+        DateTime toUtc,
+        Guid? doctorId,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Appointments
+            .AsNoTracking()
+            .Include(a => a.Patient)
+            .Include(a => a.Doctor)
+            .Where(a => a.ScheduledAt >= fromUtc && a.ScheduledAt < toUtc);
+
+        if (doctorId.HasValue)
+            query = query.Where(a => a.DoctorId == doctorId.Value);
+
+        return await query
+            .OrderBy(a => a.ScheduledAt)
+            .ToListAsync(cancellationToken);
     }
 
     /// <summary>Returns paginated appointment history for a patient.</summary>

@@ -19,9 +19,14 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
                 v => v.ToString(),
                 v => (Domain.Enums.InvoiceStatus)System.Enum.Parse(typeof(Domain.Enums.InvoiceStatus), v));
 
-        builder.HasOne<Patient>()
+        builder.HasOne(i => i.Appointment)
             .WithMany()
-            .HasForeignKey(x => x.PatientId)
+            .HasForeignKey(i => i.AppointmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(i => i.Patient)
+            .WithMany()
+            .HasForeignKey(i => i.PatientId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // --- Stored Money value objects ---

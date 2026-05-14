@@ -18,8 +18,7 @@ public class AppointmentMappingProfile : Profile
 
         CreateMap<Appointment, AppointmentScheduleItemDto>()
             .ForMember(d => d.AppointmentId, opt => opt.MapFrom(s => s.Id))
-            // Note: PatientName requires joining with Patient. We will let the handler handle this or assume a specific query loads it.
-            // For now, we will ignore PatientName in AutoMapper to avoid errors if not explicitly mapped.
-            .ForMember(d => d.PatientName, opt => opt.Ignore());
+            .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()))
+            .ForMember(d => d.PatientName, opt => opt.MapFrom(s => s.Patient != null ? s.Patient.PersonName.FullName : string.Empty));
     }
 }

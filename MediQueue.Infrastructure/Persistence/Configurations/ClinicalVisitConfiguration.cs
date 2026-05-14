@@ -15,19 +15,19 @@ public class ClinicalVisitConfiguration : IEntityTypeConfiguration<ClinicalVisit
 
         builder.Property(x => x.IsFinalized).IsRequired().HasDefaultValue(false);
 
-        builder.HasOne<Patient>()
+        builder.HasOne(v => v.Patient)
             .WithMany()
-            .HasForeignKey(x => x.PatientId)
+            .HasForeignKey(v => v.PatientId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<Doctor>()
+        builder.HasOne(v => v.Doctor)
             .WithMany()
-            .HasForeignKey(x => x.DoctorId)
+            .HasForeignKey(v => v.DoctorId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<Appointment>()
+        builder.HasOne(v => v.Appointment)
             .WithMany()
-            .HasForeignKey(x => x.AppointmentId)
+            .HasForeignKey(v => v.AppointmentId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // VitalSigns stored as a JSON column

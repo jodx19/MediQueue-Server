@@ -23,6 +23,15 @@ public interface IInvoiceRepository
 {
     Task<Invoice?> GetByIdAsync(Guid id);
     Task<PagedResult<Invoice>> GetByPatientAsync(Guid patientId, int page, int size);
+
+    /// <summary>Clinic-wide invoice list with optional filters, newest first.</summary>
+    Task<PagedResult<Invoice>> GetPagedAsync(
+        string? status,
+        DateTime? from,
+        DateTime? to,
+        int page,
+        int size,
+        CancellationToken cancellationToken = default);
     Task<Invoice?> GetByAppointmentIdAsync(Guid appointmentId);
     Task AddAsync(Invoice invoice);
     Task UpdateAsync(Invoice invoice);

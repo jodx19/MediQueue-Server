@@ -1,5 +1,3 @@
-// e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.Application\ClinicalVisits\Queries\GetVisitByAppointmentQuery.cs
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -23,16 +21,20 @@ public class GetVisitByAppointmentQueryHandler : IRequestHandler<GetVisitByAppoi
         _mapper = mapper;
     }
 
-    public async Task<Result<ClinicalVisitDetailDto>> Handle(GetVisitByAppointmentQuery request, CancellationToken cancellationToken)
+    public async Task<Result<ClinicalVisitDetailDto>> Handle(
+        GetVisitByAppointmentQuery request,
+        CancellationToken cancellationToken)
     {
-        var visit = await _unitOfWork.ClinicalVisits.GetByAppointmentIdAsync(request.AppointmentId);
-        
+        var visit = await _unitOfWork.ClinicalVisits.GetByAppointmentIdWithDetailsAsync(
+            request.AppointmentId,
+            cancellationToken);
+
         if (visit == null)
-        {
             return Result<ClinicalVisitDetailDto>.Failure($"ClinicalVisit for Appointment '{request.AppointmentId}' was not found.");
-        }
 
         var dto = _mapper.Map<ClinicalVisitDetailDto>(visit);
+        await ClinicalVisitAttachmentMapper.PopulateAttachmentsAsync(_unitOfWork, dto, visit.Id, cancellationToken);
+
         return Result<ClinicalVisitDetailDto>.Success(dto);
     }
 }
