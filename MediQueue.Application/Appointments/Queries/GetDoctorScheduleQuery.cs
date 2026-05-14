@@ -1,5 +1,3 @@
-// e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.Application\Appointments\Queries\GetDoctorScheduleQuery.cs
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -28,22 +26,11 @@ public class GetDoctorScheduleQueryHandler : IRequestHandler<GetDoctorScheduleQu
     public async Task<Result<List<AppointmentScheduleItemDto>>> Handle(GetDoctorScheduleQuery request, CancellationToken cancellationToken)
     {
         var appointments = await _unitOfWork.Appointments.GetDoctorScheduleAsync(request.DoctorId, request.Date.Date);
-        
-        var dtoList = new List<AppointmentScheduleItemDto>();
 
-        foreach (var appointment in appointments.OrderBy(a => a.ScheduledAt))
-        {
-            var dto = _mapper.Map<AppointmentScheduleItemDto>(appointment);
-            
-            // Fetch PatientName
-            var patient = await _unitOfWork.Patients.GetByIdAsync(appointment.PatientId);
-            if (patient != null)
-            {
-                dto.PatientName = patient.PersonName.FullName;
-            }
-
-            dtoList.Add(dto);
-        }
+        var dtoList = appointments
+            .OrderBy(a => a.ScheduledAt)
+            .Select(a => _mapper.Map<AppointmentScheduleItemDto>(a))
+            .ToList();
 
         return Result<List<AppointmentScheduleItemDto>>.Success(dtoList);
     }

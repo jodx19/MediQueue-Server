@@ -1,5 +1,3 @@
-// e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.Application\ClinicalVisits\Queries\GetClinicalVisitByIdQuery.cs
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -23,16 +21,18 @@ public class GetClinicalVisitByIdQueryHandler : IRequestHandler<GetClinicalVisit
         _mapper = mapper;
     }
 
-    public async Task<Result<ClinicalVisitDetailDto>> Handle(GetClinicalVisitByIdQuery request, CancellationToken cancellationToken)
+    public async Task<Result<ClinicalVisitDetailDto>> Handle(
+        GetClinicalVisitByIdQuery request,
+        CancellationToken cancellationToken)
     {
-        var visit = await _unitOfWork.ClinicalVisits.GetByIdAsync(request.VisitId);
-        
+        var visit = await _unitOfWork.ClinicalVisits.GetByIdWithDetailsAsync(request.VisitId, cancellationToken);
+
         if (visit == null)
-        {
             return Result<ClinicalVisitDetailDto>.Failure($"ClinicalVisit with ID '{request.VisitId}' was not found.");
-        }
 
         var dto = _mapper.Map<ClinicalVisitDetailDto>(visit);
+        await ClinicalVisitAttachmentMapper.PopulateAttachmentsAsync(_unitOfWork, dto, visit.Id, cancellationToken);
+
         return Result<ClinicalVisitDetailDto>.Success(dto);
     }
 }

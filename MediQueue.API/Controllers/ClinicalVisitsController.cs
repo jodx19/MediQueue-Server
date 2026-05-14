@@ -27,9 +27,9 @@ public class ClinicalVisitsController : ControllerBase
 
     /// <summary>Get a clinical visit by its ID.</summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(typeof(ClinicalVisitDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ClinicalVisitDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ClinicalVisitDto>> GetById(Guid id, CancellationToken ct)
+    public async Task<ActionResult<ClinicalVisitDetailDto>> GetById(Guid id, CancellationToken ct)
     {
         var result = await _sender.Send(new GetClinicalVisitByIdQuery(id), ct);
         if (!result.IsSuccess) return NotFound(result.Error);
@@ -38,9 +38,9 @@ public class ClinicalVisitsController : ControllerBase
 
     /// <summary>Get the clinical visit associated with a specific appointment.</summary>
     [HttpGet("appointment/{appointmentId:guid}")]
-    [ProducesResponseType(typeof(ClinicalVisitDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ClinicalVisitDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ClinicalVisitDto>> GetByAppointment(Guid appointmentId, CancellationToken ct)
+    public async Task<ActionResult<ClinicalVisitDetailDto>> GetByAppointment(Guid appointmentId, CancellationToken ct)
     {
         var result = await _sender.Send(new GetVisitByAppointmentQuery(appointmentId), ct);
         if (!result.IsSuccess) return NotFound(result.Error);

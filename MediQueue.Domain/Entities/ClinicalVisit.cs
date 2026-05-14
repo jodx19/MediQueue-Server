@@ -24,8 +24,11 @@ public class ClinicalVisit : BaseAggregateRoot
     private readonly List<Prescription> _prescriptions = [];
 
     public Guid AppointmentId { get; private set; }
+    public virtual Appointment Appointment { get; private set; } = null!;
     public Guid DoctorId { get; private set; }
+    public virtual Doctor Doctor { get; private set; } = null!;
     public Guid PatientId { get; private set; }
+    public virtual Patient Patient { get; private set; } = null!;
     public DateTime VisitDate { get; private set; }
 
     // SOAP Notes

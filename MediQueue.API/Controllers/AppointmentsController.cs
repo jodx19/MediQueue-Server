@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using MediQueue.Application.Common;
 using MediQueue.Application.Appointments.Commands;
 using MediQueue.Application.Appointments.Queries;
+using System.Collections.Generic;
 using MediQueue.Application.Appointments.DTOs;
 
 namespace MediQueue.API.Controllers;
@@ -46,18 +47,47 @@ public class AppointmentsController : ControllerBase
 
     /// <summary>Get today's appointments (cached 1 min).</summary>
     [HttpGet("today")]
-    public async Task<IActionResult> GetToday([FromQuery] Guid? doctorId, CancellationToken ct)
-        => Ok((await _sender.Send(new GetTodaysAppointmentsQuery { DoctorId = doctorId }, ct)).Value);
+    [ProducesResponseType(typeof(List<AppointmentListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<AppointmentListItemDto>>> GetToday([FromQuery] Guid? doctorId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new GetTodaysAppointmentsQuery(doctorId), ct);
+        return Ok(result.Value);
+    }
 
     /// <summary>Get upcoming appointments.</summary>
     [HttpGet("upcoming")]
-    public async Task<IActionResult> GetUpcoming([FromQuery] int days = 7, CancellationToken ct = default)
-        => Ok((await _sender.Send(new GetUpcomingAppointmentsQuery(days), ct)).Value);
+    [ProducesResponseType(typeof(List<AppointmentListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<AppointmentListItemDto>>> GetUpcoming(
+        [FromQuery] int days = 7,
+        [FromQuery] Guid? doctorId = null,
+        CancellationToken ct = default)
+    {
+        var result = await _sender.Send(new GetUpcomingAppointmentsQuery(days, doctorId), ct);
+        return Ok(result.Value);
+    }
+
+    /// <summary>Appointments in a date range (calendar / schedule).</summary>
+    [HttpGet("schedule")]
+    [ProducesResponseType(typeof(List<AppointmentScheduleItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<AppointmentScheduleItemDto>>> GetSchedule(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
+        [FromQuery] Guid? doctorId = null,
+        CancellationToken ct = default)
+    {
+        var result = await _sender.Send(new GetAppointmentsInRangeQuery(from, to, doctorId), ct);
+        if (!result.IsSuccess) return BadRequest(result.Error);
+        return Ok(result.Value);
+    }
 
     /// <summary>Get a doctor's schedule for a date.</summary>
     [HttpGet("doctor/{doctorId:guid}/schedule")]
-    public async Task<IActionResult> GetDoctorSchedule(Guid doctorId, [FromQuery] DateTime date, CancellationToken ct)
-        => Ok((await _sender.Send(new GetDoctorScheduleQuery(doctorId, date), ct)).Value);
+    [ProducesResponseType(typeof(List<AppointmentScheduleItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<AppointmentScheduleItemDto>>> GetDoctorSchedule(Guid doctorId, [FromQuery] DateTime date, CancellationToken ct)
+    {
+        var result = await _sender.Send(new GetDoctorScheduleQuery(doctorId, date), ct);
+        return Ok(result.Value);
+    }
 
     /// <summary>Get paginated appointment history for a patient.</summary>
     [HttpGet("patient/{patientId:guid}")]

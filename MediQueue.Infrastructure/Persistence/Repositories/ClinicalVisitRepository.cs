@@ -1,6 +1,7 @@
-// e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.Infrastructure\Persistence\Repositories\ClinicalVisitRepository.cs
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MediQueue.Domain.Common;
@@ -19,14 +20,22 @@ public class ClinicalVisitRepository : IClinicalVisitRepository
         _context = context;
     }
 
-    /// <summary>
-    /// Gets a clinical visit by ID.
-    /// NOTE: ClinicalVisit has no navigation property for Appointment — only AppointmentId (FK Guid).
-    /// </summary>
     public async Task<ClinicalVisit?> GetByIdAsync(Guid id)
     {
         return await _context.ClinicalVisits
             .FirstOrDefaultAsync(v => v.Id == id);
+    }
+
+    public async Task<ClinicalVisit?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _context.ClinicalVisits
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(v => v.Patient).ThenInclude(p => p.Allergies)
+            .Include(v => v.Patient).ThenInclude(p => p.ChronicConditions)
+            .Include(v => v.Doctor)
+            .Include(v => v.Appointment)
+            .FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
     }
 
     public async Task<ClinicalVisit?> GetByAppointmentIdAsync(Guid appointmentId)
@@ -35,10 +44,34 @@ public class ClinicalVisitRepository : IClinicalVisitRepository
             .FirstOrDefaultAsync(v => v.AppointmentId == appointmentId);
     }
 
-    /// <summary>
-    /// Returns paginated clinical visit history for a patient, ordered by most recent first.
-    /// Only summary-level data is loaded (no owned collections) for performance.
-    /// </summary>
+    public async Task<ClinicalVisit?> GetByAppointmentIdWithDetailsAsync(
+        Guid appointmentId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.ClinicalVisits
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(v => v.Patient).ThenInclude(p => p.Allergies)
+            .Include(v => v.Patient).ThenInclude(p => p.ChronicConditions)
+            .Include(v => v.Doctor)
+            .Include(v => v.Appointment)
+            .FirstOrDefaultAsync(v => v.AppointmentId == appointmentId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, Guid>> GetVisitIdsByAppointmentIdsAsync(
+        IEnumerable<Guid> appointmentIds,
+        CancellationToken cancellationToken = default)
+    {
+        var idList = appointmentIds.Distinct().ToList();
+        if (idList.Count == 0)
+            return new Dictionary<Guid, Guid>();
+
+        return await _context.ClinicalVisits
+            .AsNoTracking()
+            .Where(v => idList.Contains(v.AppointmentId))
+            .ToDictionaryAsync(v => v.AppointmentId, v => v.Id, cancellationToken);
+    }
+
     public async Task<PagedResult<ClinicalVisit>> GetPatientHistoryAsync(Guid patientId, int page, int size)
     {
         var query = _context.ClinicalVisits

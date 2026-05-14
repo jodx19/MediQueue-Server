@@ -16,18 +16,29 @@ public class ClinicalVisitDto
 
 public class ClinicalVisitDetailDto : ClinicalVisitDto
 {
-    public string? SubjectiveNote { get; set; }
-    public string? ObjectiveNote { get; set; }
-    public string? AssessmentNote { get; set; }
-    public string? PlanNote { get; set; }
-    
+    public string Status { get; set; } = string.Empty;
+    public DateTime StartedAt { get; set; }
+    public DateTime? EndedAt { get; set; }
+
+    public string PatientName { get; set; } = string.Empty;
+    public string PatientMrn { get; set; } = string.Empty;
+    public string? BloodType { get; set; }
+    public List<string> Allergies { get; set; } = [];
+    public List<string> ChronicConditions { get; set; } = [];
+
+    public string? Subjective { get; set; }
+    public string? Objective { get; set; }
+    public string? Assessment { get; set; }
+    public string? Plan { get; set; }
+
     public List<VitalSignDto> VitalSigns { get; set; } = [];
     public List<DiagnosisDto> Diagnoses { get; set; } = [];
     public List<MedicalProcedureDto> Procedures { get; set; } = [];
     public List<LabRequestDto> LabRequests { get; set; } = [];
     public List<ImagingRequestDto> ImagingRequests { get; set; } = [];
     public List<ReferralDto> Referrals { get; set; } = [];
-    public PrescriptionDto? Prescription { get; set; }
+    public List<PrescriptionDto> Prescriptions { get; set; } = [];
+    public List<AttachmentDto> Attachments { get; set; } = [];
 }
 
 public class ClinicalVisitSummaryDto : ClinicalVisitDto
@@ -35,6 +46,18 @@ public class ClinicalVisitSummaryDto : ClinicalVisitDto
     public string? AssessmentNote { get; set; }
     public string? PlanNote { get; set; }
     public List<DiagnosisDto> Diagnoses { get; set; } = [];
+}
+
+public class AttachmentDto
+{
+    public Guid Id { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string FileUrl { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public string Type { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public DateTime UploadedAt { get; set; }
 }
 
 public class VitalSignDto
