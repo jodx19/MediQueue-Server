@@ -9,4 +9,5 @@ public interface IAuthService
 {
     Task<Result<AuthResponseDto>> LoginAsync(LoginRequestDto request);
     Task<Result<AuthResponseDto>> RefreshTokenAsync(RefreshTokenRequestDto request);
+    Task<Result<AuthResponseDto>> PatientLoginAsync(string mrn, DateTime dateOfBirth);
 }

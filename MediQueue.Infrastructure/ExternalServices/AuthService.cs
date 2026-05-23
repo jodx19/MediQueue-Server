@@ -103,4 +103,35 @@ public class AuthService : IAuthService
         return Result<AuthResponseDto>.Success(response);
     }
 
+    public async Task<Result<AuthResponseDto>> PatientLoginAsync(string mrn, DateTime dateOfBirth)
+    {
+        var patient = await _unitOfWork.Patients.GetByMRNAsync(mrn);
+        if (patient == null || !patient.IsActive)
+            return Result<AuthResponseDto>.Failure("Invalid MRN or Date of Birth.");
+
+        var patientDob = patient.DateOfBirth;
+        var requestDob = DateOnly.FromDateTime(dateOfBirth);
+        if (patientDob != requestDob)
+            return Result<AuthResponseDto>.Failure("Invalid MRN or Date of Birth.");
+
+        var user = await _unitOfWork.Users.GetByPatientIdAsync(patient.Id);
+        if (user == null || !user.IsActive)
+            return Result<AuthResponseDto>.Failure("No account found for this patient.");
+
+        var tokenString = _tokenService.GenerateJwtToken(user);
+        var refreshToken = _tokenService.GenerateRefreshToken();
+
+        var jwtSettings = _configuration.GetSection("JwtSettings");
+        var expiryMinutes = int.Parse(jwtSettings["ExpiryMinutes"] ?? "60");
+        var expiryTime = DateTime.UtcNow.AddMinutes(expiryMinutes);
+
+        var tokenResponse = new AuthResponseDto(tokenString, refreshToken, expiryTime, user.Username, user.Role.ToString());
+
+        user.UpdateRefreshToken(tokenResponse.RefreshToken, DateTime.UtcNow.AddDays(7));
+        await _unitOfWork.Users.UpdateAsync(user);
+        await _unitOfWork.SaveChangesAsync();
+
+        return Result<AuthResponseDto>.Success(tokenResponse);
+    }
+
 }
