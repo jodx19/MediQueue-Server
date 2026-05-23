@@ -19,8 +19,8 @@ public static class DependencyInjection
         services.AddEndpointsApiExplorer();
 
         // 1. JWT Authentication
-        var jwtSettings = configuration.GetSection("JwtSettings");
-        var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is missing.");
+        var jwtSettings = configuration.GetSection("Jwt");
+        var secretKey = jwtSettings["Key"] ?? throw new InvalidOperationException("JWT SecretKey is missing.");
 
         services.AddAuthentication(options =>
         {
