@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MediQueue.Application.Common;
 using MediQueue.Application.Patients.Commands;
+using MediQueue.Application.Patients.Commands.SelfRegister;
 using MediQueue.Application.Patients.Queries;
 using MediQueue.Application.Patients.DTOs;
 using MediQueue.API.Models;
@@ -33,7 +34,7 @@ public class PatientsController : BaseApiController
         return Ok(result.Value);
     }
 
-    /// <summary>Register a new patient.</summary>
+    /// <summary>Register a new patient (admin only).</summary>
     [HttpPost]
     [Authorize(Policy = "AdminOnly")]
     [ProducesResponseType(typeof(ApiResponse<PatientDto>), StatusCodes.Status201Created)]
@@ -42,6 +43,21 @@ public class PatientsController : BaseApiController
         CancellationToken ct)
     {
         return HandleResult(await Sender.Send(command, ct));
+    }
+
+    /// <summary>Self-register a new patient (public, no auth required).</summary>
+    [HttpPost("self-register")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(PatientDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PatientDto>> SelfRegister(
+        [FromBody] SelfRegisterPatientCommand command,
+        CancellationToken ct)
+    {
+        var result = await Sender.Send(command, ct);
+        if (result.IsSuccess)
+            return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value);
+        return BadRequest(result.Error);
     }
 
     /// <summary>Get a patient by their unique ID.</summary>
