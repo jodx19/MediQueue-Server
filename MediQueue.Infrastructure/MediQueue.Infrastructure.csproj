@@ -16,8 +16,13 @@
     - MailKit / Azure / External SDKs
   -->
   <ItemGroup>
-    <!-- Identity -->
+    <!-- Identity / JWT -->
     <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.16.0" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.16.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Logging" Version="8.16.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Abstractions" Version="8.16.0" />
     <!-- EF Core + SQL Server (Infrastructure only) -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0" />

@@ -37,8 +37,16 @@ public class TokenService : ITokenService
             new Claim("Email", user.Email)
         };
 
-        if (user.DoctorId.HasValue) claims.Add(new Claim("DoctorId", user.DoctorId.Value.ToString()));
-        if (user.PatientId.HasValue) claims.Add(new Claim("PatientId", user.PatientId.Value.ToString()));
+        if (user.DoctorId.HasValue)
+        {
+            claims.Add(new Claim("DoctorId", user.DoctorId.Value.ToString()));
+            claims.Add(new Claim("doctorId", user.DoctorId.Value.ToString()));
+        }
+        if (user.PatientId.HasValue)
+        {
+            claims.Add(new Claim("PatientId", user.PatientId.Value.ToString()));
+            claims.Add(new Claim("patientId", user.PatientId.Value.ToString()));
+        }
 
         var expiryMinutes = int.Parse(jwtSettings["ExpiryMinutes"] ?? "60");
         var expiryTime = DateTime.UtcNow.AddMinutes(expiryMinutes);

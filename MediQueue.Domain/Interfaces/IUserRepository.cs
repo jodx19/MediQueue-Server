@@ -1,5 +1,4 @@
-// e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.Domain\Interfaces\IUserRepository.cs
-using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using MediQueue.Domain.Entities;
 
@@ -13,6 +12,7 @@ public interface IUserRepository
     Task<AppUser?> GetByRefreshTokenAsync(string refreshToken);
     Task<AppUser?> GetByPatientIdAsync(Guid patientId);
     Task<AppUser?> GetByDoctorIdAsync(Guid doctorId);
+    Task<IEnumerable<AppUser>> GetAllAsync();
     Task AddAsync(AppUser user);
     Task UpdateAsync(AppUser user);
 }

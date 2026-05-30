@@ -4,19 +4,16 @@ using MediQueue.Infrastructure.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace MediQueue.Infrastructure.Persistence.Migrations
+namespace MediQueue.Infrastructure.Migrations
 {
     [DbContext(typeof(ClinicDbContext))]
-    [Migration("20260512162216_InitialCreate")]
-    partial class InitialCreate
+    partial class ClinicDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -90,6 +87,8 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DoctorId");
 
                     b.HasIndex("Email")
                         .IsUnique();
@@ -336,6 +335,8 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId");
 
                     b.HasIndex("InvoiceNumber")
                         .IsUnique();
@@ -675,36 +676,48 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
                     b.ToTable("Patients");
                 });
 
-            modelBuilder.Entity("MediQueue.Domain.Entities.Appointment", b =>
+            modelBuilder.Entity("MediQueue.Domain.Entities.AppUser", b =>
                 {
                     b.HasOne("MediQueue.Domain.Entities.Doctor", null)
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("MediQueue.Domain.Entities.Appointment", b =>
+                {
+                    b.HasOne("MediQueue.Domain.Entities.Doctor", "Doctor")
                         .WithMany()
                         .HasForeignKey("DoctorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("MediQueue.Domain.Entities.Patient", null)
+                    b.HasOne("MediQueue.Domain.Entities.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Patient");
                 });
 
             modelBuilder.Entity("MediQueue.Domain.Entities.ClinicalVisit", b =>
                 {
-                    b.HasOne("MediQueue.Domain.Entities.Appointment", null)
+                    b.HasOne("MediQueue.Domain.Entities.Appointment", "Appointment")
                         .WithMany()
                         .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("MediQueue.Domain.Entities.Doctor", null)
+                    b.HasOne("MediQueue.Domain.Entities.Doctor", "Doctor")
                         .WithMany()
                         .HasForeignKey("DoctorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("MediQueue.Domain.Entities.Patient", null)
+                    b.HasOne("MediQueue.Domain.Entities.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1103,11 +1116,17 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
                                 .HasForeignKey("VisitId");
                         });
 
+                    b.Navigation("Appointment");
+
                     b.Navigation("Diagnoses");
+
+                    b.Navigation("Doctor");
 
                     b.Navigation("ImagingRequests");
 
                     b.Navigation("LabRequests");
+
+                    b.Navigation("Patient");
 
                     b.Navigation("Prescriptions");
 
@@ -1306,7 +1325,12 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("MediQueue.Domain.Entities.Invoice", b =>
                 {
-                    b.HasOne("MediQueue.Domain.Entities.Patient", null)
+                    b.HasOne("MediQueue.Domain.Entities.Appointment", "Appointment")
+                        .WithMany()
+                        .HasForeignKey("AppointmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("MediQueue.Domain.Entities.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1532,6 +1556,8 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
                                 .IsRequired();
                         });
 
+                    b.Navigation("Appointment");
+
                     b.Navigation("DiscountAmount")
                         .IsRequired();
 
@@ -1539,6 +1565,8 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
 
                     b.Navigation("PaidAmount")
                         .IsRequired();
+
+                    b.Navigation("Patient");
 
                     b.Navigation("Payments");
 

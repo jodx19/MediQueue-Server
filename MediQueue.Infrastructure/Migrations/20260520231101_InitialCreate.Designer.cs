@@ -4,16 +4,19 @@ using MediQueue.Infrastructure.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace MediQueue.Infrastructure.Persistence.Migrations
+namespace MediQueue.Infrastructure.Migrations
 {
     [DbContext(typeof(ClinicDbContext))]
-    partial class ClinicDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260520231101_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -128,6 +131,9 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("DoctorId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("DoctorId1")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("DurationMinutes")
                         .HasColumnType("int");
 
@@ -138,6 +144,9 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("PatientId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PatientId1")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Priority")
@@ -172,7 +181,11 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DoctorId1");
+
                     b.HasIndex("PatientId");
+
+                    b.HasIndex("PatientId1");
 
                     b.HasIndex("DoctorId", "ScheduledAt");
 
@@ -333,6 +346,8 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId");
 
                     b.HasIndex("InvoiceNumber")
                         .IsUnique();
@@ -680,28 +695,44 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MediQueue.Domain.Entities.Doctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId1")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("MediQueue.Domain.Entities.Patient", null)
                         .WithMany()
                         .HasForeignKey("PatientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("MediQueue.Domain.Entities.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId1")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Patient");
                 });
 
             modelBuilder.Entity("MediQueue.Domain.Entities.ClinicalVisit", b =>
                 {
-                    b.HasOne("MediQueue.Domain.Entities.Appointment", null)
+                    b.HasOne("MediQueue.Domain.Entities.Appointment", "Appointment")
                         .WithMany()
                         .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("MediQueue.Domain.Entities.Doctor", null)
+                    b.HasOne("MediQueue.Domain.Entities.Doctor", "Doctor")
                         .WithMany()
                         .HasForeignKey("DoctorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("MediQueue.Domain.Entities.Patient", null)
+                    b.HasOne("MediQueue.Domain.Entities.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1100,11 +1131,17 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
                                 .HasForeignKey("VisitId");
                         });
 
+                    b.Navigation("Appointment");
+
                     b.Navigation("Diagnoses");
+
+                    b.Navigation("Doctor");
 
                     b.Navigation("ImagingRequests");
 
                     b.Navigation("LabRequests");
+
+                    b.Navigation("Patient");
 
                     b.Navigation("Prescriptions");
 
@@ -1303,7 +1340,12 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("MediQueue.Domain.Entities.Invoice", b =>
                 {
-                    b.HasOne("MediQueue.Domain.Entities.Patient", null)
+                    b.HasOne("MediQueue.Domain.Entities.Appointment", "Appointment")
+                        .WithMany()
+                        .HasForeignKey("AppointmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("MediQueue.Domain.Entities.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1529,6 +1571,8 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
                                 .IsRequired();
                         });
 
+                    b.Navigation("Appointment");
+
                     b.Navigation("DiscountAmount")
                         .IsRequired();
 
@@ -1536,6 +1580,8 @@ namespace MediQueue.Infrastructure.Persistence.Migrations
 
                     b.Navigation("PaidAmount")
                         .IsRequired();
+
+                    b.Navigation("Patient");
 
                     b.Navigation("Payments");
 
