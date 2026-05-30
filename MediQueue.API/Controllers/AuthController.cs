@@ -4,7 +4,6 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using MediQueue.Application.Auth.Commands;
-using MediQueue.Application.Auth.Commands.PatientLogin;
 using MediQueue.Application.Auth.DTOs;
 using MediQueue.Application.Common;
 
@@ -66,19 +65,6 @@ public class AuthController : ControllerBase
     [HttpPost("refresh-token")]
     [AllowAnonymous]
     public async Task<ActionResult<AuthResponseDto>> RefreshToken([FromBody] RefreshTokenCommand command)
-    {
-        var result = await _sender.Send(command);
-        if (!result.IsSuccess)
-        {
-            return Unauthorized(result.Error);
-        }
-
-        return Ok(result.Value);
-    }
-
-    [HttpPost("patient-login")]
-    [AllowAnonymous]
-    public async Task<ActionResult<AuthResponseDto>> PatientLogin([FromBody] PatientLoginCommand command)
     {
         var result = await _sender.Send(command);
         if (!result.IsSuccess)
