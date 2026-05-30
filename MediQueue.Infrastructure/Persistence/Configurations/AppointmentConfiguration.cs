@@ -24,12 +24,12 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
         builder.Property(x => x.VisitType)
             .HasConversion(v => v.ToString(), v => (Domain.Enums.VisitType)System.Enum.Parse(typeof(Domain.Enums.VisitType), v));
 
-        builder.HasOne<Patient>()
+        builder.HasOne(x => x.Patient)
             .WithMany()
             .HasForeignKey(x => x.PatientId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<Doctor>()
+        builder.HasOne(x => x.Doctor)
             .WithMany()
             .HasForeignKey(x => x.DoctorId)
             .OnDelete(DeleteBehavior.Restrict);

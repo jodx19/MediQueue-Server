@@ -18,5 +18,11 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         builder.Property(x => x.Email).HasMaxLength(150).IsRequired();
         builder.Property(x => x.PasswordHash).IsRequired();
         builder.Property(x => x.Role).HasConversion<int>();
+
+        builder.HasOne<Doctor>()
+            .WithMany()
+            .HasForeignKey(x => x.DoctorId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
     }
 }

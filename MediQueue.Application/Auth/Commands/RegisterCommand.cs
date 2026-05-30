@@ -23,6 +23,7 @@ public class RegisterCommand : IRequest<Result<bool>>
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
+    public string? Role { get; set; } // "Admin", "Doctor", "Receptionist", "Patient"
 }
 
 public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
@@ -34,7 +35,6 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
         RuleFor(x => x.Password).NotEmpty().MinimumLength(6);
         RuleFor(x => x.FirstName).NotEmpty();
         RuleFor(x => x.LastName).NotEmpty();
-        RuleFor(x => x.PhoneNumber).NotEmpty();
     }
 }
 
@@ -65,7 +65,14 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<bo
                 await _unitOfWork.BeginTransactionAsync();
                 try
                 {
-                    // 2. Create AppUser (Role: Patient by default)
+                    // Parse role
+                    UserRole userRole = UserRole.Patient;
+                    if (!string.IsNullOrEmpty(request.Role) && Enum.TryParse<UserRole>(request.Role, true, out var parsedRole))
+                    {
+                        userRole = parsedRole;
+                    }
+
+                    // 2. Create AppUser
                     var user = AppUser.Create(
                         request.Username,
                         request.Email,
@@ -73,7 +80,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<bo
                         request.LastName,
                         request.PhoneNumber,
                         "", // Hash will be set below
-                        UserRole.Patient);
+                        userRole);
 
                     var hashedPassword = _passwordHasher.HashPassword(user, request.Password);
                     user.SetPasswordHash(hashedPassword);
@@ -81,27 +88,47 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<bo
                     await _unitOfWork.Users.AddAsync(user);
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                    // 3. Create Patient Entity
-                    var personName = new PersonName(request.FirstName, request.LastName);
-                    var contactInfo = new ContactInfo(request.PhoneNumber, request.Email);
-                    
-                    var patient = Patient.Register(
-                        personName,
-                        DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-20)), // Default DOB placeholder
-                        Gender.Other,
-                        BloodType.Unknown,
-                        "TEMP-" + Guid.NewGuid().ToString()[..8],
-                        contactInfo,
-                        new Address("Default", "Default", "Default"),
-                        MaritalStatus.Single);
+                    // 3. Conditional entity creation based on role
+                    if (userRole == UserRole.Patient)
+                    {
+                        var personName = new PersonName(request.FirstName, request.LastName);
+                        var contactInfo = new ContactInfo(request.PhoneNumber, request.Email);
+                        
+                        var patient = Patient.Register(
+                            personName,
+                            DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-20)), // Default DOB placeholder
+                            Gender.Other,
+                            BloodType.Unknown,
+                            "TEMP-" + Guid.NewGuid().ToString()[..8],
+                            contactInfo,
+                            new Address("Default", "Default", "Default"),
+                            MaritalStatus.Single);
 
-                    await _unitOfWork.Patients.AddAsync(patient);
-                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                        await _unitOfWork.Patients.AddAsync(patient);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                    // 4. Link User to Patient
-                    user.LinkToPatient(patient.Id);
-                    await _unitOfWork.Users.UpdateAsync(user);
-                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                        // 4. Link User to Patient
+                        user.LinkToPatient(patient.Id);
+                        await _unitOfWork.Users.UpdateAsync(user);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
+                    else if (userRole == UserRole.Doctor)
+                    {
+                        var doc = Doctor.Create(
+                            new PersonName(request.FirstName, request.LastName),
+                            MedicalSpecialty.GeneralPractice,
+                            "LIC-" + Guid.NewGuid().ToString()[..8],
+                            new ContactInfo(request.PhoneNumber, request.Email),
+                            new Money(100),
+                            new Money(50));
+                            
+                        await _unitOfWork.Doctors.AddAsync(doc);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                        user.GetType().GetProperty("DoctorId")?.SetValue(user, doc.Id);
+                        await _unitOfWork.Users.UpdateAsync(user);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
 
                     await _unitOfWork.CommitTransactionAsync();
                 }

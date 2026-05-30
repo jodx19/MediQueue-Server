@@ -1,6 +1,9 @@
+using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using MediQueue.Application.Interfaces;
 
 namespace MediQueue.API;
@@ -16,7 +19,56 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // 1. Controllers — thin layer, no business logic
+        // 1. JWT Authentication
+        var jwtSection = configuration.GetSection("JwtSettings");
+        var secretKey = jwtSection["SecretKey"] ?? throw new InvalidOperationException("JwtSettings:SecretKey is missing.");
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtSection["Issuer"] ?? "MediQueue",
+                ValidAudience = jwtSection["Audience"] ?? "MediQueueClient",
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+                ClockSkew = TimeSpan.Zero
+            };
+
+            // Allow SignalR to receive token from query string
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    {
+                        context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                }
+            };
+        });
+
+        // 2. Controllers — thin layer, no business logic
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy("AdminOnly",             p => p.RequireRole("Admin"));
+            options.AddPolicy("DoctorOnly",            p => p.RequireRole("Doctor"));
+            options.AddPolicy("ReceptionistOnly",      p => p.RequireRole("Receptionist"));
+            options.AddPolicy("StaffOnly",             p => p.RequireRole("Admin", "Doctor", "Receptionist"));
+            options.AddPolicy("AdminOrReceptionist",    p => p.RequireRole("Admin", "Receptionist"));
+            options.AddPolicy("PatientOnly",           p => p.RequireRole("Patient"));
+        });
+
         services.AddControllers();
         services.AddEndpointsApiExplorer();
 
@@ -57,17 +109,6 @@ public static class DependencyInjection
 
             // Fix for schema ID conflicts (e.g., RevenueReportDto in different namespaces)
             options.CustomSchemaIds(type => type.FullName?.Replace("+", "."));
-        });
-
-        // 3. CORS — configured from appsettings, not hardcoded
-        var allowedOrigin = configuration["Cors:AllowedOrigin"] ?? "http://localhost:4200";
-        services.AddCors(opts =>
-        {
-            opts.AddDefaultPolicy(policy => policy
-                .WithOrigins(allowedOrigin)
-                .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials());
         });
 
         // 4. Real-time (SignalR)

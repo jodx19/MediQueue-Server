@@ -34,6 +34,19 @@ public class AuthController : ControllerBase
         return Ok(result.Value);
     }
 
+    [HttpPost("patient-login")]
+    [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+    public async Task<ActionResult<AuthResponseDto>> PatientLogin([FromBody] PatientLoginCommand command)
+    {
+        var result = await _sender.Send(command);
+        if (!result.IsSuccess)
+        {
+            return Unauthorized(result.Error);
+        }
+
+        return Ok(result.Value);
+    }
+
     [HttpPost("register")]
     public async Task<ActionResult> Register([FromBody] RegisterCommand command)
     {

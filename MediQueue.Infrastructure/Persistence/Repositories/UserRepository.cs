@@ -1,5 +1,6 @@
 // e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.Infrastructure\Persistence\Repositories\UserRepository.cs
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MediQueue.Domain.Entities;
@@ -57,6 +58,13 @@ public class UserRepository : IUserRepository
         return await _context.Set<AppUser>()
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.DoctorId == doctorId);
+    }
+
+    public async Task<IEnumerable<AppUser>> GetAllAsync()
+    {
+        return await _context.Set<AppUser>()
+            .AsNoTracking()
+            .ToListAsync();
     }
 
     public async Task AddAsync(AppUser user)

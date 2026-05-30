@@ -44,6 +44,17 @@ public class PatientsController : BaseApiController
         return HandleResult(await Sender.Send(command, ct));
     }
 
+    /// <summary>Self-register a new patient (public access).</summary>
+    [HttpPost("self-register")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<PatientDto>), StatusCodes.Status201Created)]
+    public async Task<ActionResult<PatientDto>> SelfRegister(
+        [FromBody] SelfRegisterPatientCommand command,
+        CancellationToken ct)
+    {
+        return HandleResult(await Sender.Send(command, ct));
+    }
+
     /// <summary>Get a patient by their unique ID.</summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(PatientDetailDto), StatusCodes.Status200OK)]
