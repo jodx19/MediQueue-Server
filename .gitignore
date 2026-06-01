@@ -44,6 +44,13 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
+# Local documentation (keep local, not tracked)
+CHANGE_LOG.md
+SYSTEM_REQUIREMENTS.md
+FROZEN_FILES.md
+full final anaylsis.md
+PROJECT_STATUS_REPORT.md
+
 # Runtime artifacts (never commit these)
 *.err
 *.pid
