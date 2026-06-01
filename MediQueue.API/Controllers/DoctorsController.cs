@@ -11,7 +11,6 @@ using MediQueue.Application.Doctors.Commands;
 using MediQueue.Application.Doctors.Queries;
 using MediQueue.Application.Doctors.DTOs;
 using MediQueue.Domain.Enums;
-using MediQueue.API.Models;
 
 namespace MediQueue.API.Controllers;
 
@@ -25,7 +24,7 @@ public class DoctorsController : BaseApiController
     /// <summary>Create a new doctor profile.</summary>
     [HttpPost]
     [Authorize(Policy = "AdminOnly")]
-    [ProducesResponseType(typeof(ApiResponse<DoctorDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(DoctorDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<DoctorDto>> Create(
         [FromBody] CreateDoctorCommand command,
         CancellationToken ct)
@@ -35,7 +34,7 @@ public class DoctorsController : BaseApiController
 
     /// <summary>Get a doctor by their unique ID.</summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<DoctorDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(DoctorDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<DoctorDto>> GetById(Guid id, CancellationToken ct)
     {
         return HandleResult(await Sender.Send(new GetDoctorByIdQuery(id), ct));

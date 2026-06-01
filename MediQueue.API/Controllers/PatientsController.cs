@@ -10,7 +10,6 @@ using MediQueue.Application.Common;
 using MediQueue.Application.Patients.Commands;
 using MediQueue.Application.Patients.Queries;
 using MediQueue.Application.Patients.DTOs;
-using MediQueue.API.Models;
 
 namespace MediQueue.API.Controllers;
 
@@ -23,7 +22,7 @@ public class PatientsController : BaseApiController
 {
     /// <summary>Get all patients (paginated).</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<PagedResult<PatientSummaryDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<PatientSummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<PatientSummaryDto>>> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int size = 20,
@@ -36,7 +35,7 @@ public class PatientsController : BaseApiController
     /// <summary>Register a new patient.</summary>
     [HttpPost]
     [Authorize(Policy = "AdminOnly")]
-    [ProducesResponseType(typeof(ApiResponse<PatientDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(PatientDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<PatientDto>> Register(
         [FromBody] RegisterPatientCommand command,
         CancellationToken ct)
@@ -47,7 +46,7 @@ public class PatientsController : BaseApiController
     /// <summary>Self-register a new patient (public access).</summary>
     [HttpPost("self-register")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<PatientDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(PatientDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<PatientDto>> SelfRegister(
         [FromBody] SelfRegisterPatientCommand command,
         CancellationToken ct)

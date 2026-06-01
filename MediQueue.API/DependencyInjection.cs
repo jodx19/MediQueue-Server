@@ -69,7 +69,11 @@ public static class DependencyInjection
             options.AddPolicy("PatientOnly",           p => p.RequireRole("Patient"));
         });
 
-        services.AddControllers();
+        services.AddControllers(options =>
+        {
+            // Wrap every ObjectResult in ApiResponse<T> automatically
+            options.Filters.Add<Middleware.ApiResponseFilter>();
+        });
         services.AddEndpointsApiExplorer();
 
         // 2. Swagger / OpenAPI

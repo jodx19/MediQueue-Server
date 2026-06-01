@@ -2,12 +2,13 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MediQueue.Application.Common;
 using Microsoft.Extensions.DependencyInjection;
-using MediQueue.API.Models;
 
 namespace MediQueue.API.Controllers;
 
 /// <summary>
 /// Base class for all API controllers providing common functionality and result handling.
+/// Controllers return DTOs directly; the global <c>ApiResponseFilter</c>
+/// wraps every <c>ObjectResult</c> into the standard <c>ApiResponse&lt;T&gt;</c> envelope.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -22,59 +23,56 @@ public abstract class BaseApiController : ControllerBase
     protected ISender Sender => _sender ??= HttpContext.RequestServices.GetRequiredService<ISender>();
 
     /// <summary>
-    /// Processes a <see cref="Result{T}"/> and returns the appropriate <see cref="ActionResult"/>.
-    /// Maps success/failure to HTTP status codes and wraps them in <see cref="ApiResponse{T}"/>.
+    /// Maps a successful <see cref="Result{T}"/> to a 200 OK with the value,
+    /// or a failed result to the appropriate HTTP error status.
+    /// The global <c>ApiResponseFilter</c> wraps the body automatically.
     /// </summary>
     protected ActionResult HandleResult<T>(Result<T> result)
     {
-        if (result == null) return NotFound(ApiResponse<object>.Failure("Resource not found."));
-        
-        if (result.IsSuccess)
-        {
-            if (result.Value == null) return NotFound(ApiResponse<object>.Failure("Resource not found."));
-            return Ok(ApiResponse<T>.Success(result.Value));
-        }
+        if (result is null || (!result.IsSuccess))
+            return MapFailure(result?.Error ?? "An unexpected error occurred.");
 
-        return MapFailure(result.Error!);
+        if (result.Value is null)
+            return NotFound();
+
+        return Ok(result.Value);
     }
 
     /// <summary>
-    /// Processes a non-generic <see cref="Result"/> and returns the appropriate <see cref="ActionResult"/>.
+    /// Processes a non-generic <see cref="Result"/> (void commands).
     /// </summary>
     protected ActionResult HandleResult(Result result)
     {
-        if (result == null) return NotFound(ApiResponse<object>.Failure("Resource not found."));
-        
-        if (result.IsSuccess) 
-            return Ok(ApiResponse<object>.Success(new { }, "Operation completed successfully."));
+        if (result is null || (!result.IsSuccess))
+            return MapFailure(result?.Error ?? "An unexpected error occurred.");
 
-        return MapFailure(result.Error!);
+        return Ok(new { });
     }
 
     private ActionResult MapFailure(string error)
     {
         if (error.Contains("not found", StringComparison.OrdinalIgnoreCase))
-            return NotFound(ApiResponse<object>.Failure(error));
+            return NotFound(error);
 
         if (error.Contains("unauthorized", StringComparison.OrdinalIgnoreCase))
-            return Unauthorized(ApiResponse<object>.Failure(error));
+            return Unauthorized(error);
 
         if (error.Contains("conflict", StringComparison.OrdinalIgnoreCase))
-            return Conflict(ApiResponse<object>.Failure(error));
+            return Conflict(error);
 
         if (error.Contains("forbidden", StringComparison.OrdinalIgnoreCase))
-            return Forbid(); // Or custom response
+            return Forbid();
 
-        return BadRequest(ApiResponse<object>.Failure(error));
+        return BadRequest(error);
     }
 
-    protected ActionResult Success<T>(T data, string? message = null)
+    protected ActionResult Success<T>(T data)
     {
-        return Ok(ApiResponse<T>.Success(data, message));
+        return Ok(data);
     }
 
-    protected ActionResult Failure(string error, string? message = null)
+    protected ActionResult Failure(string error)
     {
-        return BadRequest(ApiResponse<object>.Failure(error, message));
+        return BadRequest(error);
     }
 }
