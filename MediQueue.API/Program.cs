@@ -1,3 +1,5 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
 using MediQueue.Application;
 using MediQueue.Application.Interfaces;
@@ -31,6 +33,42 @@ try
     builder.Services.AddApplicationServices();
     builder.Services.AddInfrastructureServices(builder.Configuration);
     builder.Services.AddApiServices(builder.Configuration);
+
+    // ── Rate Limiting ────────────────────────────────────────────────────────
+    builder.Services.AddRateLimiter(options =>
+    {
+        var authPolicyConfig = builder.Configuration
+            .GetSection("RateLimiting:AuthPolicy");
+
+        options.AddFixedWindowLimiter("AuthPolicy", limiterOptions =>
+        {
+            limiterOptions.PermitLimit =
+                authPolicyConfig.GetValue<int>("PermitLimit", 10);
+            limiterOptions.Window = TimeSpan.FromMinutes(
+                authPolicyConfig.GetValue<int>("WindowMinutes", 1));
+            limiterOptions.QueueProcessingOrder =
+                QueueProcessingOrder.OldestFirst;
+            limiterOptions.QueueLimit = 0;
+        });
+
+        // 429 response MUST match ApiResponse<T> shape
+        // Angular api-response.interceptor reads response.data
+        options.OnRejected = async (context, cancellationToken) =>
+        {
+            context.HttpContext.Response.StatusCode = 429;
+            context.HttpContext.Response.ContentType = "application/json";
+            await context.HttpContext.Response.WriteAsJsonAsync(
+                new
+                {
+                    isSuccess = false,
+                    data = (object?)null,
+                    message = "Too many requests. Please try again later.",
+                    errors = new[] { "Rate limit exceeded" }
+                },
+                cancellationToken
+            );
+        };
+    });
 
     // ── Register DataSeeder ──────────────────────────────────────────────────
     builder.Services.AddScoped<IDataSeeder, MediQueue.Infrastructure.Persistence.DataSeeder>();
@@ -70,6 +108,7 @@ try
     app.UseCors("Angular");
     app.UseStaticFiles();
     app.UseRouting();
+    app.UseRateLimiter();
     app.UseAuthentication();
     app.UseAuthorization();
 
