@@ -14,7 +14,7 @@ public static class DependencyInjection
         var assembly = Assembly.GetExecutingAssembly();
 
         // Register AutoMapper
-        services.AddAutoMapper(assembly);
+        services.AddAutoMapper(cfg => cfg.AddMaps(assembly));
 
         // Register MediatR and Pipeline Behaviors
         services.AddMediatR(cfg =>
