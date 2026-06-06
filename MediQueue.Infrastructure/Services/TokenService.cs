@@ -14,10 +14,12 @@ namespace MediQueue.Infrastructure.Services;
 public class TokenService : ITokenService
 {
     private readonly IConfiguration _configuration;
+    private readonly ITenantContext _tenantContext;
 
-    public TokenService(IConfiguration configuration)
+    public TokenService(IConfiguration configuration, ITenantContext tenantContext)
     {
         _configuration = configuration;
+        _tenantContext = tenantContext;
     }
 
     public string GenerateJwtToken(AppUser user)
@@ -34,7 +36,9 @@ public class TokenService : ITokenService
             new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim(ClaimTypes.GivenName, user.FirstName),
             new Claim(ClaimTypes.Surname, user.LastName),
-            new Claim("Email", user.Email)
+            new Claim("Email", user.Email),
+            new Claim("TenantId", _tenantContext.TenantId.ToString()),
+            new Claim("Subdomain", _tenantContext.Subdomain)
         };
 
         if (user.DoctorId.HasValue)

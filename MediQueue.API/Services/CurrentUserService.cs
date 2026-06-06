@@ -23,6 +23,15 @@ public class CurrentUserService : ICurrentUserService
         }
     }
 
+    public Guid TenantId
+    {
+        get
+        {
+            var claim = _httpContextAccessor.HttpContext?.User?.FindFirstValue("TenantId");
+            return Guid.TryParse(claim, out var id) ? id : Guid.Empty;
+        }
+    }
+
     public string? Email => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Email)
         ?? _httpContextAccessor.HttpContext?.User?.FindFirstValue("Email");
 

@@ -29,6 +29,12 @@ public abstract class BaseEntity
     public bool IsDeleted { get; private set; }
 
     /// <summary>
+    /// Gets or sets the tenant identifier for multi-tenancy isolation.
+    /// Guid.Empty = dev mode (no isolation).
+    /// </summary>
+    public Guid TenantId { get; set; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="BaseEntity"/> class.
     /// </summary>
     protected BaseEntity()

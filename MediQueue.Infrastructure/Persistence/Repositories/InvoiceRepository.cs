@@ -63,7 +63,7 @@ public class InvoiceRepository : IInvoiceRepository
             .AsNoTracking()
             .Include(i => i.Patient)
             .Include(i => i.Appointment)
-                .ThenInclude(a => a.Doctor)
+                .ThenInclude(a => a!.Doctor)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status) &&

@@ -7,11 +7,13 @@ using MediQueue.Domain.Entities;
 using MediQueue.Domain.Enums;
 using MediQueue.Domain.ValueObjects;
 using MediQueue.Infrastructure.Persistence.Context;
+using MediQueue.Infrastructure.Persistence.Entities;
 
 namespace MediQueue.Infrastructure.Persistence;
 
 public class DataSeeder : IDataSeeder
 {
+    private static readonly Guid DevTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
     private static readonly Guid AdminUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
     private static readonly Guid DoctorUserId = Guid.Parse("00000000-0000-0000-0000-000000000002");
     private static readonly Guid ReceptionUserId = Guid.Parse("00000000-0000-0000-0000-000000000003");
@@ -44,6 +46,8 @@ public class DataSeeder : IDataSeeder
 
     public async Task SeedAsync()
     {
+        await EnsureDevTenantAsync();
+
         if (await _context.Users.AnyAsync())
         {
             _logger.LogInformation("Seed skipped because users already exist.");
@@ -54,9 +58,29 @@ public class DataSeeder : IDataSeeder
         await SeedDoctorsAsync();
         await SeedPatientsAsync();
         await SeedAppointmentsAsync();
+        await SeedSettingsAsync();
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Seed data applied successfully.");
+    }
+
+    private async Task EnsureDevTenantAsync()
+    {
+        if (!await _context.Tenants.IgnoreQueryFilters().AnyAsync())
+        {
+            var devTenant = Tenant.Create(
+                name: "MediQueue Dev Clinic",
+                subdomain: "dev",
+                adminEmail: "admin@mediqueue.com",
+                plan: TenantPlan.Enterprise,
+                trialDays: 3650); // 10 years
+            
+            // Set ID explicitly to match DevTenantId constant
+            SetEntityId(devTenant, DevTenantId);
+
+            _context.Tenants.Add(devTenant);
+            await _context.SaveChangesAsync();
+        }
     }
 
     private async Task SeedUsersAsync()
@@ -121,6 +145,7 @@ public class DataSeeder : IDataSeeder
 
         user.SetPasswordHash(_hasher.HashPassword(user, password));
         SetEntityId(user, id);
+        user.TenantId = DevTenantId;
         return user;
     }
 
@@ -135,6 +160,7 @@ public class DataSeeder : IDataSeeder
             new Money(250),
             yearsOfExperience: 12);
         SetEntityId(drAhmed, DoctorAhmedId);
+        drAhmed.TenantId = DevTenantId;
 
         foreach (var day in new[]
                  {
@@ -154,6 +180,7 @@ public class DataSeeder : IDataSeeder
             new Money(225),
             yearsOfExperience: 9);
         SetEntityId(drSara, DoctorSaraId);
+        drSara.TenantId = DevTenantId;
 
         foreach (var day in new[]
                  {
@@ -173,6 +200,7 @@ public class DataSeeder : IDataSeeder
             new Money(230),
             yearsOfExperience: 10);
         SetEntityId(drKhaled, DoctorKhaledId);
+        drKhaled.TenantId = DevTenantId;
 
         foreach (var day in new[] { DayOfWeek.Monday, DayOfWeek.Wednesday, DayOfWeek.Friday })
         {
@@ -194,6 +222,7 @@ public class DataSeeder : IDataSeeder
             new Address("12 Tahrir St", "Cairo", "Cairo"),
             MaritalStatus.Married);
         SetEntityId(mohamed, PatientMohamedId);
+        mohamed.TenantId = DevTenantId;
         mohamed.AddAllergy("Penicillin", MediQueue.Domain.Entities.AllergySeverity.Severe, "Severe allergic reaction");
         mohamed.AddChronicCondition("Hypertension", new DateOnly(2020, 1, 1), "I10");
 
@@ -207,6 +236,7 @@ public class DataSeeder : IDataSeeder
             new Address("4 Nile Corniche", "Cairo", "Cairo"),
             MaritalStatus.Married);
         SetEntityId(fatma, PatientFatmaId);
+        fatma.TenantId = DevTenantId;
         fatma.AddChronicCondition("Type 2 Diabetes", new DateOnly(2019, 6, 1), "E11");
 
         var omar = Patient.Register(
@@ -219,6 +249,7 @@ public class DataSeeder : IDataSeeder
             new Address("50 Zamalek Rd", "Cairo", "Cairo"),
             MaritalStatus.Married);
         SetEntityId(omar, PatientOmarId);
+        omar.TenantId = DevTenantId;
 
         var nour = Patient.Register(
             new PersonName("Nour", "Ahmed"),
@@ -230,6 +261,7 @@ public class DataSeeder : IDataSeeder
             new Address("17 Gamal Abd El Nasser", "Alexandria", "Alexandria"),
             MaritalStatus.Single);
         SetEntityId(nour, PatientNourId);
+        nour.TenantId = DevTenantId;
         nour.AddAllergy("Aspirin", MediQueue.Domain.Entities.AllergySeverity.Moderate, "Moderate skin rash");
 
         var youssef = Patient.Register(
@@ -242,6 +274,7 @@ public class DataSeeder : IDataSeeder
             new Address("9 El-Horreya", "Giza", "Giza"),
             MaritalStatus.Single);
         SetEntityId(youssef, PatientYoussefId);
+        youssef.TenantId = DevTenantId;
 
         await _context.Patients.AddRangeAsync(mohamed, fatma, omar, nour, youssef);
     }
@@ -259,6 +292,7 @@ public class DataSeeder : IDataSeeder
             AppointmentPriority.Routine,
             VisitType.Consultation,
             "Cardiology follow-up");
+        appointment1.TenantId = DevTenantId;
         appointment1.Confirm();
         appointment1.ClearDomainEvents();
 
@@ -271,6 +305,7 @@ public class DataSeeder : IDataSeeder
             AppointmentPriority.Routine,
             VisitType.Consultation,
             "Pediatric consultation");
+        appointment2.TenantId = DevTenantId;
         appointment2.ClearDomainEvents();
 
         var appointment3 = Appointment.Book(
@@ -282,9 +317,28 @@ public class DataSeeder : IDataSeeder
             AppointmentPriority.Routine,
             VisitType.FollowUp,
             "Orthopedic follow-up");
+        appointment3.TenantId = DevTenantId;
         appointment3.ClearDomainEvents();
 
         await _context.Appointments.AddRangeAsync(appointment1, appointment2, appointment3);
+    }
+
+    private async Task SeedSettingsAsync()
+    {
+        var settingsExist = await _context.ClinicSettings.AnyAsync();
+        if (!settingsExist)
+        {
+            _context.ClinicSettings.Add(new ClinicSettings
+            {
+                ClinicName = "MediQueue Dental Clinic",
+                ClinicPhone = "01000000000",
+                ClinicEmail = "info@mediqueue.com",
+                Currency = "EGP",
+                TimeZone = "Egypt Standard Time",
+                AllowOnlineBooking = true,
+                TenantId = DevTenantId
+            });
+        }
     }
 
     private static void SetEntityId(BaseEntity entity, Guid id)

@@ -10,6 +10,7 @@ using MediQueue.Domain.Entities;
 using MediQueue.Infrastructure.Persistence.Configurations;
 using MediQueue.Application.Common;
 using MediQueue.Application.Interfaces;
+using MediQueue.Infrastructure.Persistence.Entities;
 
 namespace MediQueue.Infrastructure.Persistence.Context;
 
@@ -17,15 +18,20 @@ public class ClinicDbContext : DbContext
 {
     private readonly IMediator _mediator;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ITenantContext _tenantContext;
 
     public ClinicDbContext(
         DbContextOptions<ClinicDbContext> options, 
         IMediator mediator,
-        ICurrentUserService currentUserService) : base(options)
+        ICurrentUserService currentUserService,
+        ITenantContext tenantContext) : base(options)
     {
         _mediator = mediator;
         _currentUserService = currentUserService;
+        _tenantContext = tenantContext;
     }
+
+    public Guid CurrentTenantId => _tenantContext.TenantId;
 
     public DbSet<Patient> Patients => Set<Patient>();
     public DbSet<Doctor> Doctors => Set<Doctor>();
@@ -35,6 +41,8 @@ public class ClinicDbContext : DbContext
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<MedicalAttachment> Attachments => Set<MedicalAttachment>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<ClinicSettings> ClinicSettings => Set<ClinicSettings>();
+    public DbSet<Tenant> Tenants => Set<Tenant>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,7 +50,16 @@ public class ClinicDbContext : DbContext
         
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ClinicDbContext).Assembly);
 
-        // Global Query Filter for Soft Deletes
+        modelBuilder.Entity<ClinicSettings>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ClinicName).HasMaxLength(200);
+            entity.Property(e => e.Currency).HasMaxLength(3);
+            entity.Property(e => e.DepositAmount)
+                  .HasColumnType("decimal(18,2)");
+        });
+
+        // Global Query Filter for Soft Deletes & Multi-Tenancy
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (entityType.IsOwned()) continue;
@@ -50,18 +67,55 @@ public class ClinicDbContext : DbContext
             if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
             {
                 var parameter = System.Linq.Expressions.Expression.Parameter(entityType.ClrType, "e");
-                var propertyMethodInfo = typeof(EF).GetMethod("Property")!.MakeGenericMethod(typeof(bool));
-                var isDeletedProperty = System.Linq.Expressions.Expression.Call(propertyMethodInfo, parameter, System.Linq.Expressions.Expression.Constant("IsDeleted"));
-                var compareExpression = System.Linq.Expressions.Expression.MakeBinary(System.Linq.Expressions.ExpressionType.Equal, isDeletedProperty, System.Linq.Expressions.Expression.Constant(false));
-                var lambda = System.Linq.Expressions.Expression.Lambda(compareExpression, parameter);
+                
+                // IsDeleted == false
+                var isDeletedProperty = System.Linq.Expressions.Expression.Property(parameter, "IsDeleted");
+                var isNotDeleted = System.Linq.Expressions.Expression.Equal(isDeletedProperty, System.Linq.Expressions.Expression.Constant(false));
+                
+                // TenantId == _tenantContext.TenantId
+                var tenantIdProperty = System.Linq.Expressions.Expression.Property(parameter, "TenantId");
+                
+                // We use a public property CurrentTenantId to avoid field access issues in EF design time
+                var dbContextExpression = System.Linq.Expressions.Expression.Constant(this);
+                var currentTenantIdProp = System.Linq.Expressions.Expression.Property(dbContextExpression, "CurrentTenantId");
+
+                var isCurrentTenant = System.Linq.Expressions.Expression.Equal(tenantIdProperty, currentTenantIdProp);
+
+                var combinedExpression = System.Linq.Expressions.Expression.AndAlso(isNotDeleted, isCurrentTenant);
+
+                var lambda = System.Linq.Expressions.Expression.Lambda(combinedExpression, parameter);
                 
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
             }
         }
+
+        modelBuilder.Entity<Tenant>(entity =>
+        {
+            entity.HasKey(t => t.Id);
+            entity.HasIndex(t => t.Subdomain).IsUnique();
+            entity.Property(t => t.Name).HasMaxLength(200);
+            entity.Property(t => t.Subdomain).HasMaxLength(100);
+            entity.Property(t => t.AdminEmail).HasMaxLength(256);
+        });
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        var baseEntries = ChangeTracker.Entries<BaseEntity>();
+        var tenantId = _tenantContext.TenantId;
+
+        foreach (var entry in baseEntries)
+        {
+            if (entry.State == EntityState.Added)
+            {
+                // Auto-stamp TenantId if not set and context has one
+                if (entry.Entity.TenantId == Guid.Empty && tenantId != Guid.Empty)
+                {
+                    entry.Entity.TenantId = tenantId;
+                }
+            }
+        }
+
         var auditableEntries = ChangeTracker.Entries<AuditableEntity>();
         var now = DateTime.UtcNow;
 
