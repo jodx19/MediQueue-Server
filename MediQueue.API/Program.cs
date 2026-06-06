@@ -23,11 +23,28 @@ try
     builder.Host.UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration));
 
     // ── CORS Configuration ───────────────────────────────────────────────────
+    var allowedOrigins = builder.Configuration
+        .GetSection("Cors:AllowedOrigins")
+        .Get<string[]>() ?? [];
+
     builder.Services.AddCors(o => o.AddPolicy("Angular", p =>
-        p.WithOrigins("http://localhost:4200")
-         .AllowAnyHeader()
-         .AllowAnyMethod()
-         .AllowCredentials()));
+    {
+        if (allowedOrigins.Length == 0)
+        {
+            // Safety: if no origins configured, deny all
+            p.WithOrigins("https://localhost")
+             .AllowAnyHeader()
+             .AllowAnyMethod()
+             .AllowCredentials();
+        }
+        else
+        {
+            p.WithOrigins(allowedOrigins)
+             .AllowAnyHeader()
+             .AllowAnyMethod()
+             .AllowCredentials();
+        }
+    }));
 
     // ── Layer Registration ───────────────────────────────────────────────────
     builder.Services.AddApplicationServices();
@@ -108,6 +125,7 @@ try
     app.UseCors("Angular");
     app.UseStaticFiles();
     app.UseRouting();
+    app.UseMiddleware<TenantResolutionMiddleware>();
     app.UseRateLimiter();
     app.UseAuthentication();
     app.UseAuthorization();

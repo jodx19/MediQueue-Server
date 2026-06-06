@@ -12,6 +12,7 @@ using MediQueue.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Builder;
 using MediQueue.Infrastructure.Services;
+using MediQueue.Infrastructure.Repositories;
 
 namespace MediQueue.Infrastructure;
 
@@ -40,6 +41,8 @@ public static class DependencyInjection
         services.AddScoped<IAppointmentRepository, AppointmentRepository>();
         services.AddScoped<IClinicalVisitRepository, ClinicalVisitRepository>();
         services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+        services.AddScoped<ISettingsRepository, SettingsRepository>();
+        services.AddScoped<ITenantRepository, TenantRepository>();
 
         // 4. Core Services
         services.AddScoped<IEmailService, EmailNotificationService>();

@@ -56,12 +56,21 @@ public sealed class ClinicDbContextFactory : IDesignTimeDbContextFactory<ClinicD
         return new ClinicDbContext(
             optionsBuilder.Options,
             new NoOpMediator(),
-            new DesignTimeCurrentUserService());
+            new DesignTimeCurrentUserService(),
+            new DesignTimeTenantContext());
+    }
+
+    private sealed class DesignTimeTenantContext : ITenantContext
+    {
+        public Guid TenantId => Guid.Empty;
+        public string Subdomain => "dev";
+        public bool IsDevMode => true;
     }
 
     private sealed class DesignTimeCurrentUserService : ICurrentUserService
     {
         public Guid? UserId => null;
+        public Guid TenantId => Guid.Empty;
         public string? Email => null;
         public string? Role => null;
         public bool IsAuthenticated => false;

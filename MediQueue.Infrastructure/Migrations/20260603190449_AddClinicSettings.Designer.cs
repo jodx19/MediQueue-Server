@@ -4,6 +4,7 @@ using MediQueue.Infrastructure.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MediQueue.Infrastructure.Migrations
 {
     [DbContext(typeof(ClinicDbContext))]
-    partial class ClinicDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260603190449_AddClinicSettings")]
+    partial class AddClinicSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -74,9 +77,6 @@ namespace MediQueue.Infrastructure.Migrations
 
                     b.Property<int>("Role")
                         .HasColumnType("int");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -165,9 +165,6 @@ namespace MediQueue.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -228,9 +225,6 @@ namespace MediQueue.Infrastructure.Migrations
                     b.Property<string>("SubjectiveNote")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -283,9 +277,6 @@ namespace MediQueue.Infrastructure.Migrations
 
                     b.Property<string>("SubSpecialty")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -340,9 +331,6 @@ namespace MediQueue.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -395,9 +383,6 @@ namespace MediQueue.Infrastructure.Migrations
                         .HasColumnType("bit");
 
                     b.Property<Guid>("PatientId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Type")
@@ -563,9 +548,6 @@ namespace MediQueue.Infrastructure.Migrations
                         .HasPrecision(3, 1)
                         .HasColumnType("decimal(3,1)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -606,9 +588,6 @@ namespace MediQueue.Infrastructure.Migrations
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -683,9 +662,6 @@ namespace MediQueue.Infrastructure.Migrations
                         .HasMaxLength(14)
                         .HasColumnType("nvarchar(14)");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -701,59 +677,6 @@ namespace MediQueue.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Patients");
-                });
-
-            modelBuilder.Entity("MediQueue.Domain.Entities.Tenant", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AdminEmail")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<int>("Plan")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Subdomain")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("SubscriptionEndsAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("TrialEndsAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Subdomain")
-                        .IsUnique();
-
-                    b.ToTable("Tenants");
                 });
 
             modelBuilder.Entity("MediQueue.Infrastructure.Persistence.Entities.ClinicSettings", b =>
@@ -802,9 +725,6 @@ namespace MediQueue.Infrastructure.Migrations
 
                     b.Property<bool>("RequireDepositForBooking")
                         .HasColumnType("bit");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("TimeZone")
                         .IsRequired()
@@ -913,9 +833,6 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.Property<string>("Notes")
                                 .HasColumnType("nvarchar(max)");
 
-                            b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
-
                             b1.Property<string>("Type")
                                 .IsRequired()
                                 .HasColumnType("nvarchar(max)");
@@ -997,9 +914,6 @@ namespace MediQueue.Infrastructure.Migrations
                                 .IsRequired()
                                 .HasColumnType("nvarchar(max)");
 
-                            b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
-
                             b1.Property<DateTime?>("UpdatedAt")
                                 .HasColumnType("datetime2");
 
@@ -1047,9 +961,6 @@ namespace MediQueue.Infrastructure.Migrations
                                 .IsRequired()
                                 .HasColumnType("nvarchar(max)");
 
-                            b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
-
                             b1.Property<string>("TestName")
                                 .IsRequired()
                                 .HasColumnType("nvarchar(max)");
@@ -1088,9 +999,6 @@ namespace MediQueue.Infrastructure.Migrations
 
                             b1.Property<DateTime>("PerformedAt")
                                 .HasColumnType("datetime2");
-
-                            b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
 
                             b1.Property<DateTime?>("UpdatedAt")
                                 .HasColumnType("datetime2");
@@ -1190,9 +1098,6 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.Property<int>("Status")
                                 .HasColumnType("int");
 
-                            b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
-
                             b1.Property<DateTime?>("UpdatedAt")
                                 .HasColumnType("datetime2");
 
@@ -1258,9 +1163,6 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.Property<string>("ReferredToSpecialty")
                                 .IsRequired()
                                 .HasColumnType("nvarchar(max)");
-
-                            b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
 
                             b1.Property<DateTime?>("UpdatedAt")
                                 .HasColumnType("datetime2");
@@ -1432,9 +1334,6 @@ namespace MediQueue.Infrastructure.Migrations
 
                             b1.Property<bool>("IsDeleted")
                                 .HasColumnType("bit");
-
-                            b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
 
                             b1.Property<DateTime?>("UpdatedAt")
                                 .HasColumnType("datetime2");
@@ -1619,9 +1518,6 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.Property<int>("Quantity")
                                 .HasColumnType("int");
 
-                            b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
-
                             b1.Property<DateTime?>("UpdatedAt")
                                 .HasColumnType("datetime2");
 
@@ -1688,9 +1584,6 @@ namespace MediQueue.Infrastructure.Migrations
 
                             b1.Property<string>("ReferenceNumber")
                                 .HasColumnType("nvarchar(max)");
-
-                            b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
 
                             b1.Property<DateTime?>("UpdatedAt")
                                 .HasColumnType("datetime2");
@@ -1795,9 +1688,6 @@ namespace MediQueue.Infrastructure.Migrations
                                 .IsRequired()
                                 .HasColumnType("nvarchar(max)");
 
-                            b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
-
                             b1.Property<DateTime?>("UpdatedAt")
                                 .HasColumnType("datetime2");
 
@@ -1840,9 +1730,6 @@ namespace MediQueue.Infrastructure.Migrations
                                 .HasColumnType("nvarchar(max)");
 
                             b1.Property<Guid>("PatientId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<Guid>("TenantId")
                                 .HasColumnType("uniqueidentifier");
 
                             b1.Property<DateTime?>("UpdatedAt")
@@ -1890,9 +1777,6 @@ namespace MediQueue.Infrastructure.Migrations
 
                             b1.Property<DateOnly>("StartedAt")
                                 .HasColumnType("date");
-
-                            b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
 
                             b1.Property<DateTime?>("UpdatedAt")
                                 .HasColumnType("datetime2");

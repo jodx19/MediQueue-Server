@@ -61,6 +61,7 @@ public static class DependencyInjection
         // 2. Controllers — thin layer, no business logic
         services.AddAuthorization(options =>
         {
+            options.AddPolicy("SuperAdminOnly",        p => p.RequireRole("SuperAdmin"));
             options.AddPolicy("AdminOnly",             p => p.RequireRole("Admin"));
             options.AddPolicy("DoctorOnly",            p => p.RequireRole("Doctor"));
             options.AddPolicy("ReceptionistOnly",      p => p.RequireRole("Receptionist"));
@@ -125,6 +126,7 @@ public static class DependencyInjection
         //    These implement Application interfaces but live in the API project
         //    because they depend on ASP.NET Core HTTP / SignalR infrastructure.
         services.AddScoped<ICurrentUserService, Services.CurrentUserService>();
+        services.AddScoped<ITenantContext,      Services.TenantContext>();
         services.AddScoped<IRealtimeService,    Services.SignalRRealtimeService>();
 
         return services;
