@@ -62,3 +62,7 @@ stderr*.txt
 .env
 .env.local
 .env.*.local
+
+# Development appsettings (contain secrets, never commit)
+appsettings.Development.json
+**/appsettings.*.local.json

@@ -15,7 +15,7 @@ namespace MediQueue.API.Middleware;
 ///
 /// Flow:
 ///   Host: clinic1.mediqueue.com → subdomain = "clinic1"
-///   Host: localhost:5000        → dev mode (no isolation)
+///   Host: localhost:5000        → dev mode (resolves first active tenant)
 ///   Host: 127.0.0.1:5000        → dev mode
 /// </summary>
 public class TenantResolutionMiddleware
@@ -62,7 +62,6 @@ public class TenantResolutionMiddleware
             host.StartsWith("192.168.") ||
             host.StartsWith("10."))
         {
-            tenantCtx.IsDevMode = true;
             tenantCtx.TenantId = await GetDevTenantIdAsync(
                 tenantRepository, cacheService);
             tenantCtx.Subdomain = "dev";
@@ -143,16 +142,17 @@ public class TenantResolutionMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
-                "Tenant resolution failed for subdomain: {Subdomain}",
-                subdomain);
-
-            // Fail open in dev, fail closed in production
-            tenantCtx.TenantId = Guid.Empty;
-            tenantCtx.IsDevMode = true;
+            _logger.LogError(ex, "Tenant resolution failed for host {Host}", host);
+            context.Response.StatusCode = 500;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                isSuccess = false,
+                data = (object?)null,
+                message = "Tenant resolution failed.",
+                errors = new[] { "Internal server error during tenant resolution." }
+            });
+            return; // do NOT call _next(context)
         }
-
-        await _next(context);
     }
 
     private static string ExtractSubdomain(string host)

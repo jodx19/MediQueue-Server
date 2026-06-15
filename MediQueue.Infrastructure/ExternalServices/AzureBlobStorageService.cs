@@ -25,7 +25,9 @@ public class AzureBlobStorageService : IStorageService
         var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
         await containerClient.CreateIfNotExistsAsync(Azure.Storage.Blobs.Models.PublicAccessType.None);
 
-        var blobClient = containerClient.GetBlobClient(fileName);
+        // Sanitize: strip any directory traversal and prefix with GUID to prevent name collisions
+        var safeName = $"{Guid.NewGuid():N}_{Path.GetFileName(fileName)}";
+        var blobClient = containerClient.GetBlobClient(safeName);
         
         var options = new Azure.Storage.Blobs.Models.BlobUploadOptions
         {

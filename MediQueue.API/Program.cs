@@ -22,28 +22,47 @@ try
     // ── Serilog ──────────────────────────────────────────────────────────────
     builder.Host.UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration));
 
-    // ── CORS Configuration ───────────────────────────────────────────────────
+    // ── CORS Configuration (subdomain-aware) ──────────────────────────────
     var allowedOrigins = builder.Configuration
         .GetSection("Cors:AllowedOrigins")
         .Get<string[]>() ?? [];
 
+    var exactOrigins = allowedOrigins
+        .Where(o => !o.Contains('*'))
+        .ToArray();
+
+    var wildcardSuffixes = allowedOrigins
+        .Where(o => o.Contains('*'))
+        .Select(o => o.Replace("https://", "")
+                      .Replace("http://", "")
+                      .Replace("*.", ""))
+        .ToArray();
+
     builder.Services.AddCors(o => o.AddPolicy("Angular", p =>
     {
-        if (allowedOrigins.Length == 0)
-        {
-            // Safety: if no origins configured, deny all
-            p.WithOrigins("https://localhost")
-             .AllowAnyHeader()
-             .AllowAnyMethod()
-             .AllowCredentials();
-        }
-        else
-        {
-            p.WithOrigins(allowedOrigins)
-             .AllowAnyHeader()
-             .AllowAnyMethod()
-             .AllowCredentials();
-        }
+        p.AllowAnyHeader()
+         .AllowAnyMethod()
+         .AllowCredentials()
+         .SetIsOriginAllowed(origin =>
+         {
+             if (string.IsNullOrEmpty(origin))
+                 return false;
+
+             // Dev: allow localhost
+             if (origin.StartsWith("http://localhost", StringComparison.OrdinalIgnoreCase) ||
+                 origin.StartsWith("http://127.0.0.1", StringComparison.OrdinalIgnoreCase))
+                 return true;
+
+             // Exact match
+             if (exactOrigins.Contains(origin))
+                 return true;
+
+             // Wildcard subdomain match
+             var uri = new Uri(origin);
+             return wildcardSuffixes.Any(pattern =>
+                 uri.Host.EndsWith("." + pattern, StringComparison.OrdinalIgnoreCase) ||
+                 uri.Host.Equals(pattern, StringComparison.OrdinalIgnoreCase));
+         });
     }));
 
     // ── Layer Registration ───────────────────────────────────────────────────
@@ -63,6 +82,15 @@ try
                 authPolicyConfig.GetValue<int>("PermitLimit", 10);
             limiterOptions.Window = TimeSpan.FromMinutes(
                 authPolicyConfig.GetValue<int>("WindowMinutes", 1));
+            limiterOptions.QueueProcessingOrder =
+                QueueProcessingOrder.OldestFirst;
+            limiterOptions.QueueLimit = 0;
+        });
+
+        options.AddFixedWindowLimiter("PatientLoginPolicy", limiterOptions =>
+        {
+            limiterOptions.PermitLimit = 5;
+            limiterOptions.Window = TimeSpan.FromMinutes(1);
             limiterOptions.QueueProcessingOrder =
                 QueueProcessingOrder.OldestFirst;
             limiterOptions.QueueLimit = 0;
@@ -91,6 +119,23 @@ try
     builder.Services.AddScoped<IDataSeeder, MediQueue.Infrastructure.Persistence.DataSeeder>();
 
     var app = builder.Build();
+
+    // ── Validate JWT Secret ──────────────────────────────────────────────────
+    var jwtSecret = builder.Configuration["JwtSettings:SecretKey"];
+    if (string.IsNullOrEmpty(jwtSecret) || jwtSecret.Length < 32)
+    {
+        throw new InvalidOperationException(
+            "JwtSettings:SecretKey must be at least 32 characters long. " +
+            "Set it via User Secrets (dev) or environment variables (prod).");
+    }
+    if (jwtSecret is "REPLACE_WITH_SECRET_KEY_MIN_32_CHARS"
+                  or "MediQueue-Super-Secret-Key-256bit-2026!"
+                  or "REPLACE_WITH_PRODUCTION_SECRET_KEY_MIN_32_CHARS")
+    {
+        throw new InvalidOperationException(
+            "JwtSettings:SecretKey contains a placeholder value. " +
+            "Set a real secret via User Secrets, environment variables, or Key Vault.");
+    }
 
     // ── Auto-migrate & Seed ──────────────────────────────────────────────────
     using (var scope = app.Services.CreateScope())

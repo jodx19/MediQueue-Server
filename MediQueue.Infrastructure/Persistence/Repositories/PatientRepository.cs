@@ -32,6 +32,8 @@ public class PatientRepository : IPatientRepository
     public async Task<Patient?> GetByMRNAsync(string medicalRecordNumber)
     {
         return await _context.Patients
+            .IgnoreQueryFilters()
+            .Where(p => !p.IsDeleted)
             .AsNoTracking()
             .Include(p => p.Allergies)
             .Include(p => p.ChronicConditions)
@@ -97,9 +99,20 @@ public class PatientRepository : IPatientRepository
     /// </summary>
     public async Task SoftDeleteAsync(Guid id)
     {
+        // Step 1: normal filtered lookup (covers the common case —
+        // record exists, not deleted, belongs to current tenant)
         var patient = await _context.Patients
-            .IgnoreQueryFilters() // bypass global soft-delete filter to find already-existing record
             .FirstOrDefaultAsync(p => p.Id == id);
+
+        // Step 2: if not found, check within current tenant only,
+        // bypassing soft-delete filter (edge case: already deleted)
+        if (patient is null)
+        {
+            patient = await _context.Patients
+                .IgnoreQueryFilters()
+                .Where(p => p.TenantId == _context.CurrentTenantId)
+                .FirstOrDefaultAsync(p => p.Id == id);
+        }
 
         if (patient is not null)
         {

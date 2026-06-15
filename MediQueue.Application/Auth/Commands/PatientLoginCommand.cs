@@ -30,30 +30,48 @@ public class PatientLoginCommandHandler : IRequestHandler<PatientLoginCommand, R
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ITokenService _tokenService;
+    private readonly ICacheService _cacheService;
 
-    public PatientLoginCommandHandler(IUnitOfWork unitOfWork, ITokenService tokenService)
+    public PatientLoginCommandHandler(
+        IUnitOfWork unitOfWork,
+        ITokenService tokenService,
+        ICacheService cacheService)
     {
         _unitOfWork = unitOfWork;
         _tokenService = tokenService;
+        _cacheService = cacheService;
     }
 
     public async Task<Result<AuthResponseDto>> Handle(PatientLoginCommand request, CancellationToken cancellationToken)
     {
+        var cacheKey = $"patient-login-attempts:{request.MRN.Trim().ToLowerInvariant()}";
+        var attempts = await _cacheService.GetAsync<int>(cacheKey);
+
+        if (attempts >= 5)
+        {
+            return Result<AuthResponseDto>.Failure("Account temporarily locked. Try again in 15 minutes.");
+        }
+
         var patient = await _unitOfWork.Patients.GetByMRNAsync(request.MRN.Trim());
         if (patient == null)
         {
+            await _cacheService.SetAsync(cacheKey, attempts + 1, TimeSpan.FromMinutes(15));
             return Result<AuthResponseDto>.Failure("Invalid MRN or Date of Birth.");
         }
 
         if (patient.DateOfBirth != request.DateOfBirth)
         {
+            await _cacheService.SetAsync(cacheKey, attempts + 1, TimeSpan.FromMinutes(15));
             return Result<AuthResponseDto>.Failure("Invalid MRN or Date of Birth.");
         }
 
         if (!patient.IsActive)
         {
+            await _cacheService.SetAsync(cacheKey, attempts + 1, TimeSpan.FromMinutes(15));
             return Result<AuthResponseDto>.Failure("This patient account has been deactivated.");
         }
+
+        await _cacheService.RemoveAsync(cacheKey);
 
         // Retrieve existing AppUser for this patient, or create a persistent one if missing
         var user = await _unitOfWork.Users.GetByPatientIdAsync(patient.Id);
@@ -73,6 +91,8 @@ public class PatientLoginCommandHandler : IRequestHandler<PatientLoginCommand, R
                 doctorId: null,
                 patientId: patient.Id
             );
+
+            user.TenantId = patient.TenantId;
 
             await _unitOfWork.Users.AddAsync(user);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
