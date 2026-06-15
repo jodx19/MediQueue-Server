@@ -38,6 +38,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("patient-login")]
     [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+    [EnableRateLimiting("PatientLoginPolicy")]
     public async Task<ActionResult<AuthResponseDto>> PatientLogin([FromBody] PatientLoginCommand command)
     {
         var result = await _sender.Send(command);

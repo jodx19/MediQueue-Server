@@ -37,7 +37,12 @@ public class TokenService : ITokenService
             new Claim(ClaimTypes.GivenName, user.FirstName),
             new Claim(ClaimTypes.Surname, user.LastName),
             new Claim("Email", user.Email),
-            new Claim("TenantId", _tenantContext.TenantId.ToString()),
+            // User's PERMANENT tenant membership — NOT the host-resolved
+            // tenant. A user's TenantId never changes based on which
+            // subdomain/host they connect from.
+            new Claim("TenantId", user.TenantId.ToString()),
+            // Informational only — which subdomain the user logged in from.
+            // NOT used for tenant data isolation (see TenantId claim above).
             new Claim("Subdomain", _tenantContext.Subdomain)
         };
 

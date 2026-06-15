@@ -31,7 +31,7 @@ public class ClinicDbContext : DbContext
         _tenantContext = tenantContext;
     }
 
-    public Guid CurrentTenantId => _tenantContext.TenantId;
+    public Guid CurrentTenantId => _currentUserService.TenantId;
 
     public DbSet<Patient> Patients => Set<Patient>();
     public DbSet<Doctor> Doctors => Set<Doctor>();
@@ -67,24 +67,31 @@ public class ClinicDbContext : DbContext
             if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
             {
                 var parameter = System.Linq.Expressions.Expression.Parameter(entityType.ClrType, "e");
-                
+
                 // IsDeleted == false
                 var isDeletedProperty = System.Linq.Expressions.Expression.Property(parameter, "IsDeleted");
-                var isNotDeleted = System.Linq.Expressions.Expression.Equal(isDeletedProperty, System.Linq.Expressions.Expression.Constant(false));
-                
-                // TenantId == _tenantContext.TenantId
+                var isNotDeleted = System.Linq.Expressions.Expression.Equal(
+                    isDeletedProperty,
+                    System.Linq.Expressions.Expression.Constant(false));
+
+                // TenantId == CurrentTenantId
                 var tenantIdProperty = System.Linq.Expressions.Expression.Property(parameter, "TenantId");
-                
-                // We use a public property CurrentTenantId to avoid field access issues in EF design time
-                var dbContextExpression = System.Linq.Expressions.Expression.Constant(this);
-                var currentTenantIdProp = System.Linq.Expressions.Expression.Property(dbContextExpression, "CurrentTenantId");
 
-                var isCurrentTenant = System.Linq.Expressions.Expression.Equal(tenantIdProperty, currentTenantIdProp);
+                // Public properties on DbContext — safe for EF design-time expression trees
+                var dbContextExpression  = System.Linq.Expressions.Expression.Constant(this);
+                var currentTenantIdProp  = System.Linq.Expressions.Expression.Property(dbContextExpression, "CurrentTenantId");
 
-                var combinedExpression = System.Linq.Expressions.Expression.AndAlso(isNotDeleted, isCurrentTenant);
+                var isCurrentTenant = System.Linq.Expressions.Expression.Equal(
+                    tenantIdProperty,
+                    currentTenantIdProp);
+
+                // TenantId == current AND IsDeleted == false
+                var combinedExpression = System.Linq.Expressions.Expression.AndAlso(
+                    isCurrentTenant,
+                    isNotDeleted);
 
                 var lambda = System.Linq.Expressions.Expression.Lambda(combinedExpression, parameter);
-                
+
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
             }
         }
@@ -102,7 +109,7 @@ public class ClinicDbContext : DbContext
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var baseEntries = ChangeTracker.Entries<BaseEntity>();
-        var tenantId = _tenantContext.TenantId;
+        var tenantId = _currentUserService.TenantId;
 
         foreach (var entry in baseEntries)
         {

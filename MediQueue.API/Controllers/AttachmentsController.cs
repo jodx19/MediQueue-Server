@@ -3,6 +3,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using MediatR;
 using MediQueue.Application.Attachments.Commands;
 using MediQueue.Domain.Entities;
@@ -11,6 +12,7 @@ namespace MediQueue.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class AttachmentsController : ControllerBase
 {
     private readonly IMediator _mediator;

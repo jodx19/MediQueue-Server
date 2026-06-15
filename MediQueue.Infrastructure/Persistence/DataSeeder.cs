@@ -14,9 +14,10 @@ namespace MediQueue.Infrastructure.Persistence;
 public class DataSeeder : IDataSeeder
 {
     private static readonly Guid DevTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-    private static readonly Guid AdminUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-    private static readonly Guid DoctorUserId = Guid.Parse("00000000-0000-0000-0000-000000000002");
-    private static readonly Guid ReceptionUserId = Guid.Parse("00000000-0000-0000-0000-000000000003");
+    private static readonly Guid SuperAdminUserId  = Guid.Parse("00000000-0000-0000-0000-000000000000");
+    private static readonly Guid AdminUserId        = Guid.Parse("00000000-0000-0000-0000-000000000001");
+    private static readonly Guid DoctorUserId       = Guid.Parse("00000000-0000-0000-0000-000000000002");
+    private static readonly Guid ReceptionUserId    = Guid.Parse("00000000-0000-0000-0000-000000000003");
 
     private static readonly Guid DoctorAhmedId = Guid.Parse("00000000-0000-0000-0000-000000000010");
     private static readonly Guid DoctorSaraId = Guid.Parse("00000000-0000-0000-0000-000000000011");
@@ -48,7 +49,7 @@ public class DataSeeder : IDataSeeder
     {
         await EnsureDevTenantAsync();
 
-        if (await _context.Users.AnyAsync())
+        if (await _context.Users.IgnoreQueryFilters().AnyAsync())
         {
             _logger.LogInformation("Seed skipped because users already exist.");
             return;
@@ -87,6 +88,15 @@ public class DataSeeder : IDataSeeder
     {
         var users = new[]
         {
+            CreateUser(
+                SuperAdminUserId,
+                "superadmin",
+                "superadmin@mediqueue.com",
+                "Super",
+                "Admin",
+                "01099999999",
+                "SuperAdmin@123",
+                UserRole.SuperAdmin),
             CreateUser(
                 AdminUserId,
                 "admin",

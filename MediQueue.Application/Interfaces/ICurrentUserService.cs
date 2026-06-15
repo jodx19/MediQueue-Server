@@ -8,6 +8,8 @@ public interface ICurrentUserService
     Guid TenantId { get; }
     string? Email { get; }
     string? Role { get; }
+    Guid? PatientId { get; }
+    Guid? DoctorId { get; }
     bool IsAuthenticated { get; }
     bool IsInRole(string role);
 }

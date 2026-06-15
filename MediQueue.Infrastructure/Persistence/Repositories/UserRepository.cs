@@ -34,7 +34,14 @@ public class UserRepository : IUserRepository
 
     public async Task<AppUser?> GetByEmailAsync(string email)
     {
+        // Pre-auth lookup: must find the user regardless of the
+        // host-resolved tenant context (user may belong to a
+        // different tenant than the subdomain they're browsing).
+        // Manually preserve soft-delete filtering since
+        // IgnoreQueryFilters() bypasses BOTH TenantId and IsDeleted.
         return await _context.Set<AppUser>()
+            .IgnoreQueryFilters()
+            .Where(u => !u.IsDeleted)
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == email);
     }
@@ -42,6 +49,8 @@ public class UserRepository : IUserRepository
     public async Task<AppUser?> GetByRefreshTokenAsync(string refreshToken)
     {
         return await _context.Set<AppUser>()
+            .IgnoreQueryFilters()
+            .Where(u => !u.IsDeleted)
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
     }
@@ -49,6 +58,8 @@ public class UserRepository : IUserRepository
     public async Task<AppUser?> GetByPatientIdAsync(Guid patientId)
     {
         return await _context.Set<AppUser>()
+            .IgnoreQueryFilters()
+            .Where(u => !u.IsDeleted)
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.PatientId == patientId);
     }

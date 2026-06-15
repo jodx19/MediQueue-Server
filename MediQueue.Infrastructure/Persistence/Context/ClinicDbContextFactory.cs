@@ -64,7 +64,6 @@ public sealed class ClinicDbContextFactory : IDesignTimeDbContextFactory<ClinicD
     {
         public Guid TenantId => Guid.Empty;
         public string Subdomain => "dev";
-        public bool IsDevMode => true;
     }
 
     private sealed class DesignTimeCurrentUserService : ICurrentUserService
@@ -73,6 +72,8 @@ public sealed class ClinicDbContextFactory : IDesignTimeDbContextFactory<ClinicD
         public Guid TenantId => Guid.Empty;
         public string? Email => null;
         public string? Role => null;
+        public Guid? PatientId => null;
+        public Guid? DoctorId => null;
         public bool IsAuthenticated => false;
         public bool IsInRole(string role) => false;
     }

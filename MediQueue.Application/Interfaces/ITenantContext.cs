@@ -8,12 +8,9 @@ namespace MediQueue.Application.Interfaces;
 /// </summary>
 public interface ITenantContext
 {
-    /// <summary>Current tenant's ID. Guid.Empty in dev mode.</summary>
+    /// <summary>Current tenant's ID. Guid.Empty if not resolved.</summary>
     Guid TenantId { get; }
 
     /// <summary>Current tenant's subdomain (e.g. "clinic1")</summary>
     string Subdomain { get; }
-
-    /// <summary>True when running in dev mode (no isolation)</summary>
-    bool IsDevMode { get; }
 }
