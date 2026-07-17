@@ -23,9 +23,22 @@ public class ClinicHub : Hub
         var connectionId = Context.ConnectionId;
         var userId = Context.UserIdentifier ?? "anonymous";
 
+        // Multi-tenant isolation: assign each connection to its tenant-scoped
+        // SignalR group so broadcasts never leak cross-tenant. The "TenantId"
+        // claim is emitted by TokenService.GenerateJwtToken (PascalCase).
+        var tenantId = Context.User?
+            .FindFirst("TenantId")?.Value;
+
+        if (!string.IsNullOrEmpty(tenantId))
+        {
+            await Groups.AddToGroupAsync(
+                Context.ConnectionId,
+                $"tenant:{tenantId}");
+        }
+
         _logger.LogInformation(
-            "SignalR client connected. ConnectionId={ConnectionId}, UserId={UserId}",
-            connectionId, userId);
+            "SignalR client connected. ConnectionId={ConnectionId}, UserId={UserId}, TenantId={TenantId}",
+            connectionId, userId, tenantId ?? "(none)");
 
         await base.OnConnectedAsync();
     }
@@ -35,17 +48,27 @@ public class ClinicHub : Hub
         var connectionId = Context.ConnectionId;
         var userId = Context.UserIdentifier ?? "anonymous";
 
+        var tenantId = Context.User?
+            .FindFirst("TenantId")?.Value;
+
+        if (!string.IsNullOrEmpty(tenantId))
+        {
+            await Groups.RemoveFromGroupAsync(
+                Context.ConnectionId,
+                $"tenant:{tenantId}");
+        }
+
         if (exception is not null)
         {
             _logger.LogWarning(exception,
-                "SignalR client disconnected with error. ConnectionId={ConnectionId}, UserId={UserId}",
-                connectionId, userId);
+                "SignalR client disconnected with error. ConnectionId={ConnectionId}, UserId={UserId}, TenantId={TenantId}",
+                connectionId, userId, tenantId ?? "(none)");
         }
         else
         {
             _logger.LogInformation(
-                "SignalR client disconnected gracefully. ConnectionId={ConnectionId}, UserId={UserId}",
-                connectionId, userId);
+                "SignalR client disconnected gracefully. ConnectionId={ConnectionId}, UserId={UserId}, TenantId={TenantId}",
+                connectionId, userId, tenantId ?? "(none)");
         }
 
         await base.OnDisconnectedAsync(exception);
