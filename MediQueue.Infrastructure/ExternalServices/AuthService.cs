@@ -5,6 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -132,6 +133,24 @@ public class AuthService : IAuthService
         await _unitOfWork.SaveChangesAsync();
 
         return Result<AuthResponseDto>.Success(tokenResponse);
+    }
+
+    /// <inheritdoc />
+    public async Task LogoutAsync(string userId, CancellationToken ct = default)
+    {
+        // Silent: do NOT reveal whether the user exists. The /logout endpoint
+        // returns 204 unconditionally — probing a userId by calling logout
+        // must not be a discovery oracle.
+        if (string.IsNullOrWhiteSpace(userId) || !Guid.TryParse(userId, out var id))
+            return;
+
+        var user = await _unitOfWork.Users.GetByIdAsync(id);
+        if (user is null)
+            return;
+
+        user.RevokeRefreshToken();
+        await _unitOfWork.Users.UpdateAsync(user);
+        await _unitOfWork.SaveChangesAsync();
     }
 
 }
