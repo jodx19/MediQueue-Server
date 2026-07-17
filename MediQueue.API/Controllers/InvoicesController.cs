@@ -26,6 +26,7 @@ public class InvoicesController : ControllerBase
 
     /// <summary>Paginated clinic-wide invoice list with optional status and date filters.</summary>
     [HttpGet]
+    [Authorize(Policy = "AdminOrReceptionist")]
     [ProducesResponseType(typeof(PagedResult<InvoiceListItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<InvoiceListItemDto>>> List(
         [FromQuery] int page = 1,
@@ -56,6 +57,7 @@ public class InvoicesController : ControllerBase
 
     /// <summary>Get an invoice by its unique ID.</summary>
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = "AdminOrReceptionist")]
     [ProducesResponseType(typeof(InvoiceDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<InvoiceDto>> GetById(Guid id, CancellationToken ct)
@@ -67,6 +69,7 @@ public class InvoicesController : ControllerBase
 
     /// <summary>Get paginated invoices for a patient with optional status filter.</summary>
     [HttpGet("patient/{patientId:guid}")]
+    [Authorize(Policy = "AdminOrReceptionist")]
     [ProducesResponseType(typeof(PagedResult<InvoiceDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<InvoiceDto>>> GetByPatient(
         Guid patientId,
@@ -123,6 +126,7 @@ public class InvoicesController : ControllerBase
 
     /// <summary>Record a payment against an invoice. Raises InvoicePaidEvent when fully paid.</summary>
     [HttpPost("{id:guid}/payments")]
+    [Authorize(Policy = "AdminOrReceptionist")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> RecordPayment(

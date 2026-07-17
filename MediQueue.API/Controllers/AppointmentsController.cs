@@ -25,6 +25,7 @@ public class AppointmentsController : ControllerBase
 
     /// <summary>Book a new appointment.</summary>
     [HttpPost]
+    [Authorize(Policy = "AdminOrReceptionist")]
     [ProducesResponseType(typeof(AppointmentDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<AppointmentDto>> Book([FromBody] BookAppointmentCommand command, CancellationToken ct)
@@ -36,6 +37,7 @@ public class AppointmentsController : ControllerBase
 
     /// <summary>Get appointment by ID.</summary>
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = "StaffOnly")]
     [ProducesResponseType(typeof(AppointmentDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AppointmentDto>> GetById(Guid id, CancellationToken ct)
@@ -91,6 +93,7 @@ public class AppointmentsController : ControllerBase
 
     /// <summary>Get paginated appointment history for a patient.</summary>
     [HttpGet("patient/{patientId:guid}")]
+    [Authorize(Policy = "AdminOrDoctor")]
     public async Task<ActionResult<PagedResult<AppointmentDto>>> GetPatientHistory(
         Guid patientId, [FromQuery] int page = 1, [FromQuery] int size = 20, CancellationToken ct = default)
         => Ok((await _sender.Send(new GetPatientAppointmentsQuery(patientId, page, size), ct)).Value);
@@ -106,6 +109,7 @@ public class AppointmentsController : ControllerBase
 
     /// <summary>Check in the patient.</summary>
     [HttpPut("{id:guid}/check-in")]
+    [Authorize(Policy = "AdminOrReceptionist")]
     public async Task<ActionResult<AppointmentDto>> CheckIn(Guid id, CancellationToken ct)
     {
         var result = await _sender.Send(new CheckInAppointmentCommand(id), ct);
@@ -132,6 +136,7 @@ public class AppointmentsController : ControllerBase
 
     /// <summary>Cancel the appointment.</summary>
     [HttpPost("{id:guid}/cancel")]
+    [Authorize(Policy = "AdminOrReceptionist")]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelAppointmentCommand command, CancellationToken ct)
     {
         if (id != command.AppointmentId) return BadRequest("ID mismatch.");
@@ -141,6 +146,7 @@ public class AppointmentsController : ControllerBase
 
     /// <summary>Reschedule the appointment.</summary>
     [HttpPost("{id:guid}/reschedule")]
+    [Authorize(Policy = "AdminOrReceptionist")]
     public async Task<IActionResult> Reschedule(Guid id, [FromBody] RescheduleAppointmentCommand command, CancellationToken ct)
     {
         if (id != command.AppointmentId) return BadRequest("ID mismatch.");
@@ -150,6 +156,7 @@ public class AppointmentsController : ControllerBase
 
     /// <summary>Mark patient as no-show.</summary>
     [HttpPut("{id:guid}/no-show")]
+    [Authorize(Policy = "AdminOrReceptionist")]
     public async Task<ActionResult<AppointmentDto>> MarkNoShow(Guid id, CancellationToken ct)
     {
         var result = await _sender.Send(new MarkNoShowCommand(id), ct);
