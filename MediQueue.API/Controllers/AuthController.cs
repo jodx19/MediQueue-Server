@@ -75,4 +75,19 @@ public class AuthController : ControllerBase
 
         return Ok(result.Value);
     }
+
+    /// <summary>
+    /// Revokes the caller's refresh token. Requires a valid access token —
+    /// logout is only meaningful for the currently-authenticated principal.
+    /// Returns 204 unconditionally: caller MUST NOT be able to distinguish
+    /// "user existed and was revoked" from "user did not exist" (silent success).
+    /// </summary>
+    [HttpPost("logout")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Logout(CancellationToken ct)
+    {
+        await _sender.Send(new LogoutCommand(), ct);
+        return NoContent();
+    }
 }

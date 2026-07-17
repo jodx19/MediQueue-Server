@@ -27,6 +27,7 @@ public class ClinicalVisitsController : ControllerBase
 
     /// <summary>Get a clinical visit by its ID.</summary>
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = "AdminOrDoctor")]
     [ProducesResponseType(typeof(ClinicalVisitDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ClinicalVisitDetailDto>> GetById(Guid id, CancellationToken ct)
@@ -38,6 +39,7 @@ public class ClinicalVisitsController : ControllerBase
 
     /// <summary>Get the clinical visit associated with a specific appointment.</summary>
     [HttpGet("appointment/{appointmentId:guid}")]
+    [Authorize(Policy = "AdminOrDoctor")]
     [ProducesResponseType(typeof(ClinicalVisitDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ClinicalVisitDetailDto>> GetByAppointment(Guid appointmentId, CancellationToken ct)
@@ -49,6 +51,7 @@ public class ClinicalVisitsController : ControllerBase
 
     /// <summary>Get paginated clinical visit history for a patient.</summary>
     [HttpGet("patient/{patientId:guid}")]
+    [Authorize(Policy = "AdminOrDoctor")]
     [ProducesResponseType(typeof(PagedResult<ClinicalVisitSummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<ClinicalVisitSummaryDto>>> GetPatientHistory(
         Guid patientId,
@@ -62,6 +65,7 @@ public class ClinicalVisitsController : ControllerBase
 
     /// <summary>Get all prescriptions for a patient.</summary>
     [HttpGet("patient/{patientId:guid}/prescriptions")]
+    [Authorize(Policy = "AdminOrDoctor")]
     [ProducesResponseType(typeof(PrescriptionDto[]), StatusCodes.Status200OK)]
     public async Task<ActionResult<PrescriptionDto[]>> GetPatientPrescriptions(
         Guid patientId,

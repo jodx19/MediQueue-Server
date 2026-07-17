@@ -22,6 +22,7 @@ public class PatientsController : BaseApiController
 {
     /// <summary>Get all patients (paginated).</summary>
     [HttpGet]
+    [Authorize(Policy = "StaffOnly")]
     [ProducesResponseType(typeof(PagedResult<PatientSummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<PatientSummaryDto>>> GetAll(
         [FromQuery] int page = 1,
@@ -56,6 +57,7 @@ public class PatientsController : BaseApiController
 
     /// <summary>Get a patient by their unique ID.</summary>
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = "StaffOnly")]
     [ProducesResponseType(typeof(PatientDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PatientDetailDto>> GetById(Guid id, CancellationToken ct)
@@ -66,6 +68,7 @@ public class PatientsController : BaseApiController
 
     /// <summary>Get a patient by their Medical Record Number (MRN).</summary>
     [HttpGet("mrn/{mrn}")]
+    [Authorize(Policy = "StaffOnly")]
     [ProducesResponseType(typeof(PatientDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PatientDetailDto>> GetByMRN(string mrn, CancellationToken ct)
@@ -76,6 +79,7 @@ public class PatientsController : BaseApiController
 
     /// <summary>Search patients by name, MRN, or National ID (paginated).</summary>
     [HttpGet("search")]
+    [Authorize(Policy = "StaffOnly")]
     [ProducesResponseType(typeof(PagedResult<PatientSummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<PatientSummaryDto>>> Search(
         [FromQuery] string? term,
@@ -89,6 +93,7 @@ public class PatientsController : BaseApiController
 
     /// <summary>Get full medical history for a patient.</summary>
     [HttpGet("{id:guid}/medical-history")]
+    [Authorize(Policy = "AdminOrDoctor")]
     [ProducesResponseType(typeof(PatientMedicalHistoryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PatientMedicalHistoryDto>> GetMedicalHistory(Guid id, CancellationToken ct)
@@ -114,6 +119,7 @@ public class PatientsController : BaseApiController
 
     /// <summary>Add an allergy to a patient's record.</summary>
     [HttpPost("{id:guid}/allergies")]
+    [Authorize(Policy = "AdminOrDoctor")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AddAllergy(
@@ -128,6 +134,7 @@ public class PatientsController : BaseApiController
 
     /// <summary>Remove an allergy from a patient's record.</summary>
     [HttpDelete("{id:guid}/allergies/{allergyId:guid}")]
+    [Authorize(Policy = "AdminOrDoctor")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveAllergy(Guid id, Guid allergyId, CancellationToken ct)
@@ -138,6 +145,7 @@ public class PatientsController : BaseApiController
 
     /// <summary>Add a chronic condition to a patient's record.</summary>
     [HttpPost("{id:guid}/chronic-conditions")]
+    [Authorize(Policy = "AdminOrDoctor")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AddChronicCondition(

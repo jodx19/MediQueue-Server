@@ -67,6 +67,18 @@ public class AppUser : AuditableEntity
         RefreshTokenExpiryTime = expiryTime;
     }
 
+    /// <summary>
+    /// Revokes the current refresh token so it can no longer be used to mint
+    /// new access tokens. Called on logout to support real token revocation
+    /// (stateless JWTs themselves cannot be revoked, but a null refresh token
+    /// stops the refresh flow on the next /api/auth/refresh-token call).
+    /// </summary>
+    public void RevokeRefreshToken()
+    {
+        RefreshToken = null;
+        RefreshTokenExpiryTime = null;
+    }
+
     public void LinkToPatient(Guid patientId)
     {
         PatientId = patientId;

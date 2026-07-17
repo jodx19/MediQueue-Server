@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -12,16 +13,23 @@ namespace MediQueue.Infrastructure.Repositories;
 public class SettingsRepository : ISettingsRepository
 {
     private readonly ClinicDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public SettingsRepository(ClinicDbContext context)
+    public SettingsRepository(
+        ClinicDbContext context,
+        ITenantContext tenantContext)
     {
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     public async Task<ClinicSettingsDto> GetSettingsAsync(CancellationToken cancellationToken)
     {
-        var settings = await _context.ClinicSettings.FirstOrDefaultAsync(cancellationToken);
-        
+        var tenantId = _tenantContext.TenantId;
+        var settings = await _context.ClinicSettings
+            .Where(s => s.TenantId == tenantId)
+            .FirstOrDefaultAsync(cancellationToken);
+
         if (settings == null)
         {
             settings = new ClinicSettings
@@ -31,7 +39,8 @@ public class SettingsRepository : ISettingsRepository
                 ClinicEmail = "info@mediqueue.com",
                 Currency = "EGP",
                 TimeZone = "Egypt Standard Time",
-                AllowOnlineBooking = true
+                AllowOnlineBooking = true,
+                TenantId = tenantId
             };
             _context.ClinicSettings.Add(settings);
             await _context.SaveChangesAsync(cancellationToken);
@@ -42,12 +51,25 @@ public class SettingsRepository : ISettingsRepository
 
     public async Task<ClinicSettingsDto> UpdateSettingsAsync(ClinicSettingsDto dto, CancellationToken cancellationToken)
     {
-        var settings = await _context.ClinicSettings.FirstOrDefaultAsync(cancellationToken);
-        
+        var tenantId = _tenantContext.TenantId;
+        var settings = await _context.ClinicSettings
+            .Where(s => s.TenantId == tenantId)
+            .FirstOrDefaultAsync(cancellationToken);
+
         if (settings == null)
         {
-            settings = new ClinicSettings();
+            settings = new ClinicSettings
+            {
+                ClinicName = "MediQueue Dental Clinic",
+                ClinicPhone = "01000000000",
+                ClinicEmail = "info@mediqueue.com",
+                Currency = "EGP",
+                TimeZone = "Egypt Standard Time",
+                AllowOnlineBooking = true,
+                TenantId = tenantId
+            };
             _context.ClinicSettings.Add(settings);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         settings.ClinicName = dto.ClinicName;
