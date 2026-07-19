@@ -24,17 +24,20 @@ public class AuthService : IAuthService
     private readonly IConfiguration _configuration;
     private readonly IPasswordHasher<AppUser> _passwordHasher;
     private readonly ITokenService _tokenService;
+    private readonly IEmailService _emailService;
 
     public AuthService(
         IUnitOfWork unitOfWork, 
         IConfiguration configuration,
         IPasswordHasher<AppUser> passwordHasher,
-        ITokenService tokenService)
+        ITokenService tokenService,
+        IEmailService emailService)
     {
-        _unitOfWork = unitOfWork;
+        _unitOfWork    = unitOfWork;
         _configuration = configuration;
         _passwordHasher = passwordHasher;
-        _tokenService = tokenService;
+        _tokenService  = tokenService;
+        _emailService  = emailService;
     }
 
     public async Task<Result<AuthResponseDto>> LoginAsync(LoginRequestDto request)
@@ -153,4 +156,76 @@ public class AuthService : IAuthService
         await _unitOfWork.SaveChangesAsync();
     }
 
+    /// <inheritdoc />
+    public async Task ForgotPasswordAsync(
+        string            email,
+        CancellationToken ct = default)
+    {
+        var user = await _unitOfWork.Users.GetByEmailAsync(email);
+
+        // Silent return — never reveal whether the email exists.
+        if (user is null) return;
+
+        // Generate and persist the reset token (valid 15 min).
+        var token = user.RequestPasswordReset();
+        await _unitOfWork.Users.UpdateAsync(user);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        // Build the reset link (frontend URL — configure via appsettings in production).
+        var resetLink =
+            $"https://mediqueue.app/auth/reset-password" +
+            $"?email={Uri.EscapeDataString(email)}" +
+            $"&token={token}";
+
+        var subject = "MediQueue — Password Reset Request";
+        var body    = $"""
+            Dear {user.FirstName ?? "User"},
+
+            You requested to reset your MediQueue password.
+
+            Click the link below to reset your password
+            (valid for 15 minutes):
+
+            {resetLink}
+
+            If you did not request this, please ignore this email.
+            Your password will not be changed.
+
+            — MediQueue Security Team
+            """;
+
+        await _emailService.SendEmailAsync(email, subject, body);
+    }
+
+    /// <inheritdoc />
+    public async Task ResetPasswordAsync(
+        string            email,
+        string            token,
+        string            newPassword,
+        CancellationToken ct = default)
+    {
+        var user = await _unitOfWork.Users.GetByEmailAsync(email);
+
+        // Unified error — never expose the failure reason.
+        const string errorMsg = "Invalid or expired password reset token.";
+
+        if (user is null)
+            throw new ApplicationException(errorMsg);
+
+        if (!user.IsPasswordResetTokenValid(token))
+            throw new ApplicationException(errorMsg);
+
+        // Hash and apply the new password (same mechanism as Register flow).
+        var hashedPassword = _passwordHasher.HashPassword(user, newPassword);
+        user.SetPasswordHash(hashedPassword);
+
+        // Invalidate the token (single-use enforcement).
+        user.ClearPasswordResetToken();
+
+        // Force logout from all devices by revoking the refresh token.
+        user.RevokeRefreshToken();
+
+        await _unitOfWork.Users.UpdateAsync(user);
+        await _unitOfWork.SaveChangesAsync(ct);
+    }
 }

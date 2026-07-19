@@ -40,7 +40,7 @@ public class AppointmentTestBuilder
             _chiefComplaint,
             _notes);
 
-        var field = typeof(Domain.Common.BaseEntity)
+        var field = typeof(MediQueue.Domain.Common.BaseEntity)
             .GetField("<Id>k__BackingField", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
         field?.SetValue(appointment, _id);
 

@@ -3,7 +3,10 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using MediQueue.Application.Auth.Commands;
+using MediQueue.Application.Auth.Commands.ForgotPassword;
+using MediQueue.Application.Auth.Commands.ResetPassword;
 using MediQueue.Application.Auth.DTOs;
 using MediQueue.Application.Common;
 
@@ -88,6 +91,36 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Logout(CancellationToken ct)
     {
         await _sender.Send(new LogoutCommand(), ct);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Request a password-reset email. Always returns 204 — callers cannot
+    /// determine whether the supplied email address exists in the system.
+    /// </summary>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> ForgotPassword(
+        [FromBody] ForgotPasswordCommand command,
+        CancellationToken ct)
+    {
+        await _sender.Send(command, ct);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Reset the password using the one-time token sent by email.
+    /// </summary>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPassword(
+        [FromBody] ResetPasswordCommand command,
+        CancellationToken ct)
+    {
+        await _sender.Send(command, ct);
         return NoContent();
     }
 }

@@ -134,19 +134,39 @@ public class AppointmentsController : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : UnprocessableEntity(result.Error);
     }
 
-    /// <summary>Cancel the appointment.</summary>
+    /// <summary>
+    /// Cancel an appointment. Staff (Admin/Receptionist) may cancel any appointment.
+    /// Patients may also call this endpoint but the command handler enforces that
+    /// they can only cancel appointments that belong to them (ownership check).
+    /// Returns 403 when a Patient attempts to cancel another patient's appointment.
+    /// </summary>
     [HttpPost("{id:guid}/cancel")]
-    [Authorize(Policy = "AdminOrReceptionist")]
+    [Authorize] // Staff + Patient; ownership enforced in CancelAppointmentCommandHandler
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelAppointmentCommand command, CancellationToken ct)
     {
         if (id != command.AppointmentId) return BadRequest("ID mismatch.");
         var result = await _sender.Send(command, ct);
-        return result.IsSuccess ? NoContent() : UnprocessableEntity(result.Error);
+        if (!result.IsSuccess)
+        {
+            // Distinguish a permission failure from a domain-rule failure.
+            if (result.Error!.Contains("permission", StringComparison.OrdinalIgnoreCase))
+                return Forbid();
+            return UnprocessableEntity(result.Error);
+        }
+        return NoContent();
     }
 
-    /// <summary>Reschedule the appointment.</summary>
+    /// <summary>
+    /// Reschedule the appointment. Restricted to Admin and Receptionist;
+    /// patients should contact the clinic to reschedule.
+    /// </summary>
     [HttpPost("{id:guid}/reschedule")]
     [Authorize(Policy = "AdminOrReceptionist")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Reschedule(Guid id, [FromBody] RescheduleAppointmentCommand command, CancellationToken ct)
     {
         if (id != command.AppointmentId) return BadRequest("ID mismatch.");

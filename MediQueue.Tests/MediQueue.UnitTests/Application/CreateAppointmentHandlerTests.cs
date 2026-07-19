@@ -49,20 +49,16 @@ public class CreateAppointmentHandlerTests
             BloodType.OPos,
             "12345678901234",
             new ContactInfo("01012345678"),
-            new Domain.ValueObjects.Address("St", "City", "Gov", "Egypt"),
+            new MediQueue.Domain.ValueObjects.Address("St", "City", "Gov", "Egypt"),
             MaritalStatus.Single);
 
-        var doctor = new Doctor(
-            Guid.NewGuid(),
+        var doctor = Doctor.Create(
             new PersonName("Doctor", "", "Smith"),
-            "General Dentistry",
-            MedicalSpecialty.GeneralDentistry,
+            MedicalSpecialty.Dentistry,
             "D123",
-            new ContactInfo("01112345678"));
-
-        var doctorType = typeof(Doctor);
-        var isAvailableProp = doctorType.GetProperty("IsAvailable");
-        isAvailableProp?.SetValue(doctor, true);
+            new ContactInfo("01112345678"),
+            new Money(500),
+            new Money(300));
 
         var appointment = Appointment.Book(
             _validCommand.PatientId,
@@ -126,7 +122,7 @@ public class CreateAppointmentHandlerTests
             BloodType.ANeg,
             "98765432109876",
             new ContactInfo("01212345678"),
-            new Domain.ValueObjects.Address("St", "City", "Gov", "Egypt"),
+            new MediQueue.Domain.ValueObjects.Address("St", "City", "Gov", "Egypt"),
             MaritalStatus.Married);
         inactivePatient.Deactivate();
 
@@ -154,15 +150,14 @@ public class CreateAppointmentHandlerTests
     [Fact]
     public async Task Handle_WhenDoctorUnavailable_ShouldReturnFailure()
     {
-        var doctor = new Doctor(
-            Guid.NewGuid(),
+        var doctor = Doctor.Create(
             new PersonName("Unavailable", "", "Doc"),
-            "Dentistry",
-            MedicalSpecialty.GeneralDentistry,
+            MedicalSpecialty.Dentistry,
             "D456",
-            new ContactInfo("01198765432"));
-        var isAvailableProp = typeof(Doctor).GetProperty("IsAvailable");
-        isAvailableProp?.SetValue(doctor, false);
+            new ContactInfo("01198765432"),
+            new Money(500),
+            new Money(300));
+        doctor.SetUnavailable("Not available");
 
         _unitOfWorkMock.Setup(u => u.Doctors.GetByIdAsync(It.IsAny<Guid>()))
             .ReturnsAsync(doctor);

@@ -18,14 +18,12 @@ public class HangfireSchedulerService : ISchedulerService
 
     public async Task<string> ScheduleReminderAsync(Guid appointmentId, DateTime scheduledAt)
     {
-        // Example: schedule reminder 2 hours before the appointment
         var enqueueAt = scheduledAt.AddHours(-2);
-        
-        // This is a placeholder for actual reminder logic which should be implemented in an application handler or notification service
-        var jobId = _backgroundJobClient.Schedule<ISmsService>(
-            service => service.SendAppointmentReminderAsync("phone", "patient name", "doctor name", scheduledAt),
+
+        var jobId = _backgroundJobClient.Schedule<AppointmentReminderJob>(
+            job => job.ExecuteAsync(appointmentId),
             new DateTimeOffset(enqueueAt));
-            
+
         return await Task.FromResult(jobId);
     }
 

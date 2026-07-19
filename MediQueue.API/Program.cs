@@ -9,6 +9,8 @@ using MediQueue.API.Middleware;
 using MediQueue.API.Hubs;
 using Microsoft.EntityFrameworkCore;
 using MediQueue.Infrastructure.Persistence.Context;
+using Hangfire;
+using MediQueue.Infrastructure.ExternalServices;
 
 // ── Bootstrap Logging ────────────────────────────────────────────────────────
 Log.Logger = new LoggerConfiguration()
@@ -96,6 +98,23 @@ try
             limiterOptions.QueueLimit = 0;
         });
 
+        // Tenant provisioning is an expensive, side-effect-heavy operation
+        // (creates Tenant + admin user + settings). Cap it hard so a runaway
+        // script or attacker cannot spin up thousands of tenants per hour.
+        options.AddFixedWindowLimiter("TenantProvisionPolicy", limiterOptions =>
+        {
+            var tenantProvisionConfig = builder.Configuration
+                .GetSection("RateLimiting:TenantProvisionPolicy");
+
+            limiterOptions.PermitLimit =
+                tenantProvisionConfig.GetValue<int>("PermitLimit", 10);
+            limiterOptions.Window = TimeSpan.FromHours(
+                tenantProvisionConfig.GetValue<int>("WindowHours", 1));
+            limiterOptions.QueueProcessingOrder =
+                QueueProcessingOrder.OldestFirst;
+            limiterOptions.QueueLimit = 0;
+        });
+
         // 429 response MUST match ApiResponse<T> shape
         // Angular api-response.interceptor reads response.data
         options.OnRejected = async (context, cancellationToken) =>
@@ -175,6 +194,27 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
+    // ── Hangfire Dashboard & Jobs ────────────────────────────────────────────
+    if (app.Environment.IsProduction())
+    {
+        var hangfireConnectionString = app.Configuration.GetConnectionString("HangfireConnection")
+            ?? app.Configuration.GetConnectionString("DefaultConnection");
+
+        if (!string.IsNullOrWhiteSpace(hangfireConnectionString))
+        {
+            app.UseHangfireDashboard("/hangfire", new DashboardOptions
+            {
+                Authorization = new[] { new HangfireAuthorizationFilter() }
+            });
+
+            // Schedule the daily revenue report job at 00:00 every day
+            RecurringJob.AddOrUpdate<DashboardJobs>(
+                "DailyRevenueReport",
+                job => job.SendDailyRevenueReportAsync(),
+                Cron.Daily);
+        }
+    }
+
     // ── Endpoints ────────────────────────────────────────────────────────────
     app.MapHub<ClinicHub>("/hubs/clinic");
     app.MapControllers();
@@ -184,9 +224,14 @@ try
 }
 catch (Exception ex)
 {
+    System.IO.File.WriteAllText("fatal_error.txt", ex.ToString());
+    Console.WriteLine("STARTUP EXCEPTION: " + ex.ToString());
     Log.Fatal(ex, "MediQueue API terminated unexpectedly.");
+    throw;
 }
 finally
 {
     Log.CloseAndFlush();
 }
+
+public partial class Program { }

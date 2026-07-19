@@ -47,19 +47,39 @@ public class BookAppointmentCommandHandler : IRequestHandler<BookAppointmentComm
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ICacheService _cacheService;
+    private readonly IUsageValidatorService _usageValidatorService;
+    private readonly ITenantContext _tenantContext;
 
-    public BookAppointmentCommandHandler(IUnitOfWork unitOfWork, IMapper mapper, ICacheService cacheService)
+    public BookAppointmentCommandHandler(
+        IUnitOfWork unitOfWork, 
+        IMapper mapper, 
+        ICacheService cacheService,
+        IUsageValidatorService usageValidatorService,
+        ITenantContext tenantContext)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _cacheService = cacheService;
+        _usageValidatorService = usageValidatorService;
+        _tenantContext = tenantContext;
     }
 
     public async Task<Result<AppointmentDto>> Handle(BookAppointmentCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            var tenantId = _tenantContext.TenantId;
+            if (tenantId != Guid.Empty)
+            {
+                var isQuotaAvailable = await _usageValidatorService.IsQuotaAvailableAsync(tenantId, QuotaType.Appointments);
+                if (!isQuotaAvailable)
+                {
+                    return Result<AppointmentDto>.Failure("لقد تخطيت الحد الأقصى للمواعيد المسموح بها شهرياً في باقتك الحالية.");
+                }
+            }
+
             var patient = await _unitOfWork.Patients.GetByIdAsync(request.PatientId);
+
             if (patient == null || !patient.IsActive)
             {
                 return Result<AppointmentDto>.Failure("Patient not found or inactive.");

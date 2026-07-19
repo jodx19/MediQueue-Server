@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MediQueue.Infrastructure.Persistence.Context;
+using Microsoft.AspNetCore.Hosting;
 
 namespace MediQueue.IntegrationTests.Infrastructure;
 

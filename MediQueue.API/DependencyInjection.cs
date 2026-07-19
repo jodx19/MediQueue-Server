@@ -68,6 +68,7 @@ public static class DependencyInjection
             options.AddPolicy("StaffOnly",             p => p.RequireRole("Admin", "Doctor", "Receptionist"));
             options.AddPolicy("AdminOrReceptionist",    p => p.RequireRole("Admin", "Receptionist"));
             options.AddPolicy("PatientOnly",           p => p.RequireRole("Patient"));
+            options.AddPolicy("AdminOrDoctor",          p => p.RequireRole("Admin", "Doctor"));
         });
 
         services.AddControllers(options =>

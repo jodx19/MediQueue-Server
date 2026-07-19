@@ -7,6 +7,7 @@ using MediQueue.Application.Interfaces;
 using MediQueue.Domain.Entities;
 using MediQueue.Domain.Enums;
 using MediQueue.Domain.Interfaces;
+using MediQueue.Domain.ValueObjects;
 using MediQueue.Infrastructure.ExternalServices;
 
 namespace MediQueue.UnitTests.Application;
@@ -40,11 +41,8 @@ public class AuthServiceTests
 
     private static AppUser CreateTestUser(string role = "Admin", bool isActive = true)
     {
-        var user = new AppUser("testuser", "test@mediqueue.com", "Test", "User", "01012345678");
-        var roleField = typeof(AppUser).GetProperty("Role");
-        roleField?.SetValue(user, Enum.Parse<UserRole>(role));
-        var isActiveField = typeof(AppUser).GetProperty("IsActive");
-        isActiveField?.SetValue(user, isActive);
+        var user = AppUser.Create("testuser", "test@mediqueue.com", "Test", "User", "01012345678", "hashed_password", Enum.Parse<UserRole>(role));
+        if (!isActive) user.Deactivate();
         return user;
     }
 
@@ -170,7 +168,7 @@ public class AuthServiceTests
             BloodType.OPos,
             "12345678901234",
             new ContactInfo("01012345678"),
-            new Domain.ValueObjects.Address("St", "City", "Gov", "Egypt"),
+            new MediQueue.Domain.ValueObjects.Address("St", "City", "Gov", "Egypt"),
             MaritalStatus.Single);
 
         _unitOfWorkMock.Setup(u => u.Patients.GetByMRNAsync("MRN-001"))
@@ -199,7 +197,7 @@ public class AuthServiceTests
             BloodType.OPos,
             "12345678901234",
             new ContactInfo("01012345678"),
-            new Domain.ValueObjects.Address("St", "City", "Gov", "Egypt"),
+            new MediQueue.Domain.ValueObjects.Address("St", "City", "Gov", "Egypt"),
             MaritalStatus.Single);
 
         _unitOfWorkMock.Setup(u => u.Patients.GetByMRNAsync("MRN-001"))

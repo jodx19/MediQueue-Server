@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MediQueue.Application.Tenants.Commands;
 using MediQueue.Application.Tenants.Queries;
 
@@ -17,6 +18,7 @@ public class TenantsController : BaseApiController
     /// </summary>
     [HttpPost("provision")]
     [AllowAnonymous]
+    [EnableRateLimiting("TenantProvisionPolicy")]
     [ProducesResponseType(typeof(ProvisionTenantResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> Provision([FromBody] ProvisionTenantCommand command)
     {

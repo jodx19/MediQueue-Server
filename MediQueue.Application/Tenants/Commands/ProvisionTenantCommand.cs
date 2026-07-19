@@ -64,15 +64,18 @@ public class ProvisionTenantCommandHandler : IRequestHandler<ProvisionTenantComm
     private readonly ITenantRepository _tenantRepo;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher<AppUser> _passwordHasher;
+    private readonly ISettingsRepository _settingsRepo;
 
     public ProvisionTenantCommandHandler(
         ITenantRepository tenantRepo,
         IUnitOfWork unitOfWork,
-        IPasswordHasher<AppUser> passwordHasher)
+        IPasswordHasher<AppUser> passwordHasher,
+        ISettingsRepository settingsRepo)
     {
         _tenantRepo = tenantRepo;
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
+        _settingsRepo = settingsRepo;
     }
 
     public async Task<Result<ProvisionTenantResult>> Handle(
@@ -88,7 +91,14 @@ public class ProvisionTenantCommandHandler : IRequestHandler<ProvisionTenantComm
 
         await _tenantRepo.AddAsync(tenant, cancellationToken);
 
-        // 2. Create admin user for this tenant
+        // 2. Seed default ClinicSettings for the new tenant so that the first
+        //    request against the tenant is not "bricked" (SettingsController
+        //    would otherwise find no settings row). The DbContext is Scoped,
+        //    so this same Add is persisted atomically by SaveChangesAsync
+        //    below alongside the Tenant and the admin AppUser.
+        await _settingsRepo.SeedForTenantAsync(tenant.Id, tenant.Name, cancellationToken);
+
+        // 3. Create admin user for this tenant
         var adminUser = AppUser.Create(
             username: request.AdminEmail,
             email: request.AdminEmail,

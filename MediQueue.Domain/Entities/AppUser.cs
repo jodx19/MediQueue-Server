@@ -28,6 +28,10 @@ public class AppUser : AuditableEntity
     public string? RefreshToken { get; private set; }
     public DateTime? RefreshTokenExpiryTime { get; private set; }
 
+    // Password Reset
+    public string?   PasswordResetToken          { get; private set; }
+    public DateTime? PasswordResetTokenExpiresAt { get; private set; }
+
     private AppUser() 
     { 
         Username = null!;
@@ -77,6 +81,45 @@ public class AppUser : AuditableEntity
     {
         RefreshToken = null;
         RefreshTokenExpiryTime = null;
+    }
+
+    /// <summary>
+    /// Generates a cryptographically-secure 64-hex-char token valid for 15 minutes.
+    /// </summary>
+    public string RequestPasswordReset()
+    {
+        PasswordResetToken = Convert
+            .ToHexString(System.Security.Cryptography
+            .RandomNumberGenerator.GetBytes(32))
+            .ToLowerInvariant();
+
+        PasswordResetTokenExpiresAt = DateTime.UtcNow.AddMinutes(15);
+
+        return PasswordResetToken;
+    }
+
+    /// <summary>
+    /// Returns true only when the supplied token matches and has not expired.
+    /// </summary>
+    public bool IsPasswordResetTokenValid(string token)
+    {
+        return PasswordResetToken is not null
+            && PasswordResetTokenExpiresAt.HasValue
+            && PasswordResetTokenExpiresAt.Value > DateTime.UtcNow
+            && string.Equals(
+                PasswordResetToken,
+                token,
+                StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Clears the reset token so it cannot be reused (single-use enforcement).
+    /// Password hashing is handled by the caller (AuthService / IPasswordHasher).
+    /// </summary>
+    public void ClearPasswordResetToken()
+    {
+        PasswordResetToken          = null;
+        PasswordResetTokenExpiresAt = null;
     }
 
     public void LinkToPatient(Guid patientId)

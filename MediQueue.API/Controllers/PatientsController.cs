@@ -158,6 +158,17 @@ public class PatientsController : BaseApiController
         return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
 
+    /// <summary>Remove a chronic condition from a patient's record.</summary>
+    [HttpDelete("{id:guid}/chronic-conditions/{conditionId:guid}")]
+    [Authorize(Policy = "AdminOrDoctor")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveChronicCondition(Guid id, Guid conditionId, CancellationToken ct)
+    {
+        var result = await Sender.Send(new RemoveChronicConditionCommand(id, conditionId), ct);
+        return result.IsSuccess ? NoContent() : NotFound(result.Error);
+    }
+
     /// <summary>Deactivate (soft-delete) a patient record.</summary>
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = "AdminOnly")]

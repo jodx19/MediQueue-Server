@@ -31,9 +31,24 @@ public class PatientRepository : IPatientRepository
 
     public async Task<Patient?> GetByMRNAsync(string medicalRecordNumber)
     {
+        // Pre-auth lookup: TenantId is not yet known at this point
+        // (patient hasn't been identified yet). IgnoreQueryFilters()
+        // is required here. NOTE: assumes MRN is globally unique
+        // across all tenants — if this assumption changes, this
+        // lookup must be reconsidered.
         return await _context.Patients
             .IgnoreQueryFilters()
             .Where(p => !p.IsDeleted)
+            .AsNoTracking()
+            .Include(p => p.Allergies)
+            .Include(p => p.ChronicConditions)
+            .Include(p => p.CurrentMedications)
+            .FirstOrDefaultAsync(p => p.MedicalRecordNumber == medicalRecordNumber);
+    }
+
+    public async Task<Patient?> GetByMRNInCurrentTenantAsync(string medicalRecordNumber)
+    {
+        return await _context.Patients
             .AsNoTracking()
             .Include(p => p.Allergies)
             .Include(p => p.ChronicConditions)

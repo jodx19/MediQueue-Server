@@ -24,7 +24,7 @@ public class GetPatientByMRNQueryHandler : IRequestHandler<GetPatientByMRNQuery,
 
     public async Task<Result<PatientDetailDto>> Handle(GetPatientByMRNQuery request, CancellationToken cancellationToken)
     {
-        var patient = await _unitOfWork.Patients.GetByMRNAsync(request.MRN);
+        var patient = await _unitOfWork.Patients.GetByMRNInCurrentTenantAsync(request.MRN);
         
         if (patient == null)
         {

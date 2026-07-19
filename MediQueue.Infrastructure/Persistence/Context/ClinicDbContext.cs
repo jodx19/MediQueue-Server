@@ -43,12 +43,39 @@ public class ClinicDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<ClinicSettings> ClinicSettings => Set<ClinicSettings>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
         
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ClinicDbContext).Assembly);
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+
+            entity.Property(a => a.TenantId)  .IsRequired();
+            entity.Property(a => a.Action)    .HasMaxLength(100).IsRequired();
+            entity.Property(a => a.EntityName).HasMaxLength(100).IsRequired();
+            entity.Property(a => a.RequestName).HasMaxLength(200).IsRequired();
+            entity.Property(a => a.UserEmail) .HasMaxLength(256);
+            entity.Property(a => a.UserRole)  .HasMaxLength(50);
+            entity.Property(a => a.IpAddress) .HasMaxLength(45);
+
+            // OldValues و NewValues يمكن أن تكون طويلة
+            entity.Property(a => a.OldValues)    .HasColumnType("nvarchar(max)");
+            entity.Property(a => a.NewValues)    .HasColumnType("nvarchar(max)");
+            entity.Property(a => a.AdditionalData).HasColumnType("nvarchar(max)");
+            entity.Property(a => a.ErrorMessage) .HasColumnType("nvarchar(max)");
+
+            // Indexes للـ queries الشائعة
+            entity.HasIndex(a => a.TenantId);
+            entity.HasIndex(a => a.CreatedAt);
+            entity.HasIndex(a => new { a.TenantId, a.CreatedAt });
+            entity.HasIndex(a => new { a.TenantId, a.EntityName });
+            entity.HasIndex(a => new { a.EntityId, a.EntityName });
+        });
 
         modelBuilder.Entity<ClinicSettings>(entity =>
         {

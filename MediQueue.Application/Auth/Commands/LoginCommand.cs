@@ -1,4 +1,4 @@
-// Path: MediQueue.Application/Auth/Commands/LoginCommand.cs
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
@@ -27,14 +27,34 @@ public class LoginCommandValidator : AbstractValidator<LoginCommand>
 public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<AuthResponseDto>>
 {
     private readonly IAuthService _authService;
+    private readonly ICacheService _cacheService;
 
-    public LoginCommandHandler(IAuthService authService)
+    public LoginCommandHandler(IAuthService authService, ICacheService cacheService)
     {
         _authService = authService;
+        _cacheService = cacheService;
     }
 
     public async Task<Result<AuthResponseDto>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-        return await _authService.LoginAsync(new LoginRequestDto(request.Email, request.Password));
+        var cacheKey = $"staff-login-attempts:{request.Email.Trim().ToLowerInvariant()}";
+        var attempts = await _cacheService.GetAsync<int>(cacheKey);
+
+        if (attempts >= 5)
+        {
+            return Result<AuthResponseDto>.Failure("Account temporarily locked. Try again in 15 minutes.");
+        }
+
+        var result = await _authService.LoginAsync(new LoginRequestDto(request.Email, request.Password));
+
+        if (!result.IsSuccess)
+        {
+            await _cacheService.SetAsync(cacheKey, attempts + 1, TimeSpan.FromMinutes(15));
+            return Result<AuthResponseDto>.Failure("Invalid email or password.");
+        }
+
+        await _cacheService.RemoveAsync(cacheKey);
+
+        return result;
     }
 }

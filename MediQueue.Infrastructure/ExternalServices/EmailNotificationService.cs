@@ -10,7 +10,7 @@ using MediQueue.Application.Interfaces;
 
 namespace MediQueue.Infrastructure.ExternalServices;
 
-public class EmailNotificationService : IEmailService, ISmsService
+public class EmailNotificationService : IEmailService
 {
     private readonly ILogger<EmailNotificationService> _logger;
     private readonly IConfiguration _configuration;
@@ -52,35 +52,6 @@ public class EmailNotificationService : IEmailService, ISmsService
         {
             _logger.LogError(ex, "Failed to send email to {ToEmail}", toEmail);
         }
-    }
-
-    public Task SendSmsAsync(string phoneNumber, string message)
-    {
-        _logger.LogInformation("SMS sent to {PhoneNumber}: {Message}", phoneNumber, message);
-        return Task.CompletedTask;
-    }
-
-    // Since interfaces have methods using Phone/Email but prompt specifies methods, we will adapt logic
-    // For SMS endpoints we might just mock them with email for now or log them if "SMS" isn't explicitly defined.
-    // The prompt only mentions Email notification via MailKit for INotificationService.
-
-    public async Task SendAppointmentConfirmationAsync(string patientPhone, string patientName, string doctorName, DateTime scheduledAt)
-    {
-        // Using email as fallback since MailKit is email specific. Assuming patientPhone is a placeholder or used for SMS if we had an SMS provider.
-        var htmlBody = $"<h1>Appointment Confirmation</h1><p>Dear {patientName}, your appointment with Dr. {doctorName} is confirmed for {scheduledAt:f}.</p>";
-        await SendEmailAsync("patient@example.com", "Appointment Confirmation", htmlBody);
-    }
-
-    public async Task SendAppointmentReminderAsync(string patientPhone, string patientName, string doctorName, DateTime scheduledAt)
-    {
-        var htmlBody = $"<h1>Appointment Reminder</h1><p>Dear {patientName}, reminder for your appointment with Dr. {doctorName} at {scheduledAt:f}.</p>";
-        await SendEmailAsync("patient@example.com", "Appointment Reminder", htmlBody);
-    }
-
-    public async Task SendAppointmentCancellationAsync(string patientPhone, string reason)
-    {
-        var htmlBody = $"<h1>Appointment Cancelled</h1><p>Your appointment has been cancelled. Reason: {reason}</p>";
-        await SendEmailAsync("patient@example.com", "Appointment Cancelled", htmlBody);
     }
 
     public async Task SendPrescriptionAsync(string patientEmail, string prescriptionDetails)

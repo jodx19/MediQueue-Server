@@ -1,6 +1,7 @@
 // e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.Infrastructure\ExternalServices\DashboardJobs.cs
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MediQueue.Application.Dashboard.Queries;
 using MediatR;
@@ -13,12 +14,14 @@ public class DashboardJobs
     private readonly IMediator _mediator;
     private readonly IEmailService _emailService;
     private readonly ILogger<DashboardJobs> _logger;
+    private readonly IConfiguration _configuration;
 
-    public DashboardJobs(IMediator mediator, IEmailService emailService, ILogger<DashboardJobs> logger)
+    public DashboardJobs(IMediator mediator, IEmailService emailService, ILogger<DashboardJobs> logger, IConfiguration configuration)
     {
         _mediator = mediator;
         _emailService = emailService;
         _logger = logger;
+        _configuration = configuration;
     }
 
     public async Task SendDailyRevenueReportAsync()
@@ -34,7 +37,10 @@ public class DashboardJobs
             var body = $"<h1>Daily Revenue Report - {yesterday:yyyy-MM-dd}</h1>" +
                        $"<p>Total Revenue: {report!.TotalRevenue:C}</p>";
 
-            await _emailService.SendEmailAsync("admin@mediqueue.com", "Daily Revenue Report", body);
+            var recipientEmail = _configuration["EmailSettings:ReportRecipientEmail"]
+                ?? _configuration["EmailSettings:FromEmail"]
+                ?? "admin@mediqueue.com";
+            await _emailService.SendEmailAsync(recipientEmail, "Daily Revenue Report", body);
             _logger.LogInformation("Daily Revenue Report sent successfully.");
         }
         else

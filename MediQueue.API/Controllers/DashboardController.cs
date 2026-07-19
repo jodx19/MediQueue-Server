@@ -11,7 +11,7 @@ namespace MediQueue.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Policy = "AdminOnly")]
 public class DashboardController : ControllerBase
 {
     private readonly IMediator _mediator;

@@ -227,6 +227,19 @@ public class Patient : BaseAggregateRoot
     }
 
     /// <summary>
+    /// Removes a chronic condition from the patient by ID.
+    /// </summary>
+    public void RemoveChronicCondition(Guid conditionId)
+    {
+        var condition = _chronicConditions.FirstOrDefault(c => c.Id == conditionId);
+        if (condition != null)
+        {
+            _chronicConditions.Remove(condition);
+            SetUpdated();
+        }
+    }
+
+    /// <summary>
     /// Deactivates the patient record.
     /// </summary>
     public void Deactivate()
@@ -241,9 +254,13 @@ public class Patient : BaseAggregateRoot
 
     private string GenerateMRN()
     {
-        // MRN-YYYYMMDD-XXXX
+        // MRN-YYYYMMDD-XXXXXXXX
+        // 8 hex chars from a GUID = 16^8 ≈ 4.3 billion combinations
+        // per day (vs previous 65,536), making same-day cross-tenant
+        // collision probability negligible even at high registration
+        // volume across many tenants.
         var datePart = DateTime.UtcNow.ToString("yyyyMMdd");
-        var randomPart = Guid.NewGuid().ToString()[..4].ToUpperInvariant();
+        var randomPart = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
         return $"MRN-{datePart}-{randomPart}";
     }
 }

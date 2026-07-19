@@ -3,6 +3,7 @@ using MediQueue.Domain.Entities;
 using MediQueue.Domain.Enums;
 using MediQueue.Domain.Events;
 using MediQueue.Domain.ValueObjects;
+using AllergySeverity = MediQueue.Domain.Entities.AllergySeverity;
 
 namespace MediQueue.UnitTests.Domain;
 
@@ -84,7 +85,7 @@ public class PatientTests
         patient.AddChronicCondition("Diabetes Type 2", new DateOnly(2020, 3, 1), "Controlled with metformin");
 
         patient.ChronicConditions.Should().HaveCount(1);
-        patient.ChronicConditions.First().Name.Should().Be("Diabetes Type 2");
+        patient.ChronicConditions.First().ConditionName.Should().Be("Diabetes Type 2");
     }
 
     [Fact]

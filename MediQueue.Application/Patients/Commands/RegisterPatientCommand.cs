@@ -6,6 +6,7 @@ using AutoMapper;
 using FluentValidation;
 using MediatR;
 using MediQueue.Application.Common;
+using MediQueue.Application.Interfaces;
 using MediQueue.Application.Patients.DTOs;
 using MediQueue.Domain.Entities;
 using MediQueue.Domain.Enums;
@@ -57,17 +58,35 @@ public class RegisterPatientCommandHandler : IRequestHandler<RegisterPatientComm
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IUsageValidatorService _usageValidatorService;
+    private readonly ITenantContext _tenantContext;
 
-    public RegisterPatientCommandHandler(IUnitOfWork unitOfWork, IMapper mapper)
+    public RegisterPatientCommandHandler(
+        IUnitOfWork unitOfWork, 
+        IMapper mapper, 
+        IUsageValidatorService usageValidatorService,
+        ITenantContext tenantContext)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _usageValidatorService = usageValidatorService;
+        _tenantContext = tenantContext;
     }
 
     public async Task<Result<PatientDto>> Handle(RegisterPatientCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            var tenantId = _tenantContext.TenantId;
+            if (tenantId != Guid.Empty)
+            {
+                var isQuotaAvailable = await _usageValidatorService.IsQuotaAvailableAsync(tenantId, QuotaType.Patients);
+                if (!isQuotaAvailable)
+                {
+                    return Result<PatientDto>.Failure("لقد تخطيت الحد الأقصى للمرضى المسموح به في باقتك الحالية.");
+                }
+            }
+
             var existingPatient = await _unitOfWork.Patients.GetByNationalIdAsync(request.NationalId);
             if (existingPatient != null)
             {
@@ -104,3 +123,4 @@ public class RegisterPatientCommandHandler : IRequestHandler<RegisterPatientComm
         }
     }
 }
+

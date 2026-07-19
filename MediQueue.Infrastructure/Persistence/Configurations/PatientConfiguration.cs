@@ -16,7 +16,7 @@ public class PatientConfiguration : IEntityTypeConfiguration<Patient>
         builder.Property(x => x.NationalId).HasMaxLength(14).IsRequired();
 
         builder.HasIndex(x => x.MedicalRecordNumber).IsUnique();
-        builder.Property(x => x.MedicalRecordNumber).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.MedicalRecordNumber).HasMaxLength(30).IsRequired();
 
         builder.Property(x => x.BloodType).HasConversion<string>();
         builder.Property(x => x.Gender).HasConversion<string>();

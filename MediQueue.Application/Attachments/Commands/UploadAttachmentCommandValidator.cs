@@ -1,20 +1,20 @@
 using System;
 using System.IO;
+using System.Linq;
 using FluentValidation;
 
 namespace MediQueue.Application.Attachments.Commands;
 
 public class UploadAttachmentCommandValidator : AbstractValidator<UploadAttachmentCommand>
 {
-    private static readonly string[] AllowedMimeTypes =
-    [
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "application/pdf"
-    ];
-
-    private const long MaxFileSize = 10 * 1024 * 1024;
+    private static readonly string[] AllowedContentTypes =
+    {
+        "image/jpeg", "image/png", "image/webp",
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    };
+    private const long MaxFileSizeBytes = 10 * 1024 * 1024; // 10MB
 
     public UploadAttachmentCommandValidator()
     {
@@ -22,17 +22,20 @@ public class UploadAttachmentCommandValidator : AbstractValidator<UploadAttachme
             .NotEmpty().WithMessage("PatientId is required.");
 
         RuleFor(x => x.FileName)
-            .NotEmpty().WithMessage("File name is required.")
-            .Must(IsValidFilename).WithMessage("File name contains invalid characters.");
+            .NotEmpty()
+            .MaximumLength(255)
+            .Must(name => !name.Contains("..") && !name.Contains("/") && !name.Contains("\\"))
+                .WithMessage("Filename contains invalid characters.");
 
         RuleFor(x => x.ContentType)
-            .NotEmpty().WithMessage("Content type is required.")
-            .Must(AllowedMimeTypes.Contains)
-            .WithMessage($"File type is not supported. Allowed: {string.Join(", ", AllowedMimeTypes)}");
+            .NotEmpty()
+            .Must(ct => AllowedContentTypes.Contains(ct))
+                .WithMessage($"File type not allowed. Allowed types: {string.Join(", ", AllowedContentTypes)}");
 
-        RuleFor(x => x.FileSize)
-            .GreaterThan(0).WithMessage("File is empty.")
-            .LessThanOrEqualTo(MaxFileSize).WithMessage($"File exceeds the {MaxFileSize / (1024 * 1024)} MB limit.");
+        RuleFor(x => x.FileSize) // adjusted property name from FileSizeBytes to FileSize to match actual command
+            .GreaterThan(0)
+            .LessThanOrEqualTo(MaxFileSizeBytes)
+                .WithMessage("File exceeds maximum allowed size of 10MB.");
 
         RuleFor(x => x.Type)
             .IsInEnum().WithMessage("Invalid attachment type.");
@@ -42,20 +45,5 @@ public class UploadAttachmentCommandValidator : AbstractValidator<UploadAttachme
             RuleFor(x => x.ClinicalVisitId)
                 .NotEmpty().WithMessage("ClinicalVisitId must not be empty if provided.");
         });
-    }
-
-    private static bool IsValidFilename(string filename)
-    {
-        if (string.IsNullOrWhiteSpace(filename))
-            return false;
-
-        if (filename.Contains("..") || filename.Contains("/") ||
-            filename.Contains("\\") || filename.Contains('\0'))
-            return false;
-
-        var extension = Path.GetExtension(filename);
-        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".pdf" };
-        return !string.IsNullOrEmpty(extension) &&
-               allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
     }
 }

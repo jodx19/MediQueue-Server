@@ -90,6 +90,41 @@ public class SettingsRepository : ISettingsRepository
         return MapToDto(settings);
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Intentionally does NOT call <c>SaveChangesAsync</c>. The caller owns the
+    /// UnitOfWork transaction (tenant creation) and will persist this seed row
+    /// atomically together with the <c>Tenant</c> and the admin <c>AppUser</c>.
+    /// The <see cref="ClinicDbContext"/> is registered as Scoped, so the same
+    /// DbContext instance is shared with <c>UnitOfWork</c> within the request.
+    /// </remarks>
+    public Task SeedForTenantAsync(Guid tenantId, string clinicName, CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var settings = new ClinicSettings
+        {
+            ClinicName = string.IsNullOrWhiteSpace(clinicName) ? "MediQueue Dental Clinic" : clinicName,
+            ClinicPhone = string.Empty,
+            ClinicEmail = string.Empty,
+            ClinicAddress = string.Empty,
+            LogoUrl = string.Empty,
+            WorkStartTime = new TimeOnly(8, 0),
+            WorkEndTime = new TimeOnly(20, 0),
+            AppointmentDurationMinutes = 30,
+            Currency = "EGP",
+            TimeZone = "Egypt Standard Time",
+            AllowOnlineBooking = true,
+            RequireDepositForBooking = false,
+            DepositAmount = 0m,
+            CreatedAt = now,
+            UpdatedAt = now,
+            TenantId = tenantId
+        };
+
+        _context.ClinicSettings.Add(settings);
+        return Task.CompletedTask;
+    }
+
     private static ClinicSettingsDto MapToDto(ClinicSettings entity)
     {
         return new ClinicSettingsDto(

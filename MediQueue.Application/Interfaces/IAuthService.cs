@@ -20,4 +20,20 @@ public interface IAuthService
     /// to distinguish "user exists" from "user does not exist".
     /// </summary>
     Task LogoutAsync(string userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sends a password-reset email. Always succeeds silently — callers cannot
+    /// distinguish whether the email exists (anti-enumeration).
+    /// </summary>
+    Task ForgotPasswordAsync(string email, CancellationToken ct = default);
+
+    /// <summary>
+    /// Validates the reset token and replaces the password. Throws
+    /// <see cref="ApplicationException"/> with a generic message on failure.
+    /// </summary>
+    Task ResetPasswordAsync(
+        string            email,
+        string            token,
+        string            newPassword,
+        CancellationToken ct = default);
 }

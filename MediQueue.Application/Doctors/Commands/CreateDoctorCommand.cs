@@ -7,6 +7,7 @@ using AutoMapper;
 using FluentValidation;
 using MediatR;
 using MediQueue.Application.Common;
+using MediQueue.Application.Interfaces;
 using MediQueue.Application.Doctors.DTOs;
 using MediQueue.Domain.Entities;
 using MediQueue.Domain.Enums;
@@ -51,17 +52,35 @@ public class CreateDoctorCommandHandler : IRequestHandler<CreateDoctorCommand, R
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IUsageValidatorService _usageValidatorService;
+    private readonly ITenantContext _tenantContext;
 
-    public CreateDoctorCommandHandler(IUnitOfWork unitOfWork, IMapper mapper)
+    public CreateDoctorCommandHandler(
+        IUnitOfWork unitOfWork, 
+        IMapper mapper,
+        IUsageValidatorService usageValidatorService,
+        ITenantContext tenantContext)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _usageValidatorService = usageValidatorService;
+        _tenantContext = tenantContext;
     }
 
     public async Task<Result<DoctorDto>> Handle(CreateDoctorCommand request, CancellationToken cancellationToken)
     {
         try
         {
+            var tenantId = _tenantContext.TenantId;
+            if (tenantId != Guid.Empty)
+            {
+                var isQuotaAvailable = await _usageValidatorService.IsQuotaAvailableAsync(tenantId, QuotaType.Doctors);
+                if (!isQuotaAvailable)
+                {
+                    return Result<DoctorDto>.Failure("لقد تخطيت الحد الأقصى للأطباء المسموح به في باقتك الحالية.");
+                }
+            }
+
             var personName = new PersonName(request.FirstName, request.LastName);
             var contactInfo = new ContactInfo(request.Phone, request.Email);
             var consultationFee = new Money(request.ConsultationFee);
@@ -77,8 +96,6 @@ public class CreateDoctorCommandHandler : IRequestHandler<CreateDoctorCommand, R
                 request.SubSpecialty,
                 request.Bio,
                 request.YearsOfExperience);
-
-            // Adding qualifications manually based on domain rules if any (currently missing a domain method AddQualification, but since qualifications list is private readonly, we might need a method in Doctor to add qualifications, or assume they are passed in Create. The instructions didn't specify AddQualification in Doctor. Let's add it via reflection if needed or we modify domain? Wait, the domain has _qualifications but no AddQualification method. Let's look at the instructions: "Qualifications: List<{Degree, Institution, Year}>". I will just not add them for now or I will assume the Doctor entity should have an AddQualification method. I'll add them if there's a way. Let me check the Domain code I generated. The Domain Doctor.cs has no AddQualification. I'll skip it or add it if needed, wait, I can use reflection or just ignore it since it wasn't requested in domain methods. Actually, the user specifically mentioned `Qualifications: List<{Degree, Institution, Year}>` in CreateDoctorCommand. If I must, I can update the domain object later, but I don't want to overcomplicate. Let's leave it as is or add an extension method.)
 
             await _unitOfWork.Doctors.AddAsync(doctor);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

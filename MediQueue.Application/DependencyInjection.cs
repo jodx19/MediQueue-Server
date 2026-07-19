@@ -21,10 +21,10 @@ public static class DependencyInjection
         {
             cfg.RegisterServicesFromAssembly(assembly);
             
-            // Register behaviors in correct order
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(PerformanceBehavior<,>));
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(AuditBehavior<,>));
         });
 
         // Register FluentValidation Validators

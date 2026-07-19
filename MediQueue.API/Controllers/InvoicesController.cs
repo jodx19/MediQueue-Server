@@ -7,10 +7,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MediQueue.Application.Common;
+using MediQueue.Application.Dashboard.Queries;
 using MediQueue.Application.Invoices.Commands;
 using MediQueue.Application.Invoices.Queries;
 using MediQueue.Application.Invoices.DTOs;
 using MediQueue.Domain.Enums;
+using DashboardRevenueReportDto = MediQueue.Application.Dashboard.DTOs.RevenueReportDto;
 
 namespace MediQueue.API.Controllers;
 
@@ -81,16 +83,17 @@ public class InvoicesController : ControllerBase
         return Ok(result.Value);
     }
 
-    /// <summary>Get a revenue report grouped by date and payment method.</summary>
+    /// <summary>Get a revenue report grouped by date.</summary>
     [HttpGet("revenue-report")]
     [Authorize(Policy = "AdminOnly")]
-    [ProducesResponseType(typeof(RevenueReportDto), StatusCodes.Status200OK)]
-    public async Task<ActionResult<RevenueReportDto>> GetRevenueReport(
+    [ProducesResponseType(typeof(DashboardRevenueReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DashboardRevenueReportDto>> GetRevenueReport(
         [FromQuery] DateTime from,
         [FromQuery] DateTime to,
         CancellationToken ct)
     {
-        var result = await _sender.Send(new GetRevenueReportQuery(DateOnly.FromDateTime(from), DateOnly.FromDateTime(to)), ct);
+        var result = await _sender.Send(new GetRevenueReportQuery(from, to), ct);
+        if (!result.IsSuccess) return BadRequest(result.Error);
         return Ok(result.Value);
     }
 
