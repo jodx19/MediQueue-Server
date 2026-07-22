@@ -1,22 +1,24 @@
-using System;
-using System.Collections.Generic;
-
 namespace MediQueue.Domain.Common;
 
-public class Result<T>
+/// <summary>
+/// Lightweight operation result surfaced from Domain entities. Mirrors the
+/// shape of <c>MediQueue.Application.Common.Result</c> but lives in the Domain
+/// layer so that entities can return typed outcomes without depending on the
+/// Application project (which would invert the dependency direction).
+/// Application handlers adapt this to <c>Application.Common.Result</c>.
+/// </summary>
+public sealed class Result
 {
-    public bool IsSuccess { get; set; }
-    public T? Data { get; set; }
-    public string? Message { get; set; }
-    public List<string>? Errors { get; set; }
-    public int StatusCode { get; set; } = 200;
+    public bool IsSuccess { get; }
+    public bool IsFailure => !IsSuccess;
+    public string? Error { get; }
 
-    public static Result<T> Success(T data, string? message = null) 
-        => new Result<T> { IsSuccess = true, Data = data, Message = message, StatusCode = 200 };
+    private Result(bool isSuccess, string? error)
+    {
+        IsSuccess = isSuccess;
+        Error     = error;
+    }
 
-    public static Result<T> Failure(List<string> errors, string? message = null, int statusCode = 400) 
-        => new Result<T> { IsSuccess = false, Errors = errors, Message = message, StatusCode = statusCode };
-
-    public static Result<T> Failure(string error, string? message = null, int statusCode = 400) 
-        => new Result<T> { IsSuccess = false, Errors = new List<string> { error }, Message = message, StatusCode = statusCode };
+    public static Result Success()            => new(true,  null);
+    public static Result Failure(string error) => new(false, error);
 }
