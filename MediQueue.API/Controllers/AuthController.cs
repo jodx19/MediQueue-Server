@@ -90,4 +90,32 @@ public class AuthController : ControllerBase
         await _sender.Send(new LogoutCommand(), ct);
         return NoContent();
     }
+
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("AuthPolicy")]
+    public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
+    {
+        var result = await _sender.Send(command);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(result.Error);
+        }
+
+        return Ok();
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("AuthPolicy")]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
+    {
+        var result = await _sender.Send(command);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(result.Error);
+        }
+
+        return Ok();
+    }
 }

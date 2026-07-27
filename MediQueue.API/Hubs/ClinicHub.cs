@@ -101,16 +101,38 @@ public class ClinicHub : Hub
     }
 
     public async Task NotifyAppointmentConfirmed(Guid appointmentId, string patientName)
-        => await Clients.All.SendAsync("NotifyAppointmentConfirmed", appointmentId, patientName);
+    {
+        // Multi-tenant isolation: never broadcast Clients.All.
+        // The "TenantId" claim (PascalCase) is stamped in OnConnectedAsync above.
+        var tenantId = Context.User?.FindFirst("TenantId")?.Value;
+        if (string.IsNullOrEmpty(tenantId)) return;
+        await Clients.Group($"tenant:{tenantId}")
+            .SendAsync("NotifyAppointmentConfirmed", appointmentId, patientName);
+    }
 
     public async Task NotifyAppointmentCancelled(Guid appointmentId, string reason)
-        => await Clients.All.SendAsync("NotifyAppointmentCancelled", appointmentId, reason);
+    {
+        var tenantId = Context.User?.FindFirst("TenantId")?.Value;
+        if (string.IsNullOrEmpty(tenantId)) return;
+        await Clients.Group($"tenant:{tenantId}")
+            .SendAsync("NotifyAppointmentCancelled", appointmentId, reason);
+    }
 
     public async Task NotifyAppointmentRescheduled(Guid appointmentId, DateTime newDateTime)
-        => await Clients.All.SendAsync("NotifyAppointmentRescheduled", appointmentId, newDateTime);
+    {
+        var tenantId = Context.User?.FindFirst("TenantId")?.Value;
+        if (string.IsNullOrEmpty(tenantId)) return;
+        await Clients.Group($"tenant:{tenantId}")
+            .SendAsync("NotifyAppointmentRescheduled", appointmentId, newDateTime);
+    }
 
     public async Task NotifySlotUpdated(Guid doctorId, DateOnly date)
-        => await Clients.All.SendAsync("NotifySlotUpdated", doctorId, date.ToString("yyyy-MM-dd"));
+    {
+        var tenantId = Context.User?.FindFirst("TenantId")?.Value;
+        if (string.IsNullOrEmpty(tenantId)) return;
+        await Clients.Group($"tenant:{tenantId}")
+            .SendAsync("NotifySlotUpdated", doctorId, date.ToString("yyyy-MM-dd"));
+    }
 
     public async Task NotifyPrescriptionReady(Guid patientId, Guid visitId)
         => await Clients.Group($"patient:{patientId}").SendAsync("NotifyPrescriptionReady", patientId, visitId);

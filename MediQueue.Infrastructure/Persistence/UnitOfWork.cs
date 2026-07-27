@@ -20,6 +20,7 @@ public class UnitOfWork : IUnitOfWork
     private IUserRepository? _userRepository;
     private IMedicalAttachmentRepository? _attachmentRepository;
     private INotificationRepository? _notificationRepository;
+    private IAuditLogRepository? _auditLogRepository;
 
     public UnitOfWork(ClinicDbContext context)
     {
@@ -34,6 +35,7 @@ public class UnitOfWork : IUnitOfWork
     public IUserRepository Users => _userRepository ??= new UserRepository(_context);
     public IMedicalAttachmentRepository Attachments => _attachmentRepository ??= new MedicalAttachmentRepository(_context);
     public INotificationRepository Notifications => _notificationRepository ??= new NotificationRepository(_context);
+    public IAuditLogRepository AuditLogs => _auditLogRepository ??= new AuditLogRepository(_context);
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

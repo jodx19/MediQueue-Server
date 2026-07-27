@@ -27,6 +27,13 @@ public class AppUser : AuditableEntity
     public bool IsActive { get; private set; }
     public string? RefreshToken { get; private set; }
     public DateTime? RefreshTokenExpiryTime { get; private set; }
+    public string? PasswordResetToken { get; private set; }
+    public DateTime? PasswordResetTokenExpiresAt { get; private set; }
+    
+    // Email Verification Fields (Already in DB)
+    public bool EmailConfirmed { get; private set; }
+    public string? EmailVerificationToken { get; private set; }
+    public DateTime? EmailVerificationTokenExpiresAt { get; private set; }
 
     private AppUser() 
     { 
@@ -49,6 +56,7 @@ public class AppUser : AuditableEntity
         DoctorId = doctorId;
         PatientId = patientId;
         IsActive = true;
+        EmailConfirmed = false;
     }
 
     public static AppUser Create(string username, string email, string firstName, string lastName, string? phoneNumber, string passwordHash, UserRole role, Guid? doctorId = null, Guid? patientId = null)
@@ -92,5 +100,21 @@ public class AppUser : AuditableEntity
     public void Activate()
     {
         IsActive = true;
+    }
+
+    public void GeneratePasswordResetToken(string token, TimeSpan validFor)
+    {
+        PasswordResetToken = token;
+        PasswordResetTokenExpiresAt = DateTime.UtcNow.Add(validFor);
+    }
+
+    public void ResetPassword(string newPasswordHash)
+    {
+        PasswordHash = newPasswordHash;
+        PasswordResetToken = null;
+        PasswordResetTokenExpiresAt = null;
+        
+        // Revoke all existing sessions on password reset for security
+        RevokeRefreshToken();
     }
 }

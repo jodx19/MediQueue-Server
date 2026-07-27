@@ -120,6 +120,16 @@ try
 
     var app = builder.Build();
 
+    // ── HTTPS Enforcement ────────────────────────────────────────────────────
+    // UseHsts: Production only (dev uses HTTP for local debugging)
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHsts();
+    }
+
+    // UseHttpsRedirection: all environments, honors HTTPS ports from config/ENV
+    app.UseHttpsRedirection();
+
     // ── Validate JWT Secret ──────────────────────────────────────────────────
     var jwtSecret = builder.Configuration["JwtSettings:SecretKey"];
     if (string.IsNullOrEmpty(jwtSecret) || jwtSecret.Length < 32)
@@ -137,9 +147,14 @@ try
             "Set a real secret via User Secrets, environment variables, or Key Vault.");
     }
 
-    // ── Auto-migrate & Seed ──────────────────────────────────────────────────
-    using (var scope = app.Services.CreateScope())
+    // ── Auto-migrate & Seed (Development only) ───────────────────────────────
+    // Production: migrations are applied manually or via CI/CD pipeline
+    //             (e.g. `dotnet ef database update` or SQL bundle runner).
+    // Running MigrateAsync on startup in Production risks concurrent-instance
+    // race conditions and locks the app into a DB dependency for boot.
+    if (app.Environment.IsDevelopment())
     {
+        using var scope = app.Services.CreateScope();
         try
         {
             var db = scope.ServiceProvider.GetRequiredService<ClinicDbContext>();
@@ -160,12 +175,15 @@ try
     app.UseMiddleware<GlobalExceptionMiddleware>();
     app.UseSerilogRequestLogging();
 
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    if (app.Environment.IsDevelopment())
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "MediQueue EMR API v1");
-        c.RoutePrefix = "swagger";
-    });
+        app.UseSwagger();
+        app.UseSwaggerUI(c =>
+        {
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "MediQueue EMR API v1");
+            c.RoutePrefix = "swagger";
+        });
+    }
 
     app.UseCors("Angular");
     app.UseStaticFiles();

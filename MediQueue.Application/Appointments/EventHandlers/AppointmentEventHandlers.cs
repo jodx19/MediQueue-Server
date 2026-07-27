@@ -3,6 +3,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using MediQueue.Application.Interfaces;
 using MediQueue.Domain.Events;
 using MediQueue.Domain.Interfaces;
@@ -74,23 +75,49 @@ public class AppointmentCancelledEventHandler : INotificationHandler<DomainEvent
     private readonly ISmsService _smsService;
     private readonly ISchedulerService _schedulerService;
     private readonly ICacheService _cacheService;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<AppointmentCancelledEventHandler> _logger;
 
     public AppointmentCancelledEventHandler(
         ISmsService smsService,
         ISchedulerService schedulerService,
-        ICacheService cacheService)
+        ICacheService cacheService,
+        IUnitOfWork unitOfWork,
+        ILogger<AppointmentCancelledEventHandler> logger)
     {
         _smsService = smsService;
         _schedulerService = schedulerService;
         _cacheService = cacheService;
+        _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task Handle(DomainEventNotification<AppointmentCancelledEvent> notification, CancellationToken cancellationToken)
     {
         var domainEvent = notification.DomainEvent;
-        var patientPhone = "01000000000"; // Placeholder
 
-        _ = _smsService.SendAppointmentCancellationAsync(patientPhone, domainEvent.Reason);
+        var appointment = await _unitOfWork.Appointments.GetByIdAsync(domainEvent.AppointmentId);
+        if (appointment is null)
+        {
+            _logger.LogWarning(
+                "Cannot send cancellation SMS: Appointment {AppointmentId} not found",
+                domainEvent.AppointmentId);
+        }
+        else
+        {
+            var patient = await _unitOfWork.Patients.GetByIdAsync(appointment.PatientId);
+            if (patient is null || string.IsNullOrEmpty(patient.ContactInfo?.Phone))
+            {
+                _logger.LogWarning(
+                    "Cannot send cancellation SMS: Patient {PatientId} has no phone number",
+                    appointment.PatientId);
+            }
+            else
+            {
+                var patientPhone = patient.ContactInfo.Phone;
+                _ = _smsService.SendAppointmentCancellationAsync(patientPhone, domainEvent.Reason);
+            }
+        }
 
         _ = _schedulerService.CancelReminderAsync(domainEvent.AppointmentId.ToString());
 
@@ -105,23 +132,42 @@ public class AppointmentRescheduledEventHandler : INotificationHandler<DomainEve
     private readonly ISmsService _smsService;
     private readonly ISchedulerService _schedulerService;
     private readonly ICacheService _cacheService;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<AppointmentRescheduledEventHandler> _logger;
 
     public AppointmentRescheduledEventHandler(
         ISmsService smsService,
         ISchedulerService schedulerService,
-        ICacheService cacheService)
+        ICacheService cacheService,
+        IUnitOfWork unitOfWork,
+        ILogger<AppointmentRescheduledEventHandler> logger)
     {
         _smsService = smsService;
         _schedulerService = schedulerService;
         _cacheService = cacheService;
+        _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task Handle(DomainEventNotification<AppointmentRescheduledEvent> notification, CancellationToken cancellationToken)
     {
         var domainEvent = notification.DomainEvent;
-        var patientPhone = "01000000000"; // Placeholder
-        var patientName = "Patient"; 
-        var doctorName = "Doctor";
+        
+        var appointment = await _unitOfWork.Appointments.GetByIdAsync(domainEvent.AppointmentId);
+        if (appointment is null) return;
+        
+        var patient = await _unitOfWork.Patients.GetByIdAsync(appointment.PatientId);
+        var doctor = await _unitOfWork.Doctors.GetByIdAsync(appointment.DoctorId);
+
+        if (patient is null || string.IsNullOrEmpty(patient.ContactInfo?.Phone))
+        {
+            _logger.LogWarning("Cannot send SMS: Patient {PatientId} has no phone number", appointment.PatientId);
+            return;
+        }
+
+        var patientPhone = patient.ContactInfo.Phone;
+        var patientName = patient.PersonName.FullName; 
+        var doctorName = doctor != null ? doctor.PersonName.FullName : "Doctor";
 
         _ = _smsService.SendAppointmentReminderAsync(patientPhone, patientName, doctorName, domainEvent.NewDateTime);
 
@@ -141,16 +187,35 @@ public class AppointmentRescheduledEventHandler : INotificationHandler<DomainEve
 public class AppointmentNoShowEventHandler : INotificationHandler<DomainEventNotification<AppointmentNoShowEvent>>
 {
     private readonly ISmsService _smsService;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<AppointmentNoShowEventHandler> _logger;
 
-    public AppointmentNoShowEventHandler(ISmsService smsService)
+    public AppointmentNoShowEventHandler(
+        ISmsService smsService,
+        IUnitOfWork unitOfWork,
+        ILogger<AppointmentNoShowEventHandler> logger)
     {
         _smsService = smsService;
+        _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task Handle(DomainEventNotification<AppointmentNoShowEvent> notification, CancellationToken cancellationToken)
     {
         var domainEvent = notification.DomainEvent;
-        var patientPhone = "01000000000"; // Placeholder
+        
+        var appointment = await _unitOfWork.Appointments.GetByIdAsync(domainEvent.AppointmentId);
+        if (appointment is null) return;
+        
+        var patient = await _unitOfWork.Patients.GetByIdAsync(appointment.PatientId);
+
+        if (patient is null || string.IsNullOrEmpty(patient.ContactInfo?.Phone))
+        {
+            _logger.LogWarning("Cannot send SMS: Patient {PatientId} has no phone number", appointment.PatientId);
+            return;
+        }
+
+        var patientPhone = patient.ContactInfo.Phone;
         
         _ = _smsService.SendAppointmentCancellationAsync(patientPhone, "Appointment marked as No-Show.");
 
