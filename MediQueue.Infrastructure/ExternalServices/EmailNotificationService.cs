@@ -64,23 +64,37 @@ public class EmailNotificationService : IEmailService
     // For SMS endpoints we might just mock them with email for now or log them if "SMS" isn't explicitly defined.
     // The prompt only mentions Email notification via MailKit for INotificationService.
 
-    public async Task SendAppointmentConfirmationAsync(string patientPhone, string patientName, string doctorName, DateTime scheduledAt)
+    public async Task SendAppointmentConfirmationAsync(string patientEmail, string patientName, string doctorName, DateTime scheduledAt)
     {
-        // Using email as fallback since MailKit is email specific. Assuming patientPhone is a placeholder or used for SMS if we had an SMS provider.
-        var htmlBody = $"<h1>Appointment Confirmation</h1><p>Dear {patientName}, your appointment with Dr. {doctorName} is confirmed for {scheduledAt:f}.</p>";
-        await SendEmailAsync("patient@example.com", "Appointment Confirmation", htmlBody);
+        if (string.IsNullOrWhiteSpace(patientEmail))
+        {
+            _logger.LogWarning("SendAppointmentConfirmationAsync: patientEmail is empty, skipping email.");
+            return;
+        }
+        var htmlBody = $"<h2>Appointment Confirmation</h2><p>Dear <strong>{patientName}</strong>, your appointment with Dr. <strong>{doctorName}</strong> is confirmed for <strong>{scheduledAt:dddd, MMMM d yyyy 'at' h:mm tt}</strong>.</p><p>Please arrive 10 minutes early.</p><br/><small>MediQueue EMR</small>";
+        await SendEmailAsync(patientEmail, "✅ Appointment Confirmed – MediQueue", htmlBody);
     }
 
-    public async Task SendAppointmentReminderAsync(string patientPhone, string patientName, string doctorName, DateTime scheduledAt)
+    public async Task SendAppointmentReminderAsync(string patientEmail, string patientName, string doctorName, DateTime scheduledAt)
     {
-        var htmlBody = $"<h1>Appointment Reminder</h1><p>Dear {patientName}, reminder for your appointment with Dr. {doctorName} at {scheduledAt:f}.</p>";
-        await SendEmailAsync("patient@example.com", "Appointment Reminder", htmlBody);
+        if (string.IsNullOrWhiteSpace(patientEmail))
+        {
+            _logger.LogWarning("SendAppointmentReminderAsync: patientEmail is empty, skipping email.");
+            return;
+        }
+        var htmlBody = $"<h2>Appointment Reminder</h2><p>Dear <strong>{patientName}</strong>, this is a reminder for your appointment with Dr. <strong>{doctorName}</strong> scheduled for <strong>{scheduledAt:dddd, MMMM d yyyy 'at' h:mm tt}</strong>.</p><br/><small>MediQueue EMR</small>";
+        await SendEmailAsync(patientEmail, "🔔 Appointment Reminder – MediQueue", htmlBody);
     }
 
-    public async Task SendAppointmentCancellationAsync(string patientPhone, string reason)
+    public async Task SendAppointmentCancellationAsync(string patientEmail, string reason)
     {
-        var htmlBody = $"<h1>Appointment Cancelled</h1><p>Your appointment has been cancelled. Reason: {reason}</p>";
-        await SendEmailAsync("patient@example.com", "Appointment Cancelled", htmlBody);
+        if (string.IsNullOrWhiteSpace(patientEmail))
+        {
+            _logger.LogWarning("SendAppointmentCancellationAsync: patientEmail is empty, skipping email.");
+            return;
+        }
+        var htmlBody = $"<h2>Appointment Cancelled</h2><p>Your appointment has been cancelled.</p><p><strong>Reason:</strong> {reason}</p><p>Please contact us to reschedule.</p><br/><small>MediQueue EMR</small>";
+        await SendEmailAsync(patientEmail, "❌ Appointment Cancelled – MediQueue", htmlBody);
     }
 
     public async Task SendPrescriptionAsync(string patientEmail, string prescriptionDetails)
