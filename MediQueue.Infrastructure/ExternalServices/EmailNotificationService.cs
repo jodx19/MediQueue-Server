@@ -10,7 +10,7 @@ using MediQueue.Application.Interfaces;
 
 namespace MediQueue.Infrastructure.ExternalServices;
 
-public class EmailNotificationService : IEmailService, ISmsService
+public class EmailNotificationService : IEmailService
 {
     private readonly ILogger<EmailNotificationService> _logger;
     private readonly IConfiguration _configuration;

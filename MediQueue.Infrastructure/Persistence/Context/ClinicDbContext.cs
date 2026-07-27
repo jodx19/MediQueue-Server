@@ -43,6 +43,7 @@ public class ClinicDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<ClinicSettings> ClinicSettings => Set<ClinicSettings>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

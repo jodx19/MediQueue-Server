@@ -15,6 +15,7 @@ public interface IUnitOfWork
     IUserRepository Users { get; }
     IMedicalAttachmentRepository Attachments { get; }
     INotificationRepository Notifications { get; }
+    IAuditLogRepository AuditLogs { get; }
     
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync();
