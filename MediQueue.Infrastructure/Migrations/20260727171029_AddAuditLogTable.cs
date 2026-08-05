@@ -10,6 +10,7 @@ namespace MediQueue.Infrastructure.Migrations
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
+        {
             migrationBuilder.CreateTable(
                 name: "AuditLogs",
                 columns: table => new

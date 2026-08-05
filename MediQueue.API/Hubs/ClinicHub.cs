@@ -29,12 +29,18 @@ public class ClinicHub : Hub
         var tenantId = Context.User?
             .FindFirst("TenantId")?.Value;
 
-        if (!string.IsNullOrEmpty(tenantId))
+        if (string.IsNullOrEmpty(tenantId))
         {
-            await Groups.AddToGroupAsync(
-                Context.ConnectionId,
-                $"tenant:{tenantId}");
+            _logger.LogWarning(
+                "SignalR connection rejected: missing TenantId claim. ConnectionId={ConnectionId}, UserId={UserId}",
+                connectionId, userId);
+            Context.Abort();
+            return;
         }
+
+        await Groups.AddToGroupAsync(
+            Context.ConnectionId,
+            $"tenant:{tenantId}");
 
         _logger.LogInformation(
             "SignalR client connected. ConnectionId={ConnectionId}, UserId={UserId}, TenantId={TenantId}",

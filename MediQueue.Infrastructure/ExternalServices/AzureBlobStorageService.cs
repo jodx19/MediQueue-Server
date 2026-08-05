@@ -15,9 +15,9 @@ public class AzureBlobStorageService : IStorageService
 
     public AzureBlobStorageService(IConfiguration configuration)
     {
-        var connectionString = configuration["Azure:StorageConnectionString"] ?? "UseDevelopmentStorage=true";
+        var connectionString = configuration["AzureStorage:ConnectionString"] ?? "UseDevelopmentStorage=true";
         _blobServiceClient = new BlobServiceClient(connectionString);
-        _containerName = configuration["Azure:ContainerName"] ?? "mediqueue-blobs";
+        _containerName = configuration["AzureStorage:ContainerName"] ?? "mediqueue-blobs";
     }
 
     public async Task<string> UploadAsync(string fileName, Stream stream, string contentType)

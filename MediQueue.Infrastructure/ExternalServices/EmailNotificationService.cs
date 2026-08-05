@@ -26,19 +26,22 @@ public class EmailNotificationService : IEmailService
         try
         {
             var email = new MimeMessage();
-            email.From.Add(MailboxAddress.Parse(_configuration["EmailSettings:FromEmail"] ?? "noreply@mediqueue.com"));
+            email.From.Add(MailboxAddress.Parse(_configuration["EmailSettings:SenderEmail"] ?? "noreply@mediqueue.com"));
             email.To.Add(MailboxAddress.Parse(toEmail));
             email.Subject = subject;
             email.Body = new TextPart(TextFormat.Html) { Text = htmlBody };
 
             using var smtp = new SmtpClient();
-            var host = _configuration["EmailSettings:Host"] ?? "smtp.test.com";
-            var port = int.Parse(_configuration["EmailSettings:Port"] ?? "587");
-            var secureSocketOptions = SecureSocketOptions.StartTls;
+            var host = _configuration["EmailSettings:SmtpServer"] ?? "smtp.test.com";
+            var port = int.Parse(_configuration["EmailSettings:SmtpPort"] ?? "587");
+            var useSsl = bool.Parse(_configuration["EmailSettings:UseSSL"] ?? "true");
+            var secureSocketOptions = useSsl
+                ? SecureSocketOptions.SslOnConnect
+                : SecureSocketOptions.StartTls;
 
             await smtp.ConnectAsync(host, port, secureSocketOptions);
-            
-            var user = _configuration["EmailSettings:User"];
+
+            var user = _configuration["EmailSettings:Username"];
             var pass = _configuration["EmailSettings:Password"];
             if (!string.IsNullOrEmpty(user) && !string.IsNullOrEmpty(pass))
             {
@@ -64,23 +67,37 @@ public class EmailNotificationService : IEmailService
     // For SMS endpoints we might just mock them with email for now or log them if "SMS" isn't explicitly defined.
     // The prompt only mentions Email notification via MailKit for INotificationService.
 
-    public async Task SendAppointmentConfirmationAsync(string patientPhone, string patientName, string doctorName, DateTime scheduledAt)
+    public async Task SendAppointmentConfirmationAsync(string patientEmail, string patientName, string doctorName, DateTime scheduledAt)
     {
-        // Using email as fallback since MailKit is email specific. Assuming patientPhone is a placeholder or used for SMS if we had an SMS provider.
-        var htmlBody = $"<h1>Appointment Confirmation</h1><p>Dear {patientName}, your appointment with Dr. {doctorName} is confirmed for {scheduledAt:f}.</p>";
-        await SendEmailAsync("patient@example.com", "Appointment Confirmation", htmlBody);
+        if (string.IsNullOrWhiteSpace(patientEmail))
+        {
+            _logger.LogWarning("SendAppointmentConfirmationAsync: patientEmail is empty, skipping email.");
+            return;
+        }
+        var htmlBody = $"<h2>Appointment Confirmation</h2><p>Dear <strong>{patientName}</strong>, your appointment with Dr. <strong>{doctorName}</strong> is confirmed for <strong>{scheduledAt:dddd, MMMM d yyyy 'at' h:mm tt}</strong>.</p><p>Please arrive 10 minutes early.</p><br/><small>MediQueue EMR</small>";
+        await SendEmailAsync(patientEmail, "✅ Appointment Confirmed – MediQueue", htmlBody);
     }
 
-    public async Task SendAppointmentReminderAsync(string patientPhone, string patientName, string doctorName, DateTime scheduledAt)
+    public async Task SendAppointmentReminderAsync(string patientEmail, string patientName, string doctorName, DateTime scheduledAt)
     {
-        var htmlBody = $"<h1>Appointment Reminder</h1><p>Dear {patientName}, reminder for your appointment with Dr. {doctorName} at {scheduledAt:f}.</p>";
-        await SendEmailAsync("patient@example.com", "Appointment Reminder", htmlBody);
+        if (string.IsNullOrWhiteSpace(patientEmail))
+        {
+            _logger.LogWarning("SendAppointmentReminderAsync: patientEmail is empty, skipping email.");
+            return;
+        }
+        var htmlBody = $"<h2>Appointment Reminder</h2><p>Dear <strong>{patientName}</strong>, this is a reminder for your appointment with Dr. <strong>{doctorName}</strong> scheduled for <strong>{scheduledAt:dddd, MMMM d yyyy 'at' h:mm tt}</strong>.</p><br/><small>MediQueue EMR</small>";
+        await SendEmailAsync(patientEmail, "🔔 Appointment Reminder – MediQueue", htmlBody);
     }
 
-    public async Task SendAppointmentCancellationAsync(string patientPhone, string reason)
+    public async Task SendAppointmentCancellationAsync(string patientEmail, string reason)
     {
-        var htmlBody = $"<h1>Appointment Cancelled</h1><p>Your appointment has been cancelled. Reason: {reason}</p>";
-        await SendEmailAsync("patient@example.com", "Appointment Cancelled", htmlBody);
+        if (string.IsNullOrWhiteSpace(patientEmail))
+        {
+            _logger.LogWarning("SendAppointmentCancellationAsync: patientEmail is empty, skipping email.");
+            return;
+        }
+        var htmlBody = $"<h2>Appointment Cancelled</h2><p>Your appointment has been cancelled.</p><p><strong>Reason:</strong> {reason}</p><p>Please contact us to reschedule.</p><br/><small>MediQueue EMR</small>";
+        await SendEmailAsync(patientEmail, "❌ Appointment Cancelled – MediQueue", htmlBody);
     }
 
     public async Task SendPrescriptionAsync(string patientEmail, string prescriptionDetails)
@@ -94,4 +111,31 @@ public class EmailNotificationService : IEmailService
         var htmlBody = $"<h1>Visit Summary</h1><p>{visitSummary}</p>";
         await SendEmailAsync(patientEmail, "Visit Summary", htmlBody);
     }
+
+    public async Task SendVerificationEmailAsync(string email, string userId, string verificationToken)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return;
+
+        // Use the configured front-end base URL, falling back to a safe default
+        var frontendBase = _configuration["AppSettings:FrontendBaseUrl"] ?? "https://app.mediqueue.com";
+        var verificationLink = $"{frontendBase}/verify-email?userId={Uri.EscapeDataString(userId)}&token={Uri.EscapeDataString(verificationToken)}";
+
+        var htmlBody = $@"
+<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;'>
+  <h2 style='color:#0D9488;'>Verify Your Email – MediQueue</h2>
+  <p>Thank you for registering with MediQueue. Please click the button below to verify your email address.</p>
+  <p style='text-align:center;margin:32px 0;'>
+    <a href='{verificationLink}'
+       style='background:#0D9488;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600;'>
+      Verify Email
+    </a>
+  </p>
+  <p style='color:#666;font-size:13px;'>This link expires in 24 hours. If you did not create an account, you can safely ignore this email.</p>
+  <hr style='border:none;border-top:1px solid #eee;margin-top:32px;'/>
+  <p style='color:#999;font-size:12px;'>MediQueue EMR &mdash; Secure Healthcare Management</p>
+</div>";
+
+        await SendEmailAsync(email, "✅ Verify Your Email – MediQueue", htmlBody);
+    }
 }
+

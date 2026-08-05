@@ -14,6 +14,26 @@ using MediQueue.Application.Common;
 
 namespace MediQueue.Application.ClinicalVisits.EventHandlers;
 
+public class ClinicalVisitCreatedEventHandler : INotificationHandler<DomainEventNotification<ClinicalVisitCreatedEvent>>
+{
+    private readonly IRealtimeService _realtimeService;
+
+    public ClinicalVisitCreatedEventHandler(IRealtimeService realtimeService)
+    {
+        _realtimeService = realtimeService;
+    }
+
+    public async Task Handle(DomainEventNotification<ClinicalVisitCreatedEvent> notification, CancellationToken cancellationToken)
+    {
+        var domainEvent = notification.DomainEvent;
+        await _realtimeService.BroadcastAsync("VisitStarted", new { 
+            domainEvent.VisitId, 
+            domainEvent.AppointmentId, 
+            domainEvent.PatientId 
+        });
+    }
+}
+
 public class VisitFinalizedEventHandler : INotificationHandler<DomainEventNotification<VisitFinalizedEvent>>
 {
     private readonly IEmailService _emailService;

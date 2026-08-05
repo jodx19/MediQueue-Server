@@ -1,5 +1,6 @@
 // Path: MediQueue.Application/Auth/Commands/RegisterCommand.cs
 using System;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
@@ -15,7 +16,7 @@ using MediQueue.Domain.Interfaces;
 
 namespace MediQueue.Application.Auth.Commands;
 
-public class RegisterCommand : IRequest<Result<bool>>
+public class RegisterCommand : IRequest<Result<(bool Success, string UserId, string VerificationToken)>>
 {
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
@@ -38,7 +39,7 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
     }
 }
 
-public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<bool>>
+public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<(bool Success, string UserId, string VerificationToken)>>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher<AppUser> _passwordHasher;
@@ -49,14 +50,14 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<bo
         _passwordHasher = passwordHasher;
     }
 
-    public async Task<Result<bool>> Handle(RegisterCommand request, CancellationToken cancellationToken)
+    public async Task<Result<(bool Success, string UserId, string VerificationToken)>> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
         // 1. Check if user already exists
         var existingUser = await _unitOfWork.Users.GetByUsernameAsync(request.Username);
-        if (existingUser != null) return Result<bool>.Failure("Username already exists.");
+        if (existingUser != null) return Result<(bool, string, string)>.Failure("Username already exists.");
 
         var existingEmail = await _unitOfWork.Users.GetByEmailAsync(request.Email);
-        if (existingEmail != null) return Result<bool>.Failure("Email already exists.");
+        if (existingEmail != null) return Result<(bool, string, string)>.Failure("Email already exists.");
 
         try
         {
@@ -84,6 +85,10 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<bo
 
                     var hashedPassword = _passwordHasher.HashPassword(user, request.Password);
                     user.SetPasswordHash(hashedPassword);
+
+                    // Generate email-verification token before first save
+                    var verificationToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+                    user.GenerateEmailVerificationToken(verificationToken, TimeSpan.FromHours(24));
 
                     await _unitOfWork.Users.AddAsync(user);
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -139,11 +144,13 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<bo
                 }
             });
 
-            return Result<bool>.Success(true);
+            // Surface the userId & token so the controller can dispatch the verification email
+            var createdUser = await _unitOfWork.Users.GetByEmailAsync(request.Email);
+            return Result<(bool, string, string)>.Success((true, createdUser!.Id.ToString(), createdUser.EmailVerificationToken!));
         }
         catch (Exception ex)
         {
-            return Result<bool>.Failure($"Registration failed: {ex.Message}");
+            return Result<(bool, string, string)>.Failure($"Registration failed: {ex.Message}");
         }
     }
 }

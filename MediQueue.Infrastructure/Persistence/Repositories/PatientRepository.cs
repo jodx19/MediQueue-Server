@@ -31,9 +31,10 @@ public class PatientRepository : IPatientRepository
 
     public async Task<Patient?> GetByMRNAsync(string medicalRecordNumber)
     {
+        // IgnoreQueryFilters bypasses soft-delete only; tenant scope is always enforced.
         return await _context.Patients
             .IgnoreQueryFilters()
-            .Where(p => !p.IsDeleted)
+            .Where(p => p.TenantId == _context.CurrentTenantId && !p.IsDeleted)
             .AsNoTracking()
             .Include(p => p.Allergies)
             .Include(p => p.ChronicConditions)

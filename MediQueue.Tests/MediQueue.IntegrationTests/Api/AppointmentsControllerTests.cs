@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using MediQueue.IntegrationTests.Infrastructure;
+using Xunit;
 
 namespace MediQueue.IntegrationTests.Api;
 

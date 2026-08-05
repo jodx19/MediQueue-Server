@@ -10,6 +10,7 @@ using MediQueue.Application.Common;
 using MediQueue.Application.ClinicalVisits.Commands;
 using MediQueue.Application.ClinicalVisits.Queries;
 using MediQueue.Application.ClinicalVisits.DTOs;
+using System.Linq;
 
 namespace MediQueue.API.Controllers;
 
@@ -211,6 +212,23 @@ public class ClinicalVisitsController : ControllerBase
         if (id != command.VisitId) return BadRequest("Route ID must match command VisitId.");
         var result = await _sender.Send(command, ct);
         return result.IsSuccess ? NoContent() : UnprocessableEntity(result.Error);
+    }
+
+    /// <summary>Complete a lab request with results.</summary>
+    [HttpPut("{id:guid}/lab-requests/{labRequestId:guid}/complete")]
+    [Authorize(Policy = "DoctorOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CompleteLabRequest(
+        Guid id,
+        Guid labRequestId,
+        [FromBody] CompleteLabRequestCommand command,
+        CancellationToken ct)
+    {
+        if (id != command.VisitId) return BadRequest("Route visitId must match command VisitId.");
+        command.LabRequestId = labRequestId;
+        var result = await _sender.Send(command, ct);
+        return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
 
     /// <summary>

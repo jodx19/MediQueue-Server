@@ -4,6 +4,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using MediQueue.Application.Common.Behaviors;
+using MediQueue.Application.Tenants.Services;
 
 namespace MediQueue.Application;
 
@@ -34,7 +35,8 @@ public static class DependencyInjection
 
         // Register Memory Cache (required for ICacheService implementations that use it)
         services.AddMemoryCache();
-
+        services.AddScoped<ITenantUsageService, TenantUsageService>();
+        
         return services;
     }
 }

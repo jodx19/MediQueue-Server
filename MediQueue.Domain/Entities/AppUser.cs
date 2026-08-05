@@ -117,4 +117,37 @@ public class AppUser : AuditableEntity
         // Revoke all existing sessions on password reset for security
         RevokeRefreshToken();
     }
+
+    /// <summary>
+    /// Stores a cryptographically random token that must be clicked within
+    /// <paramref name="validFor"/> to confirm ownership of the email address.
+    /// </summary>
+    public void GenerateEmailVerificationToken(string token, TimeSpan validFor)
+    {
+        EmailVerificationToken = token;
+        EmailVerificationTokenExpiresAt = DateTime.UtcNow.Add(validFor);
+    }
+
+    /// <summary>
+    /// Marks the email address as confirmed and clears the one-time token.
+    /// Returns a failure <see cref="Result"/> if the token is invalid or expired.
+    /// </summary>
+    public Result ConfirmEmail(string token)
+    {
+        if (EmailConfirmed)
+            return Result.Failure("Email is already confirmed.");
+
+        if (string.IsNullOrWhiteSpace(EmailVerificationToken) ||
+            EmailVerificationToken != token ||
+            EmailVerificationTokenExpiresAt < DateTime.UtcNow)
+        {
+            return Result.Failure("Invalid or expired verification token.");
+        }
+
+        EmailConfirmed = true;
+        EmailVerificationToken = null;
+        EmailVerificationTokenExpiresAt = null;
+        return Result.Success();
+    }
 }
+
