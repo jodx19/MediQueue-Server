@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using MediQueue.Application.Auth.Commands;
 using MediQueue.Application.Auth.DTOs;
 using MediQueue.Application.Common;
+using MediQueue.Application.Interfaces;
 
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -17,10 +18,12 @@ namespace MediQueue.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly ISender _sender;
+    private readonly IEmailService _emailService;
 
-    public AuthController(ISender sender)
+    public AuthController(ISender sender, IEmailService emailService)
     {
         _sender = sender;
+        _emailService = emailService;
     }
 
     [HttpPost("login")]
@@ -60,7 +63,18 @@ public class AuthController : ControllerBase
             return BadRequest(result.Error);
         }
 
-        return Ok();
+        // Fire-and-forget: do not block registration response on email delivery
+        _ = _emailService.SendVerificationEmailAsync(
+                command.Email,
+                result.Value.UserId,
+                result.Value.VerificationToken);
+
+        return Ok(new
+        {
+            message = "Registration successful. Please check your email to verify your account.",
+            userId  = result.Value.UserId,
+            email   = command.Email
+        });
     }
 
     [HttpPost("refresh-token")]
@@ -118,4 +132,31 @@ public class AuthController : ControllerBase
 
         return Ok();
     }
+
+    /// <summary>
+    /// Confirms ownership of an email address using the token mailed during registration.
+    /// Returns 200 on success, 400 if the token is invalid or expired.
+    /// </summary>
+    [HttpPost("verify-email")]
+    [AllowAnonymous]
+    public async Task<ActionResult> VerifyEmail([FromBody] VerifyEmailRequest request)
+    {
+        var command = new VerifyEmailCommand
+        {
+            UserId            = request.UserId,
+            VerificationToken = request.VerificationToken
+        };
+
+        var result = await _sender.Send(command);
+        return result.IsSuccess
+            ? Ok(new { message = "Email verified successfully." })
+            : BadRequest(result.Error);
+    }
+}
+
+/// <summary>Payload model for the verify-email endpoint.</summary>
+public sealed class VerifyEmailRequest
+{
+    public string UserId { get; set; } = null!;
+    public string VerificationToken { get; set; } = null!;
 }

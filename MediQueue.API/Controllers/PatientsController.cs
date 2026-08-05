@@ -41,6 +41,14 @@ public class PatientsController : BaseApiController
         [FromBody] RegisterPatientCommand command,
         CancellationToken ct)
     {
+        var tenantContext = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<MediQueue.Application.Interfaces.ITenantContext>(HttpContext.RequestServices);
+        var usageService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<MediQueue.Application.Tenants.Services.ITenantUsageService>(HttpContext.RequestServices);
+        
+        if (!await usageService.CanAddPatientAsync(tenantContext.TenantId, ct))
+        {
+            return StatusCode(402, "Tenant plan limit reached for patients. Please upgrade your plan.");
+        }
+
         return HandleResult(await Sender.Send(command, ct));
     }
 
@@ -52,6 +60,14 @@ public class PatientsController : BaseApiController
         [FromBody] SelfRegisterPatientCommand command,
         CancellationToken ct)
     {
+        var tenantContext = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<MediQueue.Application.Interfaces.ITenantContext>(HttpContext.RequestServices);
+        var usageService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<MediQueue.Application.Tenants.Services.ITenantUsageService>(HttpContext.RequestServices);
+        
+        if (!await usageService.CanAddPatientAsync(tenantContext.TenantId, ct))
+        {
+            return StatusCode(402, "Tenant plan limit reached for patients. Please upgrade your plan.");
+        }
+
         return HandleResult(await Sender.Send(command, ct));
     }
 
@@ -155,6 +171,17 @@ public class PatientsController : BaseApiController
     {
         if (id != command.PatientId) return BadRequest("Route ID must match command PatientId.");
         var result = await Sender.Send(command, ct);
+        return result.IsSuccess ? NoContent() : NotFound(result.Error);
+    }
+
+    /// <summary>Remove a chronic condition from a patient's record.</summary>
+    [HttpDelete("{id:guid}/chronic-conditions/{conditionId:guid}")]
+    [Authorize(Policy = "AdminOrDoctor")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveChronicCondition(Guid id, Guid conditionId, CancellationToken ct)
+    {
+        var result = await Sender.Send(new RemoveChronicConditionCommand(id, conditionId), ct);
         return result.IsSuccess ? NoContent() : NotFound(result.Error);
     }
 

@@ -1,5 +1,6 @@
 // e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.API\Controllers\AppointmentsController.cs
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -9,7 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 using MediQueue.Application.Common;
 using MediQueue.Application.Appointments.Commands;
 using MediQueue.Application.Appointments.Queries;
-using System.Collections.Generic;
 using MediQueue.Application.Appointments.DTOs;
 
 namespace MediQueue.API.Controllers;
@@ -23,6 +23,19 @@ public class AppointmentsController : ControllerBase
     private readonly ISender _sender;
     public AppointmentsController(ISender sender) => _sender = sender;
 
+    /// <summary>Get all appointments (paginated) for the current tenant.</summary>
+    [HttpGet]
+    [Authorize(Policy = "AdminOrReceptionist")]
+    [ProducesResponseType(typeof(PagedResult<AppointmentListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<AppointmentListItemDto>>> GetAll(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        var result = await _sender.Send(new GetAllAppointmentsQuery(page, pageSize), ct);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+    }
+
     /// <summary>Book a new appointment.</summary>
     [HttpPost]
     [Authorize(Policy = "AdminOrReceptionist")]
@@ -34,6 +47,7 @@ public class AppointmentsController : ControllerBase
         if (!result.IsSuccess) return UnprocessableEntity(result.Error);
         return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
     }
+
 
     /// <summary>Get appointment by ID.</summary>
     [HttpGet("{id:guid}")]

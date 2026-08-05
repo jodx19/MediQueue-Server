@@ -227,6 +227,19 @@ public class Patient : BaseAggregateRoot
     }
 
     /// <summary>
+    /// Removes a chronic condition from the patient by ID.
+    /// </summary>
+    public void RemoveChronicCondition(Guid conditionId)
+    {
+        var condition = _chronicConditions.FirstOrDefault(c => c.Id == conditionId);
+        if (condition != null)
+        {
+            _chronicConditions.Remove(condition);
+            SetUpdated();
+        }
+    }
+
+    /// <summary>
     /// Deactivates the patient record.
     /// </summary>
     public void Deactivate()

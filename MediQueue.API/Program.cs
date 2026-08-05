@@ -130,21 +130,105 @@ try
     // UseHttpsRedirection: all environments, honors HTTPS ports from config/ENV
     app.UseHttpsRedirection();
 
-    // ── Validate JWT Secret ──────────────────────────────────────────────────
-    var jwtSecret = builder.Configuration["JwtSettings:SecretKey"];
-    if (string.IsNullOrEmpty(jwtSecret) || jwtSecret.Length < 32)
+    // ── Validate Critical Configuration ──────────────────────────────────────
+    var env = builder.Environment;
+    var config = builder.Configuration;
+
+    Console.WriteLine($"\n🔧 Starting MediQueue in {env.EnvironmentName} mode...\n");
+
+    if (env.IsProduction())
     {
-        throw new InvalidOperationException(
-            "JwtSettings:SecretKey must be at least 32 characters long. " +
-            "Set it via User Secrets (dev) or environment variables (prod).");
+        Console.WriteLine("🔍 Validating Production Configuration...");
+
+        // Validate JWT Secret
+        var jwtSecret = config["JwtSettings:SecretKey"];
+        if (string.IsNullOrEmpty(jwtSecret))
+            throw new InvalidOperationException(
+                "❌ CRITICAL: JwtSettings:SecretKey is not configured.\n" +
+                "   Set via environment variable: set JwtSettings__SecretKey=<32+ chars>");
+
+        if (jwtSecret.Contains("REPLACE_WITH"))
+            throw new InvalidOperationException(
+                "❌ CRITICAL: JwtSettings:SecretKey still contains REPLACE_WITH placeholder.");
+
+        if (jwtSecret.Length < 32)
+            throw new InvalidOperationException(
+                $"❌ CRITICAL: JwtSettings:SecretKey must be at least 32 characters. Current: {jwtSecret.Length}");
+
+        Console.WriteLine("   ✅ JWT Secret validated");
+
+        // Validate SQL Connection String
+        var sqlConnStr = config.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrEmpty(sqlConnStr))
+            throw new InvalidOperationException(
+                "❌ CRITICAL: ConnectionStrings:DefaultConnection is not configured.");
+
+        if (sqlConnStr.Contains("REPLACE_WITH"))
+            throw new InvalidOperationException(
+                "❌ CRITICAL: SQL Connection String contains REPLACE_WITH placeholder.");
+
+        if (sqlConnStr.Contains("localhost") || sqlConnStr.Contains("localdb") || sqlConnStr.Contains("(localdb)"))
+            throw new InvalidOperationException(
+                "❌ CRITICAL: SQL Connection String contains dev values (localhost/localdb).\n" +
+                "   Use production SQL Server hostname.");
+
+        Console.WriteLine("   ✅ SQL Connection String validated");
+
+        // Validate Redis Connection String
+        var redisConnStr = config.GetConnectionString("Redis");
+        if (string.IsNullOrEmpty(redisConnStr))
+            throw new InvalidOperationException(
+                "❌ CRITICAL: ConnectionStrings:Redis is not configured.");
+
+        if (redisConnStr.Contains("localhost"))
+            throw new InvalidOperationException(
+                "❌ CRITICAL: Redis Connection String contains localhost.\n" +
+                "   Use production Redis hostname.");
+
+        Console.WriteLine("   ✅ Redis Connection String validated");
+
+        // Validate Email Configuration (key names match EmailNotificationService.cs)
+        var emailHost = config["EmailSettings:SmtpServer"];
+        var emailUser = config["EmailSettings:Username"];
+        var emailPass = config["EmailSettings:Password"];
+
+        if (string.IsNullOrEmpty(emailHost) || emailHost.Contains("REPLACE_WITH"))
+            throw new InvalidOperationException(
+                "❌ CRITICAL: EmailSettings:SmtpServer is not configured.");
+
+        if (string.IsNullOrEmpty(emailUser) || emailUser.Contains("REPLACE_WITH"))
+            throw new InvalidOperationException(
+                "❌ CRITICAL: EmailSettings:Username is not configured.");
+
+        if (string.IsNullOrEmpty(emailPass) || emailPass.Contains("REPLACE_WITH"))
+            throw new InvalidOperationException(
+                "❌ CRITICAL: EmailSettings:Password is not configured.");
+
+        Console.WriteLine("   ✅ Email Configuration validated");
+
+        // Validate Azure Storage Configuration
+        var azureConnStr = config["AzureStorage:ConnectionString"];
+        if (!string.IsNullOrEmpty(azureConnStr) && azureConnStr.Contains("REPLACE_WITH"))
+            throw new InvalidOperationException(
+                "❌ CRITICAL: AzureStorage:ConnectionString contains REPLACE_WITH placeholder.");
+
+        if (!string.IsNullOrEmpty(azureConnStr))
+            Console.WriteLine("   ✅ Azure Storage Configuration validated");
+
+        // Validate SeedingSettings
+        var seedingEnabled = config.GetValue<bool>("SeedingSettings:EnableSeeding");
+        if (seedingEnabled)
+            Console.WriteLine("   ⚠️  WARNING: SeedingSettings:EnableSeeding is true in Production! Set to false.");
+
+        Console.WriteLine("\n✅ ALL PRODUCTION VALIDATION CHECKS PASSED!\n");
     }
-    if (jwtSecret is "REPLACE_WITH_SECRET_KEY_MIN_32_CHARS"
-                  or "MediQueue-Super-Secret-Key-256bit-2026!"
-                  or "REPLACE_WITH_PRODUCTION_SECRET_KEY_MIN_32_CHARS")
+    else if (env.IsDevelopment())
     {
-        throw new InvalidOperationException(
-            "JwtSettings:SecretKey contains a placeholder value. " +
-            "Set a real secret via User Secrets, environment variables, or Key Vault.");
+        Console.WriteLine("✅ Development mode: Using local defaults\n");
+    }
+    else
+    {
+        Console.WriteLine("⚠️  Staging mode: Verify all configuration values\n");
     }
 
     // ── Auto-migrate & Seed (Development only) ───────────────────────────────
@@ -208,3 +292,6 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+// Expose Program for WebApplicationFactory in integration tests.
+public partial class Program { }

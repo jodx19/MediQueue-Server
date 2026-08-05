@@ -29,6 +29,14 @@ public class DoctorsController : BaseApiController
         [FromBody] CreateDoctorCommand command,
         CancellationToken ct)
     {
+        var tenantContext = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<MediQueue.Application.Interfaces.ITenantContext>(HttpContext.RequestServices);
+        var usageService = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<MediQueue.Application.Tenants.Services.ITenantUsageService>(HttpContext.RequestServices);
+        
+        if (!await usageService.CanAddDoctorAsync(tenantContext.TenantId, ct))
+        {
+            return StatusCode(402, "Tenant plan limit reached for doctors. Please upgrade your plan.");
+        }
+
         return HandleResult(await Sender.Send(command, ct));
     }
 
