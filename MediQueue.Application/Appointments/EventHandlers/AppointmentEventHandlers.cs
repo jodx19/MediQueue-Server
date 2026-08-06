@@ -15,17 +15,20 @@ namespace MediQueue.Application.Appointments.EventHandlers;
 public class AppointmentBookedEventHandler : INotificationHandler<DomainEventNotification<AppointmentBookedEvent>>
 {
     private readonly ISmsService _smsService;
+    private readonly IEmailService _emailService;
     private readonly ISchedulerService _schedulerService;
     private readonly IRealtimeService _realtimeService;
     private readonly IUnitOfWork _unitOfWork;
 
     public AppointmentBookedEventHandler(
         ISmsService smsService,
+        IEmailService emailService,
         ISchedulerService schedulerService,
         IRealtimeService realtimeService,
         IUnitOfWork unitOfWork)
     {
         _smsService = smsService;
+        _emailService = emailService;
         _schedulerService = schedulerService;
         _realtimeService = realtimeService;
         _unitOfWork = unitOfWork;
@@ -41,9 +44,26 @@ public class AppointmentBookedEventHandler : INotificationHandler<DomainEventNot
         {
             var patientName = patient.PersonName.FullName;
             var patientPhone = patient.ContactInfo.Phone;
+            var patientEmail = patient.ContactInfo.Email;
             var doctorName = doctor.PersonName.FullName;
 
+            // Send SMS confirmation via ISmsService (ConsoleSmsService in dev; real provider in prod)
             await _smsService.SendAppointmentConfirmationAsync(patientPhone, patientName, doctorName, domainEvent.ScheduledAt);
+
+            // Send Email confirmation to the real patient email from the database
+            if (!string.IsNullOrWhiteSpace(patientEmail))
+            {
+                var subject = "Appointment Confirmed — MediQueue";
+                var htmlBody = $"""
+                    <h2>Appointment Confirmed ✓</h2>
+                    <p>Dear {patientName},</p>
+                    <p>Your appointment with <strong>Dr. {doctorName}</strong> has been confirmed for <strong>{domainEvent.ScheduledAt:f}</strong>.</p>
+                    <p>Please arrive 10 minutes early. Contact us if you need to reschedule.</p>
+                    <br/>
+                    <p style="color:#666;font-size:12px">— MediQueue EMR</p>
+                    """;
+                _ = _emailService.SendEmailAsync(patientEmail, subject, htmlBody);
+            }
 
             // Create In-App Notification
             var user = await _unitOfWork.Users.GetByPatientIdAsync(domainEvent.PatientId);

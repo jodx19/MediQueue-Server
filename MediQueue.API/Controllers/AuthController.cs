@@ -118,4 +118,31 @@ public class AuthController : ControllerBase
 
         return Ok();
     }
+
+    /// <summary>
+    /// Verifies a user's email address using the token sent during registration.
+    /// The link format is: /verify-email?userId={id}&amp;token={token}
+    /// </summary>
+    [HttpPost("verify-email")]
+    [AllowAnonymous]
+    public async Task<ActionResult> VerifyEmail([FromBody] VerifyEmailRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.UserId) || string.IsNullOrWhiteSpace(request.Token))
+            return BadRequest(new { message = "UserId and Token are required." });
+
+        var command = new VerifyEmailCommand
+        {
+            UserId = request.UserId,
+            Token = request.Token
+        };
+
+        var result = await _sender.Send(command);
+        if (!result.IsSuccess)
+            return BadRequest(new { message = result.Error });
+
+        return Ok(new { message = "Email verified successfully." });
+    }
 }
+
+/// <summary>Request body for the verify-email endpoint.</summary>
+public record VerifyEmailRequest(string UserId, string Token);

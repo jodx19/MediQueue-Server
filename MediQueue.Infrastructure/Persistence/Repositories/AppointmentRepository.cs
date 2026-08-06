@@ -151,6 +151,14 @@ public class AppointmentRepository : IAppointmentRepository
         return new PagedResult<Appointment>(items, total, page, size);
     }
 
+    public async Task<List<Appointment>> GetActiveAppointmentsByPatientIdAsync(Guid patientId)
+    {
+        return await _context.Appointments
+            .Where(a => a.PatientId == patientId)
+            .Where(a => a.Status == Domain.Enums.AppointmentStatus.Scheduled || a.Status == Domain.Enums.AppointmentStatus.Confirmed)
+            .ToListAsync();
+    }
+
     public async Task AddAsync(Appointment appointment)
     {
         await _context.Appointments.AddAsync(appointment);

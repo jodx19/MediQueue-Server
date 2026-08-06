@@ -168,6 +168,23 @@ public class ClinicalVisitsController : ControllerBase
         return result.IsSuccess ? NoContent() : UnprocessableEntity(result.Error);
     }
 
+    /// <summary>Update a lab test request's result.</summary>
+    [HttpPut("{id:guid}/lab-requests/{labRequestId:guid}")]
+    [Authorize(Policy = "DoctorOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> UpdateLabRequest(
+        Guid id,
+        Guid labRequestId,
+        [FromBody] UpdateLabRequestCommand command,
+        CancellationToken ct)
+    {
+        if (id != command.VisitId) return BadRequest("Route ID must match command VisitId.");
+        if (labRequestId != command.LabRequestId) return BadRequest("Route LabRequestId must match command LabRequestId.");
+        var result = await _sender.Send(command, ct);
+        return result.IsSuccess ? NoContent() : UnprocessableEntity(result.Error);
+    }
+
     /// <summary>Add an imaging request to a visit.</summary>
     [HttpPost("{id:guid}/imaging-requests")]
     [Authorize(Policy = "DoctorOnly")]

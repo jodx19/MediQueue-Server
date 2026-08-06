@@ -51,6 +51,7 @@ public static class DependencyInjection
         services.AddScoped<ITokenService, MediQueue.Infrastructure.Services.TokenService>();
         services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
         services.AddScoped<IStorageService, AzureBlobStorageService>();
+        services.AddScoped<IAppSettingsService, MediQueue.Infrastructure.Services.AppSettingsService>();
         
         // 5. Simplified Services for Development (No Redis, No Hangfire)
         services.AddSingleton<ICacheService, MemoryCacheService>();

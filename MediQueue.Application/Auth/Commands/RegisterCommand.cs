@@ -12,6 +12,7 @@ using MediQueue.Domain.Enums;
 using MediQueue.Domain.ValueObjects;
 using Microsoft.AspNetCore.Identity;
 using MediQueue.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace MediQueue.Application.Auth.Commands;
 
@@ -42,11 +43,22 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<bo
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher<AppUser> _passwordHasher;
+    private readonly IEmailService _emailService;
+    private readonly IAppSettingsService _appSettings;
+    private readonly ILogger<RegisterCommandHandler> _logger;
 
-    public RegisterCommandHandler(IUnitOfWork unitOfWork, IPasswordHasher<AppUser> passwordHasher)
+    public RegisterCommandHandler(
+        IUnitOfWork unitOfWork,
+        IPasswordHasher<AppUser> passwordHasher,
+        IEmailService emailService,
+        IAppSettingsService appSettings,
+        ILogger<RegisterCommandHandler> logger)
     {
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
+        _emailService = emailService;
+        _appSettings = appSettings;
+        _logger = logger;
     }
 
     public async Task<Result<bool>> Handle(RegisterCommand request, CancellationToken cancellationToken)
@@ -131,6 +143,25 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<bo
                     }
 
                     await _unitOfWork.CommitTransactionAsync();
+
+                    // Send email verification (outside transaction — email failure must not roll back registration)
+                    var verificationToken = Guid.NewGuid().ToString("N");
+                    user.GenerateEmailVerificationToken(verificationToken);
+                    await _unitOfWork.Users.UpdateAsync(user);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                    var frontendUrl = _appSettings.FrontendUrl;
+                    var verificationLink = $"{frontendUrl}/verify-email?userId={user.Id}&token={Uri.EscapeDataString(verificationToken)}";
+
+                    try
+                    {
+                        await _emailService.SendVerificationEmailAsync(user.Email, verificationLink);
+                    }
+                    catch (Exception emailEx)
+                    {
+                        _logger.LogWarning(emailEx, "Failed to send verification email to {Email}. Registration succeeded.", user.Email);
+                        // Non-fatal — user can request resend later
+                    }
                 }
                 catch
                 {

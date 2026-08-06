@@ -27,6 +27,7 @@ public interface IAppointmentRepository
         Guid? doctorId,
         CancellationToken cancellationToken = default);
     Task<PagedResult<Appointment>> GetPatientHistoryAsync(Guid patientId, int page, int size);
+    Task<List<Appointment>> GetActiveAppointmentsByPatientIdAsync(Guid patientId);
     Task AddAsync(Appointment appointment);
     Task UpdateAsync(Appointment appointment);
     Task<int> CountByDateAsync(DateTime date);

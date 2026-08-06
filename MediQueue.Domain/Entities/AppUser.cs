@@ -117,4 +117,31 @@ public class AppUser : AuditableEntity
         // Revoke all existing sessions on password reset for security
         RevokeRefreshToken();
     }
+
+    /// <summary>
+    /// Generates a secure email verification token that expires in 24 hours.
+    /// Called after registration to send a verification link to the user's email.
+    /// </summary>
+    public void GenerateEmailVerificationToken(string token)
+    {
+        EmailVerificationToken = token;
+        EmailVerificationTokenExpiresAt = DateTime.UtcNow.AddHours(24);
+        EmailConfirmed = false;
+    }
+
+    /// <summary>
+    /// Confirms the user's email address when they click the verification link.
+    /// Returns false if the token is invalid or expired.
+    /// </summary>
+    public bool ConfirmEmailVerification(string token)
+    {
+        if (string.IsNullOrEmpty(EmailVerificationToken)) return false;
+        if (EmailVerificationToken != token) return false;
+        if (EmailVerificationTokenExpiresAt.HasValue && EmailVerificationTokenExpiresAt < DateTime.UtcNow) return false;
+
+        EmailConfirmed = true;
+        EmailVerificationToken = null;
+        EmailVerificationTokenExpiresAt = null;
+        return true;
+    }
 }
