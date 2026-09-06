@@ -37,6 +37,10 @@ public class AuthService : IAuthService
         _tokenService = tokenService;
     }
 
+    /// <summary>Reads RefreshTokenExpiryDays from config (default 7 if missing).</summary>
+    private int RefreshTokenExpiryDays =>
+        _configuration.GetValue<int>("JwtSettings:RefreshTokenExpiryDays", 7);
+
     public async Task<Result<AuthResponseDto>> LoginAsync(LoginRequestDto request)
     {
         var user = await _unitOfWork.Users.GetByEmailAsync(request.Email);
@@ -60,7 +64,7 @@ public class AuthService : IAuthService
 
         var tokenResponse = new AuthResponseDto(tokenString, refreshToken, expiryTime, user.Username, user.Role.ToString());
         
-        user.UpdateRefreshToken(tokenResponse.RefreshToken, DateTime.UtcNow.AddDays(7));
+        user.UpdateRefreshToken(tokenResponse.RefreshToken, DateTime.UtcNow.AddDays(RefreshTokenExpiryDays));
         await _unitOfWork.Users.UpdateAsync(user);
         await _unitOfWork.SaveChangesAsync();
 
@@ -90,7 +94,7 @@ public class AuthService : IAuthService
         var expiresAt = DateTime.UtcNow.AddMinutes(
             int.Parse(_configuration.GetSection("JwtSettings")["ExpiryMinutes"] ?? "60"));
 
-        user.UpdateRefreshToken(newRefreshToken, DateTime.UtcNow.AddDays(7));
+        user.UpdateRefreshToken(newRefreshToken, DateTime.UtcNow.AddDays(RefreshTokenExpiryDays));
         await _unitOfWork.Users.UpdateAsync(user);
         await _unitOfWork.SaveChangesAsync();
 
@@ -128,7 +132,7 @@ public class AuthService : IAuthService
 
         var tokenResponse = new AuthResponseDto(tokenString, refreshToken, expiryTime, user.Username, user.Role.ToString());
 
-        user.UpdateRefreshToken(tokenResponse.RefreshToken, DateTime.UtcNow.AddDays(7));
+        user.UpdateRefreshToken(tokenResponse.RefreshToken, DateTime.UtcNow.AddDays(RefreshTokenExpiryDays));
         await _unitOfWork.Users.UpdateAsync(user);
         await _unitOfWork.SaveChangesAsync();
 

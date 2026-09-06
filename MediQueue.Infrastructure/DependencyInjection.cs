@@ -46,12 +46,27 @@ public static class DependencyInjection
 
         // 4. Core Services
         services.AddScoped<IEmailService, EmailNotificationService>();
-        services.AddScoped<ISmsService, ConsoleSmsService>();
         services.AddScoped<IAuthService, MediQueue.Infrastructure.ExternalServices.AuthService>();
         services.AddScoped<ITokenService, MediQueue.Infrastructure.Services.TokenService>();
         services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
         services.AddScoped<IStorageService, AzureBlobStorageService>();
-        
+
+        // 4a. SMS — Unifonic (Egyptian/Arab market)
+        //     Configure via env vars: Sms__AppSid, Sms__SenderName
+        //     Falls back to console logging if AppSid is not set (dev mode).
+        services.Configure<UnifonicSmsOptions>(configuration.GetSection(UnifonicSmsOptions.SectionName));
+        services.AddHttpClient<ISmsService, UnifonicSmsService>();
+
+        // 4b. Drug Interaction — GPT-4o-mini
+        //     Configure via env vars: OpenAI__ApiKey, OpenAI__Model
+        services.Configure<GptDrugInteractionOptions>(configuration.GetSection(GptDrugInteractionOptions.SectionName));
+        services.AddHttpClient<IDrugInteractionService, GptDrugInteractionService>();
+
+        // 4c. Payment Gateway — currently Stub (no real provider integrated yet)
+        //     To switch: replace StubPaymentService with PaymobPaymentService / FawryPaymentService
+        //     and configure the provider credentials via env vars.
+        services.AddSingleton<IPaymentGatewayService, StubPaymentService>();
+
         // 5. Simplified Services for Development (No Redis, No Hangfire)
         services.AddSingleton<ICacheService, MemoryCacheService>();
         services.AddScoped<ISchedulerService, Services.DevelopmentSchedulerService>();

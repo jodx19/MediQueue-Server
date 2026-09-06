@@ -122,6 +122,17 @@ public class ClinicDbContext : DbContext
                     entry.Entity.TenantId = tenantId;
                 }
             }
+            else if (entry.State == EntityState.Modified && entry.Entity.IsDeleted)
+            {
+                // ── Cascading Soft Delete ─────────────────────────────────────────
+                // When a Patient is soft-deleted, cascade to their Appointments,
+                // ClinicalVisits, and Invoices so they don't appear as "orphaned"
+                // records in doctor schedules or billing views.
+                if (entry.Entity is Patient deletedPatient)
+                {
+                    await CascadePatientSoftDeleteAsync(deletedPatient.Id, cancellationToken);
+                }
+            }
         }
 
         var auditableEntries = ChangeTracker.Entries<AuditableEntity>();
@@ -167,5 +178,43 @@ public class ClinicDbContext : DbContext
         entitiesWithEvents.ForEach(e => e.ClearDomainEvents());
 
         return result;
+    }
+
+    /// <summary>
+    /// Cascades soft delete from a Patient to all their related records.
+    /// Uses ExecuteUpdateAsync for a single efficient SQL statement per table
+    /// rather than loading all records into memory.
+    /// </summary>
+    private async Task CascadePatientSoftDeleteAsync(Guid patientId, CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+
+        // Cascade to Appointments
+        await Appointments
+            .IgnoreQueryFilters()
+            .Where(a => a.PatientId == patientId && !a.IsDeleted)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(a => a.IsDeleted, true)
+                .SetProperty(a => a.UpdatedAt, now),
+                cancellationToken);
+
+        // Cascade to ClinicalVisits (via Appointments or direct PatientId if available)
+        // ClinicalVisit links to Appointment which links to Patient
+        await ClinicalVisits
+            .IgnoreQueryFilters()
+            .Where(cv => cv.Appointment.PatientId == patientId && !cv.IsDeleted)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(cv => cv.IsDeleted, true)
+                .SetProperty(cv => cv.UpdatedAt, now),
+                cancellationToken);
+
+        // Cascade to Invoices
+        await Invoices
+            .IgnoreQueryFilters()
+            .Where(i => i.PatientId == patientId && !i.IsDeleted)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(i => i.IsDeleted, true)
+                .SetProperty(i => i.UpdatedAt, now),
+                cancellationToken);
     }
 }

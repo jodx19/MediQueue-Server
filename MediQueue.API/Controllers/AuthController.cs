@@ -55,6 +55,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting("RegisterPolicy")]
     public async Task<ActionResult> Register([FromBody] RegisterCommand command)
     {
         var result = await _sender.Send(command);
@@ -107,7 +108,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("forgot-password")]
     [AllowAnonymous]
-    [EnableRateLimiting("AuthPolicy")]
+    [EnableRateLimiting("ForgotPasswordPolicy")]
     public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
     {
         var result = await _sender.Send(command);

@@ -43,6 +43,7 @@ public class DeactivatePatientCommandHandler : IRequestHandler<DeactivatePatient
             patient.Deactivate();
 
             await _unitOfWork.Patients.UpdateAsync(patient);
+            await _unitOfWork.Patients.SoftDeleteAsync(patient.Id);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return Result.Success();
