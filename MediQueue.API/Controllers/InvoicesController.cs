@@ -10,7 +10,9 @@ using MediQueue.Application.Common;
 using MediQueue.Application.Invoices.Commands;
 using MediQueue.Application.Invoices.Queries;
 using MediQueue.Application.Invoices.DTOs;
+using MediQueue.Application.Interfaces;
 using MediQueue.Domain.Enums;
+using AppCreatePaymentRequest = MediQueue.Application.Interfaces.CreatePaymentSessionRequest;
 
 namespace MediQueue.API.Controllers;
 
@@ -22,7 +24,14 @@ namespace MediQueue.API.Controllers;
 public class InvoicesController : ControllerBase
 {
     private readonly ISender _sender;
-    public InvoicesController(ISender sender) => _sender = sender;
+    private readonly IPaymentGatewayService _paymentGateway;
+
+    public InvoicesController(ISender sender, IPaymentGatewayService paymentGateway)
+    {
+        _sender = sender;
+        _paymentGateway = paymentGateway;
+    }
+
 
     /// <summary>Paginated clinic-wide invoice list with optional status and date filters.</summary>
     [HttpGet]
@@ -149,4 +158,107 @@ public class InvoicesController : ControllerBase
         var result = await _sender.Send(new CancelInvoiceCommand(id), ct);
         return result.IsSuccess ? NoContent() : UnprocessableEntity(result.Error);
     }
+
+    // ── Payment Gateway Endpoints ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Create a hosted payment checkout session for an invoice.
+    /// Returns a URL to redirect the patient to the payment provider's page.
+    /// Currently backed by StubPaymentService — swap to Paymob/Fawry/Stripe in DependencyInjection.cs.
+    /// </summary>
+    [HttpPost("{id:guid}/create-payment-session")]
+    [Authorize(Policy = "AdminOrReceptionist")]
+    [ProducesResponseType(typeof(PaymentSessionResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> CreatePaymentSession(
+        Guid id,
+        [FromBody] CheckoutSessionRequest request,
+        CancellationToken ct)
+    {
+        // Load invoice details for amount
+        var invoiceResult = await _sender.Send(new GetInvoiceByIdQuery(id), ct);
+        if (!invoiceResult.IsSuccess) return NotFound(invoiceResult.Error);
+
+        var invoice = invoiceResult.Value!;
+        if (invoice.Status == InvoiceStatus.Paid)
+            return UnprocessableEntity("Invoice is already paid.");
+
+        // Map controller DTO → application DTO (avoid naming clash)
+        var paymentRequest = new AppCreatePaymentRequest
+        {
+            InvoiceId = id,
+            Amount = invoice.TotalAmount,
+            Currency = request.Currency ?? "EGP",
+            PatientName = request.PatientName,
+            PatientEmail = request.PatientEmail,
+            SuccessUrl = request.SuccessUrl,
+            CancelUrl = request.CancelUrl,
+        };
+
+        var result = await _paymentGateway.CreateCheckoutSessionAsync(paymentRequest, ct);
+        if (!result.IsSuccess)
+            return UnprocessableEntity(result.ErrorMessage);
+
+        return Ok(new PaymentSessionResponse
+        {
+            CheckoutUrl = result.CheckoutUrl!,
+            SessionId = result.SessionId!,
+            InvoiceId = id,
+        });
+    }
+
+    /// <summary>
+    /// Payment provider webhook — called by the payment gateway after successful payment.
+    /// Verifies the transaction and marks the invoice as paid.
+    /// </summary>
+    [HttpPost("webhook")]
+    [AllowAnonymous] // Webhook must be accessible without auth token
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> PaymentWebhook(
+        [FromBody] PaymentWebhookPayload payload,
+        CancellationToken ct)
+    {
+        var verification = await _paymentGateway.VerifyPaymentAsync(payload.TransactionReference, ct);
+        if (!verification.IsPaid)
+            return Ok(new { received = true, processed = false }); // Always return 200 to provider
+
+        // Record the payment against the invoice
+        var command = new RecordPaymentCommand
+        {
+            InvoiceId = payload.InvoiceId,
+            Amount = verification.AmountPaid ?? payload.Amount,
+            PaymentMethod = PaymentMethod.Online,
+            ReferenceNumber = verification.TransactionId,
+        };
+        await _sender.Send(command, ct);
+
+        return Ok(new { received = true, processed = true });
+    }
+}
+
+// ── Request / Response DTOs (Controller level) ────────────────────────────────
+
+/// <summary>Request body for creating a payment checkout session (controller-level DTO).</summary>
+public class CheckoutSessionRequest
+{
+    public string? Currency { get; set; }
+    public string PatientName { get; set; } = string.Empty;
+    public string PatientEmail { get; set; } = string.Empty;
+    public string SuccessUrl { get; set; } = string.Empty;
+    public string CancelUrl { get; set; } = string.Empty;
+}
+
+public class PaymentSessionResponse
+{
+    public string CheckoutUrl { get; set; } = string.Empty;
+    public string SessionId { get; set; } = string.Empty;
+    public Guid InvoiceId { get; set; }
+}
+
+public class PaymentWebhookPayload
+{
+    public Guid InvoiceId { get; set; }
+    public string TransactionReference { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
 }

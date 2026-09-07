@@ -45,4 +45,23 @@ public class LabRequest : BaseEntity
         
         SetUpdated();
     }
+
+    /// <summary>
+    /// Partially updates lab request details (name, instructions, or status).
+    /// Only pass non-null values for fields that should change.
+    /// For attaching results and marking terminal statuses, use <see cref="UpdateResult"/>.
+    /// </summary>
+    public void UpdateDetails(string? testName, string? instructions, LabResultStatus? status)
+    {
+        if (testName is not null)
+            TestName = testName;
+
+        if (instructions is not null)
+            Instructions = instructions;
+
+        if (status.HasValue)
+            Status = status.Value;
+
+        SetUpdated();
+    }
 }

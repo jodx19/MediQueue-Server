@@ -232,6 +232,27 @@ public class ClinicalVisitsController : ControllerBase
     }
 
     /// <summary>
+    /// Update lab request details (test name, instructions, status).
+    /// For attaching results and marking as completed/abnormal/critical, use the /complete endpoint.
+    /// </summary>
+    [HttpPut("{id:guid}/lab-requests/{labRequestId:guid}")]
+    [Authorize(Policy = "AdminOrDoctor")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> UpdateLabRequest(
+        Guid id,
+        Guid labRequestId,
+        [FromBody] UpdateLabRequestCommand command,
+        CancellationToken ct)
+    {
+        if (id != command.VisitId) return BadRequest("Route visitId must match command VisitId.");
+        command.LabRequestId = labRequestId;
+        var result = await _sender.Send(command, ct);
+        return result.IsSuccess ? NoContent() : NotFound(result.Error);
+    }
+
+    /// <summary>
     /// Finalize a clinical visit. Validates all SOAP sections are complete and
     /// at least one diagnosis exists. Auto-triggers invoice creation via event handler.
     /// </summary>

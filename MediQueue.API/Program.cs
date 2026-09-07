@@ -70,33 +70,66 @@ try
     builder.Services.AddInfrastructureServices(builder.Configuration);
     builder.Services.AddApiServices(builder.Configuration);
 
-    // ── Rate Limiting ────────────────────────────────────────────────────────
+    // ── Rate Limiting (Per-IP Partitioned) ───────────────────────────────────
+    // Using PartitionedRateLimiter ensures each IP gets its OWN window.
+    // With a shared FixedWindowLimiter, 10 different users exhaust the global
+    // quota — and one attacker is not properly isolated from legitimate users.
     builder.Services.AddRateLimiter(options =>
     {
-        var authPolicyConfig = builder.Configuration
-            .GetSection("RateLimiting:AuthPolicy");
+        var rlConfig = builder.Configuration.GetSection("RateLimiting");
 
-        options.AddFixedWindowLimiter("AuthPolicy", limiterOptions =>
-        {
-            limiterOptions.PermitLimit =
-                authPolicyConfig.GetValue<int>("PermitLimit", 10);
-            limiterOptions.Window = TimeSpan.FromMinutes(
-                authPolicyConfig.GetValue<int>("WindowMinutes", 1));
-            limiterOptions.QueueProcessingOrder =
-                QueueProcessingOrder.OldestFirst;
-            limiterOptions.QueueLimit = 0;
-        });
+        // ── Auth (Login) — 10 req/min per IP ────────────────────────────────
+        options.AddPolicy("AuthPolicy", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit       = rlConfig.GetValue<int>("AuthPolicy:PermitLimit", 10),
+                    Window            = TimeSpan.FromMinutes(rlConfig.GetValue<int>("AuthPolicy:WindowMinutes", 1)),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit        = 0,
+                }));
 
-        options.AddFixedWindowLimiter("PatientLoginPolicy", limiterOptions =>
-        {
-            limiterOptions.PermitLimit = 5;
-            limiterOptions.Window = TimeSpan.FromMinutes(1);
-            limiterOptions.QueueProcessingOrder =
-                QueueProcessingOrder.OldestFirst;
-            limiterOptions.QueueLimit = 0;
-        });
+        // ── Patient Login — 5 req/min per IP ────────────────────────────────
+        options.AddPolicy("PatientLoginPolicy", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit       = rlConfig.GetValue<int>("PatientLoginPolicy:PermitLimit", 5),
+                    Window            = TimeSpan.FromMinutes(rlConfig.GetValue<int>("PatientLoginPolicy:WindowMinutes", 1)),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit        = 0,
+                }));
 
-        // 429 response MUST match ApiResponse<T> shape
+        // ── Register — 5 req/min per IP ─────────────────────────────────────
+        // Prevents account-spam and email-enumeration via the register endpoint.
+        options.AddPolicy("RegisterPolicy", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit       = rlConfig.GetValue<int>("RegisterPolicy:PermitLimit", 5),
+                    Window            = TimeSpan.FromMinutes(rlConfig.GetValue<int>("RegisterPolicy:WindowMinutes", 1)),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit        = 0,
+                }));
+
+        // ── ForgotPassword — 3 req/5 min per IP ─────────────────────────────
+        // Tightest policy — this endpoint is the primary vector for
+        // account-enumeration attacks; low limit + longer window.
+        options.AddPolicy("ForgotPasswordPolicy", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit       = rlConfig.GetValue<int>("ForgotPasswordPolicy:PermitLimit", 3),
+                    Window            = TimeSpan.FromMinutes(rlConfig.GetValue<int>("ForgotPasswordPolicy:WindowMinutes", 5)),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit        = 0,
+                }));
+
+        // ── 429 response — matches ApiResponse<T> shape ──────────────────────
         // Angular api-response.interceptor reads response.data
         options.OnRejected = async (context, cancellationToken) =>
         {
@@ -106,9 +139,9 @@ try
                 new
                 {
                     isSuccess = false,
-                    data = (object?)null,
-                    message = "Too many requests. Please try again later.",
-                    errors = new[] { "Rate limit exceeded" }
+                    data      = (object?)null,
+                    message   = "Too many requests. Please try again later.",
+                    errors    = new[] { "Rate limit exceeded" }
                 },
                 cancellationToken
             );
@@ -125,10 +158,11 @@ try
     if (!app.Environment.IsDevelopment())
     {
         app.UseHsts();
+        app.UseHttpsRedirection();
+        // Security response headers (OWASP) — only in non-dev to avoid
+        // CSP conflicts with Swagger UI and hot-reload in development.
+        app.UseSecurityHeaders();
     }
-
-    // UseHttpsRedirection: all environments, honors HTTPS ports from config/ENV
-    app.UseHttpsRedirection();
 
     // ── Validate Critical Configuration ──────────────────────────────────────
     var env = builder.Environment;

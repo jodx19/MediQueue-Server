@@ -62,7 +62,19 @@ stderr*.txt
 .env
 .env.local
 .env.*.local
+.env.production
 
 # Development appsettings (contain secrets, never commit)
 appsettings.Development.json
 **/appsettings.*.local.json
+
+# Load test results (generated at runtime, not source)
+results-baseline.json
+results-stress.json
+results-spike.json
+
+# Security scan output
+docs/dependency-scan-results.txt
+
+# Deployment records (generated at runtime)
+deployment-record-*.md

@@ -10,5 +10,7 @@ public enum PaymentMethod
     CreditCard = 2,
     Insurance = 3,
     BankTransfer = 4,
-    Installment = 5
+    Installment = 5,
+    /// <summary>Online payment via a payment gateway (Paymob, Fawry, Stripe, etc.).</summary>
+    Online = 6
 }
