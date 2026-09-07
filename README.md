@@ -54,6 +54,19 @@ MediQueue EMR Clinic System/
 
 ---
 
+## 🧩 Concepts Implemented
+
+| Concept | Where it lives in the code | Verified how |
+|---|---|---|
+| **API Endpoints** | `MediQueue.API/Controllers/PatientsController.cs` | verified via code review |
+| **Database** | `MediQueue.Infrastructure/Persistence/Context/ClinicDbContext.cs` | verified via code review |
+| **Authentication** | `MediQueue.Infrastructure/DependencyInjection.cs` | verified via code review |
+| **Background/Cron Jobs** | `MediQueue.Infrastructure/ExternalServices/InvoiceOverdueJob.cs` | verified via live test |
+| **Caching** | `MediQueue.Infrastructure/Services/RedisCacheService.cs` | verified via live test |
+| **LLM Integration** | `MediQueue.Infrastructure/ExternalServices/GptDrugInteractionService.cs` | verified via code review |
+
+---
+
 ## 🛠️ Getting Started (Backend)
 
 ### 1. Configuration (`appsettings.json`)
