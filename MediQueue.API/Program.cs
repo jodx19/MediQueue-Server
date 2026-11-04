@@ -9,6 +9,10 @@ using MediQueue.API.Middleware;
 using MediQueue.API.Hubs;
 using Microsoft.EntityFrameworkCore;
 using MediQueue.Infrastructure.Persistence.Context;
+using Hangfire;
+using Hangfire.Dashboard;
+using MediQueue.Infrastructure.ExternalServices;
+
 
 // ── Bootstrap Logging ────────────────────────────────────────────────────────
 Log.Logger = new LoggerConfiguration()
@@ -153,6 +157,15 @@ try
 
     var app = builder.Build();
 
+    // ── Cache implementation banner ───────────────────────────────────────────
+    {
+        var redisCheck = builder.Configuration.GetConnectionString("Redis");
+        var cacheImpl  = !string.IsNullOrWhiteSpace(redisCheck) ? "RedisCacheService" : "MemoryCacheService";
+        Log.Information("ICacheService implementation: {CacheImpl} (Redis connection string {Status})",
+            cacheImpl,
+            !string.IsNullOrWhiteSpace(redisCheck) ? $"present ({redisCheck})" : "absent");
+    }
+
     // ── HTTPS Enforcement ────────────────────────────────────────────────────
     // UseHsts: Production only (dev uses HTTP for local debugging)
     if (!app.Environment.IsDevelopment())
@@ -265,19 +278,14 @@ try
         Console.WriteLine("⚠️  Staging mode: Verify all configuration values\n");
     }
 
-    // ── Auto-migrate & Seed (Development only) ───────────────────────────────
-    // Production: migrations are applied manually or via CI/CD pipeline
-    //             (e.g. `dotnet ef database update` or SQL bundle runner).
-    // Running MigrateAsync on startup in Production risks concurrent-instance
-    // race conditions and locks the app into a DB dependency for boot.
-    if (app.Environment.IsDevelopment())
+    // ── Database Schema Initialization & Seed ────────────────────────────────
+    using (var scope = app.Services.CreateScope())
     {
-        using var scope = app.Services.CreateScope();
         try
         {
             var db = scope.ServiceProvider.GetRequiredService<ClinicDbContext>();
-            await db.Database.MigrateAsync();
-            Log.Information("Database migrations applied.");
+            await db.Database.EnsureCreatedAsync();
+            Log.Information("Database schema ensured.");
 
             var seeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
             await seeder.SeedAsync();
@@ -285,7 +293,7 @@ try
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Migration/Seed step encountered an issue — continuing startup.");
+            Log.Warning(ex, "Database schema/seed step encountered an issue — continuing startup.");
         }
     }
 
@@ -310,6 +318,27 @@ try
     app.UseRateLimiter();
     app.UseAuthentication();
     app.UseAuthorization();
+
+    // ── Hangfire Dashboard & Recurring Jobs ──────────────────────────────────
+    // Dashboard is protected by Basic Auth in Production (open in Development)
+    var hangfireUser = builder.Configuration["Hangfire:DashboardUsername"] ?? "admin";
+    var hangfirePass = builder.Configuration["Hangfire:DashboardPassword"] ?? "admin123!";
+
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = [new MediQueue.API.Middleware.HangfireBasicAuthFilter(hangfireUser, hangfirePass)]
+    });
+
+
+    RecurringJob.AddOrUpdate<InvoiceOverdueJob>(
+        "invoice-overdue-daily",
+        job => job.ExecuteAsync(),
+        Cron.Daily);
+
+    RecurringJob.AddOrUpdate<MissedAppointmentJob>(
+        "missed-appointments-daily",
+        job => job.ExecuteAsync(),
+        Cron.Daily);
 
     // ── Endpoints ────────────────────────────────────────────────────────────
     app.MapHub<ClinicHub>("/hubs/clinic");

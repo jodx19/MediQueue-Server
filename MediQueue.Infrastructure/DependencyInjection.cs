@@ -13,6 +13,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Builder;
 using MediQueue.Infrastructure.Services;
 using MediQueue.Infrastructure.Repositories;
+using Hangfire;
+using Hangfire.SqlServer;
+using Hangfire.PostgreSql;
+using StackExchange.Redis;
+using Microsoft.Extensions.Logging;
 
 namespace MediQueue.Infrastructure;
 
@@ -30,9 +35,23 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection") 
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
+        var isPostgres = connectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
+            || connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase)
+            || connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase);
+
         services.AddDbContext<ClinicDbContext>(options =>
-            options.UseSqlServer(connectionString, sql =>
-                sql.MigrationsAssembly(typeof(ClinicDbContext).Assembly.FullName)));
+        {
+            if (isPostgres)
+            {
+                options.UseNpgsql(connectionString, npgsql =>
+                    npgsql.MigrationsAssembly(typeof(ClinicDbContext).Assembly.FullName));
+            }
+            else
+            {
+                options.UseSqlServer(connectionString, sql =>
+                    sql.MigrationsAssembly(typeof(ClinicDbContext).Assembly.FullName));
+            }
+        });
 
         // 3. Repositories & Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -67,15 +86,92 @@ public static class DependencyInjection
         //     and configure the provider credentials via env vars.
         services.AddSingleton<IPaymentGatewayService, StubPaymentService>();
 
-        // 5. Simplified Services for Development (No Redis, No Hangfire)
-        services.AddSingleton<ICacheService, MemoryCacheService>();
-        services.AddScoped<ISchedulerService, Services.DevelopmentSchedulerService>();
-        
-        // 6. Health Checks
-        services.AddHealthChecks()
-            .AddSqlServer(connectionString, name: "sql-server", tags: ["db", "infrastructure"]);
+        // 5. Caching — Redis if connection string is present, MemoryCache otherwise
+        var redisConnStr = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrWhiteSpace(redisConnStr))
+        {
+            try
+            {
+                var connectionMultiplexer = ConnectionMultiplexer.Connect(redisConnStr);
+                
+                if (connectionMultiplexer.IsConnected)
+                {
+                    services.AddSingleton<IConnectionMultiplexer>(connectionMultiplexer);
+                    services.AddSingleton<ICacheService, RedisCacheService>();
+                    Console.WriteLine("--> Redis connected successfully.");
+                }
+                else
+                {
+                    throw new Exception("Redis connection is not active.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"[Warning] Failed to connect to Redis: {ex.Message}. Falling back to MemoryCache.");
+                Console.ResetColor();
+
+                services.AddMemoryCache();
+                services.AddSingleton<ICacheService, MemoryCacheService>();
+            }
+        }
+        else
+        {
+            services.AddMemoryCache();
+            services.AddSingleton<ICacheService, MemoryCacheService>();
+        }
+
+        // 6. Hangfire — background jobs with PostgreSQL or SQL Server storage
+        services.AddHangfire(config =>
+        {
+            config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                  .UseSimpleAssemblyNameTypeSerializer()
+                  .UseRecommendedSerializerSettings();
+
+            if (isPostgres)
+            {
+                config.UsePostgreSqlStorage(c => c.UseNpgsqlConnection(connectionString));
+            }
+            else
+            {
+                config.UseSqlServerStorage(connectionString, new SqlServerStorageOptions
+                {
+                    CommandBatchMaxTimeout       = TimeSpan.FromMinutes(5),
+                    SlidingInvisibilityTimeout  = TimeSpan.FromMinutes(5),
+                    QueuePollInterval           = TimeSpan.Zero,
+                    UseRecommendedIsolationLevel = true,
+                    DisableGlobalLocks          = true
+                });
+            }
+        });
+        services.AddHangfireServer();
+
+        // ISchedulerService — Hangfire-backed (replaces DevelopmentSchedulerService)
+        services.AddScoped<ISchedulerService, HangfireSchedulerService>();
+
+        // Register job classes so Hangfire's IoC activator can resolve them
+        services.AddScoped<InvoiceOverdueJob>();
+        services.AddScoped<MissedAppointmentJob>();
+
+        // 7. Health Checks
+        var healthChecks = services.AddHealthChecks();
+        if (isPostgres)
+        {
+            healthChecks.AddNpgSql(connectionString, name: "postgres", tags: ["db", "infrastructure"]);
+        }
+        else
+        {
+            healthChecks.AddSqlServer(connectionString, name: "sql-server", tags: ["db", "infrastructure"]);
+        }
+
+        // Add Redis health check only when Redis is configured
+        if (!string.IsNullOrWhiteSpace(redisConnStr))
+        {
+            healthChecks.AddRedis(redisConnStr, name: "redis", tags: ["cache", "infrastructure"]);
+        }
 
         return services;
+
     }
 
     public static async Task UseInfrastructure(this IApplicationBuilder app)
