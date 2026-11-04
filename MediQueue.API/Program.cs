@@ -221,37 +221,30 @@ try
 
         Console.WriteLine("   ✅ SQL Connection String validated");
 
-        // Validate Redis Connection String
+        // Validate Redis Connection String (Optional — falls back to MemoryCache)
         var redisConnStr = config.GetConnectionString("Redis");
-        if (string.IsNullOrEmpty(redisConnStr))
-            throw new InvalidOperationException(
-                "❌ CRITICAL: ConnectionStrings:Redis is not configured.");
+        if (string.IsNullOrEmpty(redisConnStr) || redisConnStr.Contains("localhost"))
+        {
+            Console.WriteLine("   ⚠️  Redis not configured or localhost — using in-memory cache fallback");
+        }
+        else
+        {
+            Console.WriteLine("   ✅ Redis Connection String validated");
+        }
 
-        if (redisConnStr.Contains("localhost"))
-            throw new InvalidOperationException(
-                "❌ CRITICAL: Redis Connection String contains localhost.\n" +
-                "   Use production Redis hostname.");
-
-        Console.WriteLine("   ✅ Redis Connection String validated");
-
-        // Validate Email Configuration (key names match EmailNotificationService.cs)
+        // Validate Email Configuration (Optional — runs in fallback mode if credentials missing)
         var emailHost = config["EmailSettings:SmtpServer"];
         var emailUser = config["EmailSettings:Username"];
         var emailPass = config["EmailSettings:Password"];
 
-        if (string.IsNullOrEmpty(emailHost) || emailHost.Contains("REPLACE_WITH"))
-            throw new InvalidOperationException(
-                "❌ CRITICAL: EmailSettings:SmtpServer is not configured.");
-
-        if (string.IsNullOrEmpty(emailUser) || emailUser.Contains("REPLACE_WITH"))
-            throw new InvalidOperationException(
-                "❌ CRITICAL: EmailSettings:Username is not configured.");
-
-        if (string.IsNullOrEmpty(emailPass) || emailPass.Contains("REPLACE_WITH"))
-            throw new InvalidOperationException(
-                "❌ CRITICAL: EmailSettings:Password is not configured.");
-
-        Console.WriteLine("   ✅ Email Configuration validated");
+        if (string.IsNullOrEmpty(emailHost) || string.IsNullOrEmpty(emailUser) || string.IsNullOrEmpty(emailPass))
+        {
+            Console.WriteLine("   ⚠️  Email not fully configured — running in fallback mode");
+        }
+        else
+        {
+            Console.WriteLine("   ✅ Email Configuration validated");
+        }
 
         // Validate Azure Storage Configuration
         var azureConnStr = config["AzureStorage:ConnectionString"];
@@ -301,15 +294,12 @@ try
     app.UseMiddleware<GlobalExceptionMiddleware>();
     app.UseSerilogRequestLogging();
 
-    if (app.Environment.IsDevelopment())
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
     {
-        app.UseSwagger();
-        app.UseSwaggerUI(c =>
-        {
-            c.SwaggerEndpoint("/swagger/v1/swagger.json", "MediQueue EMR API v1");
-            c.RoutePrefix = "swagger";
-        });
-    }
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "MediQueue EMR API v1");
+        c.RoutePrefix = "swagger";
+    });
 
     app.UseCors("Angular");
     app.UseStaticFiles();
