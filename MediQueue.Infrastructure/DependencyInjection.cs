@@ -39,11 +39,39 @@ public static class DependencyInjection
             || connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase)
             || connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase);
 
+        // Convert URI format (postgresql://user:pass@host/db?sslmode=require)
+        // to Npgsql keyword format for maximum IIS compatibility
+        string npgsqlConnectionString = connectionString;
+        if (isPostgres && (connectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
+                        || connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase)))
+        {
+            try
+            {
+                var uri = new Uri(connectionString.Replace("postgresql://", "https://").Replace("postgres://", "https://"));
+                var userInfo = uri.UserInfo.Split(':');
+                var user = Uri.UnescapeDataString(userInfo[0]);
+                var pass = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+                var host = uri.Host;
+                var port = uri.Port > 0 ? uri.Port : 5432;
+                var database = uri.AbsolutePath.TrimStart('/');
+                var query = uri.Query.TrimStart('?');
+                var sslMode = "Require";
+                if (query.Contains("sslmode=disable", StringComparison.OrdinalIgnoreCase)) sslMode = "Disable";
+                else if (query.Contains("sslmode=prefer", StringComparison.OrdinalIgnoreCase)) sslMode = "Prefer";
+                npgsqlConnectionString = $"Host={host};Port={port};Database={database};Username={user};Password={pass};SSL Mode={sslMode};Trust Server Certificate=true;";
+            }
+            catch
+            {
+                // If URI parsing fails, use the original connection string
+                npgsqlConnectionString = connectionString;
+            }
+        }
+
         services.AddDbContext<ClinicDbContext>(options =>
         {
             if (isPostgres)
             {
-                options.UseNpgsql(connectionString, npgsql =>
+                options.UseNpgsql(npgsqlConnectionString, npgsql =>
                     npgsql.MigrationsAssembly(typeof(ClinicDbContext).Assembly.FullName));
             }
             else
@@ -68,7 +96,16 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, MediQueue.Infrastructure.ExternalServices.AuthService>();
         services.AddScoped<ITokenService, MediQueue.Infrastructure.Services.TokenService>();
         services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
-        services.AddScoped<IStorageService, AzureBlobStorageService>();
+        // Azure Storage — only register if connection string is configured
+        var azureConnStr = configuration["AzureStorage:ConnectionString"];
+        if (!string.IsNullOrWhiteSpace(azureConnStr) && !azureConnStr.Contains("REPLACE_WITH"))
+        {
+            services.AddScoped<IStorageService, AzureBlobStorageService>();
+        }
+        else
+        {
+            services.AddScoped<IStorageService, StubStorageService>();
+        }
 
         // 4a. SMS — Unifonic (Egyptian/Arab market)
         //     Configure via env vars: Sms__AppSid, Sms__SenderName
@@ -130,7 +167,7 @@ public static class DependencyInjection
 
             if (isPostgres)
             {
-                config.UsePostgreSqlStorage(c => c.UseNpgsqlConnection(connectionString));
+                config.UsePostgreSqlStorage(c => c.UseNpgsqlConnection(npgsqlConnectionString));
             }
             else
             {

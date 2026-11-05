@@ -78,3 +78,7 @@ docs/dependency-scan-results.txt
 
 # Deployment records (generated at runtime)
 deployment-record-*.md
+
+# Publish output (build artifacts, never commit)
+publish/
+publish.zip
