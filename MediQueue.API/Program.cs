@@ -187,31 +187,27 @@ try
     {
         Console.WriteLine("🔍 Validating Production Configuration...");
 
-        // Validate JWT Secret
+        // Validate JWT Secret — FAIL FAST (a silent fallback secret is a security incident)
         var jwtSecret = config["JwtSettings:SecretKey"];
         if (string.IsNullOrEmpty(jwtSecret) || jwtSecret.Contains("REPLACE_WITH") || jwtSecret.StartsWith("${") || jwtSecret.Length < 32)
         {
-            jwtSecret = "MediQueueSuperSecretProductionKey2026!@#$%^789XYZ123456";
-            config["JwtSettings:SecretKey"] = jwtSecret;
-            Console.WriteLine("   ⚠️ JWT Secret missing or placeholder — using production fallback secret");
+            throw new InvalidOperationException(
+                "❌ FATAL: JwtSettings:SecretKey is missing, a placeholder, or shorter than 32 chars. " +
+                "Set the JwtSettings__SecretKey environment variable (32+ random characters) and restart. " +
+                "The app will NOT start with an insecure fallback secret.");
         }
-        else
-        {
-            Console.WriteLine("   ✅ JWT Secret validated");
-        }
+        Console.WriteLine("   ✅ JWT Secret validated");
 
-        // Validate SQL Connection String
+        // Validate SQL Connection String — FAIL FAST (no hardcoded credentials in source)
         var sqlConnStr = config.GetConnectionString("DefaultConnection");
         if (string.IsNullOrEmpty(sqlConnStr) || sqlConnStr.StartsWith("${") || sqlConnStr.Contains("REPLACE_WITH"))
         {
-            sqlConnStr = "postgresql://neondb_owner:npg_cDx9rSmOvFn6@ep-broad-cake-bb3wn52w.c-15.us-east-1.aws.neon.tech/neondb?sslmode=require";
-            config["ConnectionStrings:DefaultConnection"] = sqlConnStr;
-            Console.WriteLine("   ⚠️ DefaultConnection placeholder detected — using Neon PostgreSQL connection");
+            throw new InvalidOperationException(
+                "❌ FATAL: ConnectionStrings:DefaultConnection is missing or a placeholder. " +
+                "Set the ConnectionStrings__DefaultConnection environment variable " +
+                "(e.g. postgresql://user:pass@host/db?sslmode=require) and restart.");
         }
-        else
-        {
-            Console.WriteLine("   ✅ SQL Connection String validated");
-        }
+        Console.WriteLine("   ✅ SQL Connection String validated");
 
         // Validate Redis Connection String (Optional — falls back to MemoryCache)
         var redisConnStr = config.GetConnectionString("Redis");
@@ -242,7 +238,9 @@ try
         var azureConnStr = config["AzureStorage:ConnectionString"];
         if (!string.IsNullOrEmpty(azureConnStr) && azureConnStr.Contains("REPLACE_WITH"))
             throw new InvalidOperationException(
-                "❌ CRITICAL: AzureStorage:ConnectionString contains REPLACE_WITH placeholder.");
+                "❌ FATAL: AzureStorage:ConnectionString contains a REPLACE_WITH placeholder. " +
+                "Either set a real Azure Storage connection string (Storage account → Access keys) " +
+                "or REMOVE the variable entirely to fall back to the local StubStorageService.");
 
         if (!string.IsNullOrEmpty(azureConnStr))
             Console.WriteLine("   ✅ Azure Storage Configuration validated");
@@ -263,14 +261,59 @@ try
         Console.WriteLine("⚠️  Staging mode: Verify all configuration values\n");
     }
 
+    // ── Database Connectivity Preflight ─────────────────────────────────────
+    // Hangfire storage + EF migrations both need the database. If it is
+    // unreachable, fail with a CLEAR message instead of an obscure
+    // "CLR worker thread exited prematurely" inside the IIS worker process.
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<ClinicDbContext>();
+        var canConnect = false;
+        try
+        {
+            canConnect = await db.Database.CanConnectAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Database connectivity probe threw an exception.");
+        }
+
+        if (!canConnect)
+        {
+            var target = config.GetConnectionString("DefaultConnection") ?? "<null>";
+            // Never print credentials — show host/database only.
+            var safeTarget = target;
+            var uriMatch = System.Text.RegularExpressions.Regex.Match(
+                target, @"^[a-z]+://[^/@:]+:[^@]+@([^/]+)/([^?]*)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (uriMatch.Success)
+                safeTarget = $"host={uriMatch.Groups[1].Value}, database={uriMatch.Groups[2].Value}";
+
+            var message =
+                "❌ FATAL: Cannot connect to the database. Hangfire and EF migrations require it. " +
+                $"Connection target: {safeTarget}. " +
+                "Check: 1) the connection string env var, 2) database server firewall/IP allow-list " +
+                "(Neon: allow the hosting server IP), 3) database is not suspended (Neon free tier scales to zero).";
+
+            if (env.IsProduction())
+            {
+                Log.Fatal(message);
+                Console.WriteLine(message);
+                Environment.ExitCode = 1;
+                Log.CloseAndFlush();
+                return; // fail fast — do not start a half-working app
+            }
+            Log.Warning(message + " (continuing in Development)");
+        }
+    }
+
     // ── Database Schema Initialization & Seed ────────────────────────────────
     using (var scope = app.Services.CreateScope())
     {
         try
         {
             var db = scope.ServiceProvider.GetRequiredService<ClinicDbContext>();
-            await db.Database.EnsureCreatedAsync();
-            Log.Information("Database schema ensured.");
+            await db.Database.MigrateAsync();
+            Log.Information("Database migrated successfully.");
 
             var seeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
             await seeder.SeedAsync();
@@ -283,6 +326,11 @@ try
     }
 
     // ── Middleware Pipeline ──────────────────────────────────────────────────
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+    });
+
     app.UseMiddleware<GlobalExceptionMiddleware>();
     app.UseSerilogRequestLogging();
 
@@ -293,9 +341,9 @@ try
         c.RoutePrefix = "swagger";
     });
 
+    app.UseRouting();
     app.UseCors("Angular");
     app.UseStaticFiles();
-    app.UseRouting();
     app.UseMiddleware<TenantResolutionMiddleware>();
     app.UseRateLimiter();
     app.UseAuthentication();
@@ -312,26 +360,43 @@ try
     });
 
 
-    RecurringJob.AddOrUpdate<InvoiceOverdueJob>(
-        "invoice-overdue-daily",
-        job => job.ExecuteAsync(),
-        Cron.Daily);
+    // Recurring job registration touches the Hangfire storage (database).
+    // If the DB is unreachable at this moment, do NOT crash the whole app —
+    // the API can still serve requests; jobs will re-register on next start.
+    try
+    {
+        RecurringJob.AddOrUpdate<InvoiceOverdueJob>(
+            "invoice-overdue-daily",
+            job => job.ExecuteAsync(),
+            Cron.Daily);
 
-    RecurringJob.AddOrUpdate<MissedAppointmentJob>(
-        "missed-appointments-daily",
-        job => job.ExecuteAsync(),
-        Cron.Daily);
+        RecurringJob.AddOrUpdate<MissedAppointmentJob>(
+            "missed-appointments-daily",
+            job => job.ExecuteAsync(),
+            Cron.Daily);
+
+        Log.Information("Hangfire recurring jobs registered.");
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Failed to register Hangfire recurring jobs — the API will continue without them.");
+    }
 
     // ── Endpoints ────────────────────────────────────────────────────────────
     app.MapHub<ClinicHub>("/hubs/clinic");
     app.MapControllers();
-    app.MapHealthChecks("/health");
+    app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }));
+    app.MapHealthChecks("/health/ready");
 
     app.Run();
 }
 catch (Exception ex)
 {
     Log.Fatal(ex, "MediQueue API terminated unexpectedly.");
+    // CRITICAL: without this, the process exits with code 0 and IIS reports
+    // "exited from Program.Main with exit code = '0'" — hiding the real failure.
+    // A non-zero code makes the crash visible to IIS/WAS and monitoring.
+    Environment.ExitCode = 1;
 }
 finally
 {

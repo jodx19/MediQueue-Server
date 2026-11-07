@@ -33,8 +33,11 @@ public class GptDrugInteractionService : IDrugInteractionService
         _logger = logger;
 
         _httpClient.BaseAddress = new Uri("https://api.openai.com/");
-        _httpClient.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+        if (!string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+        }
     }
 
     public async Task<DrugInteractionResult> CheckAsync(
@@ -42,6 +45,16 @@ public class GptDrugInteractionService : IDrugInteractionService
         string newDrugName,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            _logger.LogWarning("OpenAI:ApiKey is not configured. Drug interaction check is unavailable.");
+            return new DrugInteractionResult
+            {
+                HasInteractions = false,
+                Summary = "خدمة فحص التفاعلات الدوائية بالذكاء الاصطناعي غير متاحة (OpenAI API key غير مضبوط)."
+            };
+        }
+
         var currentDrugs = currentDrugNames.ToList();
         if (!currentDrugs.Any())
             return new DrugInteractionResult { HasInteractions = false, Summary = "No current medications to check against." };

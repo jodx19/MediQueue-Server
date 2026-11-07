@@ -3,8 +3,8 @@ using System;
 using MediQueue.Infrastructure.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -17,92 +17,92 @@ namespace MediQueue.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.0")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("ProductVersion", "9.0.2")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("MediQueue.Domain.Entities.AppUser", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<Guid?>("DoctorId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("character varying(150)");
 
                     b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("EmailVerificationToken")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("EmailVerificationTokenExpiresAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("LastName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("PasswordResetToken")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("PasswordResetTokenExpiresAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("PatientId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("RefreshToken")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("RefreshTokenExpiryTime")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Role")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
 
@@ -121,77 +121,77 @@ namespace MediQueue.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("ActualEndTime")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("ActualStartTime")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CancellationReason")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ChiefComplaint")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("ClinicId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("DoctorId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("DurationMinutes")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("PatientId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Priority")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("RoomNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
+                        .HasColumnType("bytea");
 
                     b.Property<DateTime>("ScheduledAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("VisitType")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -206,36 +206,36 @@ namespace MediQueue.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Action")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("ErrorMessage")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<bool>("IsSuccess")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UserEmail")
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("character varying(256)");
 
                     b.Property<Guid?>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("UserRole")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.HasKey("Id");
 
@@ -252,54 +252,54 @@ namespace MediQueue.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("AppointmentId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("AssessmentNote")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("DoctorId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsFinalized")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
                     b.Property<string>("ObjectiveNote")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("PatientId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("PlanNote")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("SubjectiveNote")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("VisitDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -316,46 +316,46 @@ namespace MediQueue.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Bio")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsAvailable")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("LicenseNumber")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Specialty")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("SubSpecialty")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<int>("YearsOfExperience")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -369,16 +369,16 @@ namespace MediQueue.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid?>("AppointmentId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateOnly>("DueDate")
                         .HasColumnType("date");
@@ -386,29 +386,29 @@ namespace MediQueue.Infrastructure.Migrations
                     b.Property<string>("InvoiceNumber")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("IssuedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("PatientId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -426,49 +426,49 @@ namespace MediQueue.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid?>("ClinicalVisitId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ContentType")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("FileName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<long>("FileSize")
                         .HasColumnType("bigint");
 
                     b.Property<string>("FileUrl")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<Guid>("PatientId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Type")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -479,164 +479,164 @@ namespace MediQueue.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("AdditionalNotes")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("AlcoholConsumptionDetails")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("AllergyDetails")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("BloodPressure")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<decimal?>("Bmi")
                         .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
+                        .HasColumnType("numeric(5,2)");
 
                     b.Property<string>("ChronicConditionDetails")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("character varying(450)");
 
                     b.Property<string>("CurrentMedications")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("DiabetesType")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("DietType")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("DrugUseDetails")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("ExaminingPhysician")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("ExerciseFrequency")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("FamilyHistory")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<bool>("HasAllergies")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("HasAsthma")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("HasChronicConditions")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("HasDiabetes")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("HasHeartDisease")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("HasHypertension")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("HasMedicationAllergies")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("HeartRate")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<decimal?>("Height")
                         .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
+                        .HasColumnType("numeric(5,2)");
 
                     b.Property<string>("ImmunizationHistory")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<bool>("IsAlcoholConsumer")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDrugUser")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsPregnant")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsSmoker")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastExaminationDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("LastMenstrualPeriod")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("MedicationAllergyDetails")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<int?>("OxygenSaturation")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("PastMedications")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<Guid>("PatientId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<int?>("PregnancyCount")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("RespiratoryRate")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("SmokingPackYears")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("SurgicalHistory")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<decimal?>("Temperature")
                         .HasPrecision(3, 1)
-                        .HasColumnType("decimal(3,1)");
+                        .HasColumnType("numeric(3,1)");
 
                     b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("character varying(450)");
 
                     b.Property<decimal?>("Weight")
                         .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
+                        .HasColumnType("numeric(5,2)");
 
                     b.HasKey("Id");
 
@@ -653,36 +653,36 @@ namespace MediQueue.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Message")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<int>("Type")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -693,65 +693,65 @@ namespace MediQueue.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("BloodType")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateOnly>("DateOfBirth")
                         .HasColumnType("date");
 
                     b.Property<string>("EmergencyContactName")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("EmergencyContactPhone")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Gender")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("InsurancePolicyNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("InsuranceProvider")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("MaritalStatus")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("MedicalRecordNumber")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("NationalId")
                         .IsRequired()
                         .HasMaxLength(14)
-                        .HasColumnType("nvarchar(14)");
+                        .HasColumnType("character varying(14)");
 
                     b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -768,46 +768,46 @@ namespace MediQueue.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("AdminEmail")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("character varying(256)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("Plan")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Subdomain")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime?>("SubscriptionEndsAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("TrialEndsAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -821,64 +821,64 @@ namespace MediQueue.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("AllowOnlineBooking")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("AppointmentDurationMinutes")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ClinicAddress")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ClinicEmail")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ClinicName")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("ClinicPhone")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Currency")
                         .IsRequired()
                         .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)");
+                        .HasColumnType("character varying(3)");
 
                     b.Property<decimal>("DepositAmount")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("LogoUrl")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("RequireDepositForBooking")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("TimeZone")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<TimeOnly>("WorkEndTime")
-                        .HasColumnType("time");
+                        .HasColumnType("time without time zone");
 
                     b.Property<TimeOnly>("WorkStartTime")
-                        .HasColumnType("time");
+                        .HasColumnType("time without time zone");
 
                     b.HasKey("Id");
 
@@ -935,15 +935,15 @@ namespace MediQueue.Infrastructure.Migrations
                     b.OwnsMany("MediQueue.Domain.ValueObjects.VitalSign", "VitalSigns", b1 =>
                         {
                             b1.Property<Guid>("ClinicalVisitId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<int>("__synthesizedOrdinal")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("int");
+                                .HasColumnType("integer");
 
                             b1.Property<string>("Type")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.HasKey("ClinicalVisitId", "__synthesizedOrdinal");
 
@@ -959,33 +959,33 @@ namespace MediQueue.Infrastructure.Migrations
                         {
                             b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<string>("Description")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<bool>("IsDeleted")
-                                .HasColumnType("bit");
+                                .HasColumnType("boolean");
 
                             b1.Property<string>("Notes")
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<string>("Type")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<Guid>("VisitId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.HasKey("Id");
 
@@ -999,24 +999,24 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.OwnsOne("MediQueue.Domain.ValueObjects.MedicalCode", "MedicalCode", b2 =>
                                 {
                                     b2.Property<Guid>("DiagnosisId")
-                                        .HasColumnType("uniqueidentifier");
+                                        .HasColumnType("uuid");
 
                                     b2.Property<string>("Code")
                                         .IsRequired()
                                         .HasMaxLength(50)
-                                        .HasColumnType("nvarchar(50)")
+                                        .HasColumnType("character varying(50)")
                                         .HasColumnName("CodeValue");
 
                                     b2.Property<string>("Description")
                                         .IsRequired()
                                         .HasMaxLength(500)
-                                        .HasColumnType("nvarchar(500)")
+                                        .HasColumnType("character varying(500)")
                                         .HasColumnName("CodeDescription");
 
                                     b2.Property<string>("System")
                                         .IsRequired()
                                         .HasMaxLength(50)
-                                        .HasColumnType("nvarchar(50)")
+                                        .HasColumnType("character varying(50)")
                                         .HasColumnName("CodeSystem");
 
                                     b2.HasKey("DiagnosisId");
@@ -1035,37 +1035,37 @@ namespace MediQueue.Infrastructure.Migrations
                         {
                             b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<string>("BodyPart")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<string>("ImagingType")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("Instructions")
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<bool>("IsDeleted")
-                                .HasColumnType("bit");
+                                .HasColumnType("boolean");
 
                             b1.Property<string>("Status")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<Guid>("VisitId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.HasKey("Id");
 
@@ -1081,45 +1081,45 @@ namespace MediQueue.Infrastructure.Migrations
                         {
                             b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime?>("CompletedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<string>("Instructions")
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<bool>("IsDeleted")
-                                .HasColumnType("bit");
+                                .HasColumnType("boolean");
 
                             b1.Property<DateTime>("RequestedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<string>("ResultNotes")
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("ResultValue")
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("Status")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<string>("TestName")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<Guid>("VisitId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.HasKey("Id");
 
@@ -1135,29 +1135,29 @@ namespace MediQueue.Infrastructure.Migrations
                         {
                             b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<string>("Description")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<bool>("IsDeleted")
-                                .HasColumnType("bit");
+                                .HasColumnType("boolean");
 
                             b1.Property<DateTime>("PerformedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<Guid>("VisitId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.HasKey("Id");
 
@@ -1171,7 +1171,7 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.OwnsOne("MediQueue.Domain.ValueObjects.Money", "Fee", b2 =>
                                 {
                                     b2.Property<Guid>("MedicalProcedureId")
-                                        .HasColumnType("uniqueidentifier");
+                                        .HasColumnType("uuid");
 
                                     b2.Property<decimal>("Amount")
                                         .HasColumnType("decimal(18,2)")
@@ -1180,7 +1180,7 @@ namespace MediQueue.Infrastructure.Migrations
                                     b2.Property<string>("Currency")
                                         .IsRequired()
                                         .HasMaxLength(3)
-                                        .HasColumnType("nvarchar(3)")
+                                        .HasColumnType("character varying(3)")
                                         .HasColumnName("FeeCurrency");
 
                                     b2.HasKey("MedicalProcedureId");
@@ -1194,24 +1194,24 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.OwnsOne("MediQueue.Domain.ValueObjects.MedicalCode", "MedicalCode", b2 =>
                                 {
                                     b2.Property<Guid>("MedicalProcedureId")
-                                        .HasColumnType("uniqueidentifier");
+                                        .HasColumnType("uuid");
 
                                     b2.Property<string>("Code")
                                         .IsRequired()
                                         .HasMaxLength(50)
-                                        .HasColumnType("nvarchar(50)")
+                                        .HasColumnType("character varying(50)")
                                         .HasColumnName("CodeValue");
 
                                     b2.Property<string>("Description")
                                         .IsRequired()
                                         .HasMaxLength(500)
-                                        .HasColumnType("nvarchar(500)")
+                                        .HasColumnType("character varying(500)")
                                         .HasColumnName("CodeDescription");
 
                                     b2.Property<string>("System")
                                         .IsRequired()
                                         .HasMaxLength(50)
-                                        .HasColumnType("nvarchar(50)")
+                                        .HasColumnType("character varying(50)")
                                         .HasColumnName("CodeSystem");
 
                                     b2.HasKey("MedicalProcedureId");
@@ -1233,35 +1233,35 @@ namespace MediQueue.Infrastructure.Migrations
                         {
                             b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<bool>("IsDeleted")
-                                .HasColumnType("bit");
+                                .HasColumnType("boolean");
 
                             b1.Property<DateTime>("IssuedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<string>("PrescriptionNumber")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<int>("Status")
-                                .HasColumnType("int");
+                                .HasColumnType("integer");
 
                             b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<DateOnly>("ValidUntil")
                                 .HasColumnType("date");
 
                             b1.Property<Guid>("VisitId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.HasKey("Id");
 
@@ -1275,13 +1275,13 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.OwnsMany("MediQueue.Domain.ValueObjects.PrescriptionItem", "Items", b2 =>
                                 {
                                     b2.Property<Guid>("PrescriptionId")
-                                        .HasColumnType("uniqueidentifier");
+                                        .HasColumnType("uuid");
 
                                     b2.Property<int>("Id")
                                         .ValueGeneratedOnAdd()
-                                        .HasColumnType("int");
+                                        .HasColumnType("integer");
 
-                                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b2.Property<int>("Id"));
+                                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b2.Property<int>("Id"));
 
                                     b2.HasKey("PrescriptionId", "Id");
 
@@ -1298,40 +1298,40 @@ namespace MediQueue.Infrastructure.Migrations
                         {
                             b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<bool>("IsDeleted")
-                                .HasColumnType("bit");
+                                .HasColumnType("boolean");
 
                             b1.Property<string>("Notes")
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("Reason")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("ReferredToDoctorName")
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("ReferredToSpecialty")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<string>("Urgency")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<Guid>("VisitId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.HasKey("Id");
 
@@ -1369,7 +1369,7 @@ namespace MediQueue.Infrastructure.Migrations
                     b.OwnsOne("MediQueue.Domain.ValueObjects.Money", "ConsultationFee", b1 =>
                         {
                             b1.Property<Guid>("DoctorId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<decimal>("Amount")
                                 .HasColumnType("decimal(18,2)")
@@ -1378,7 +1378,7 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.Property<string>("Currency")
                                 .IsRequired()
                                 .HasMaxLength(3)
-                                .HasColumnType("nvarchar(3)")
+                                .HasColumnType("character varying(3)")
                                 .HasColumnName("ConsultationFeeCurrency");
 
                             b1.HasKey("DoctorId");
@@ -1392,22 +1392,22 @@ namespace MediQueue.Infrastructure.Migrations
                     b.OwnsOne("MediQueue.Domain.ValueObjects.ContactInfo", "ContactInfo", b1 =>
                         {
                             b1.Property<Guid>("DoctorId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<string>("AlternativePhone")
                                 .HasMaxLength(20)
-                                .HasColumnType("nvarchar(20)")
+                                .HasColumnType("character varying(20)")
                                 .HasColumnName("AlternativePhone");
 
                             b1.Property<string>("Email")
                                 .HasMaxLength(100)
-                                .HasColumnType("nvarchar(100)")
+                                .HasColumnType("character varying(100)")
                                 .HasColumnName("Email");
 
                             b1.Property<string>("Phone")
                                 .IsRequired()
                                 .HasMaxLength(20)
-                                .HasColumnType("nvarchar(20)")
+                                .HasColumnType("character varying(20)")
                                 .HasColumnName("Phone");
 
                             b1.HasKey("DoctorId");
@@ -1421,7 +1421,7 @@ namespace MediQueue.Infrastructure.Migrations
                     b.OwnsOne("MediQueue.Domain.ValueObjects.Money", "FollowUpFee", b1 =>
                         {
                             b1.Property<Guid>("DoctorId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<decimal>("Amount")
                                 .HasColumnType("decimal(18,2)")
@@ -1430,7 +1430,7 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.Property<string>("Currency")
                                 .IsRequired()
                                 .HasMaxLength(3)
-                                .HasColumnType("nvarchar(3)")
+                                .HasColumnType("character varying(3)")
                                 .HasColumnName("FollowUpFeeCurrency");
 
                             b1.HasKey("DoctorId");
@@ -1444,23 +1444,23 @@ namespace MediQueue.Infrastructure.Migrations
                     b.OwnsOne("MediQueue.Domain.ValueObjects.PersonName", "PersonName", b1 =>
                         {
                             b1.Property<Guid>("DoctorId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<string>("FirstName")
                                 .IsRequired()
                                 .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)")
+                                .HasColumnType("character varying(50)")
                                 .HasColumnName("FirstName");
 
                             b1.Property<string>("LastName")
                                 .IsRequired()
                                 .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)")
+                                .HasColumnType("character varying(50)")
                                 .HasColumnName("LastName");
 
                             b1.Property<string>("MiddleName")
                                 .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)")
+                                .HasColumnType("character varying(50)")
                                 .HasColumnName("MiddleName");
 
                             b1.HasKey("DoctorId");
@@ -1475,33 +1475,33 @@ namespace MediQueue.Infrastructure.Migrations
                         {
                             b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<string>("Degree")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<Guid>("DoctorId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<string>("Institution")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<bool>("IsDeleted")
-                                .HasColumnType("bit");
+                                .HasColumnType("boolean");
 
                             b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<int>("Year")
-                                .HasColumnType("int");
+                                .HasColumnType("integer");
 
                             b1.HasKey("Id");
 
@@ -1516,15 +1516,15 @@ namespace MediQueue.Infrastructure.Migrations
                     b.OwnsMany("MediQueue.Domain.ValueObjects.WorkingShift", "WorkingShifts", b1 =>
                         {
                             b1.Property<Guid>("DoctorId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<int>("__synthesizedOrdinal")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("int");
+                                .HasColumnType("integer");
 
                             b1.Property<string>("DayOfWeek")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.HasKey("DoctorId", "__synthesizedOrdinal");
 
@@ -1569,7 +1569,7 @@ namespace MediQueue.Infrastructure.Migrations
                     b.OwnsOne("MediQueue.Domain.ValueObjects.Money", "DiscountAmount", b1 =>
                         {
                             b1.Property<Guid>("InvoiceId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<decimal>("Amount")
                                 .HasColumnType("decimal(18,2)")
@@ -1578,7 +1578,7 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.Property<string>("Currency")
                                 .IsRequired()
                                 .HasMaxLength(3)
-                                .HasColumnType("nvarchar(3)")
+                                .HasColumnType("character varying(3)")
                                 .HasColumnName("DiscountCurrency");
 
                             b1.HasKey("InvoiceId");
@@ -1592,7 +1592,7 @@ namespace MediQueue.Infrastructure.Migrations
                     b.OwnsOne("MediQueue.Domain.ValueObjects.Money", "PaidAmount", b1 =>
                         {
                             b1.Property<Guid>("InvoiceId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<decimal>("Amount")
                                 .HasColumnType("decimal(18,2)")
@@ -1601,7 +1601,7 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.Property<string>("Currency")
                                 .IsRequired()
                                 .HasMaxLength(3)
-                                .HasColumnType("nvarchar(3)")
+                                .HasColumnType("character varying(3)")
                                 .HasColumnName("PaidCurrency");
 
                             b1.HasKey("InvoiceId");
@@ -1615,7 +1615,7 @@ namespace MediQueue.Infrastructure.Migrations
                     b.OwnsOne("MediQueue.Domain.ValueObjects.Money", "SubTotal", b1 =>
                         {
                             b1.Property<Guid>("InvoiceId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<decimal>("Amount")
                                 .HasColumnType("decimal(18,2)")
@@ -1624,7 +1624,7 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.Property<string>("Currency")
                                 .IsRequired()
                                 .HasMaxLength(3)
-                                .HasColumnType("nvarchar(3)")
+                                .HasColumnType("character varying(3)")
                                 .HasColumnName("SubTotalCurrency");
 
                             b1.HasKey("InvoiceId");
@@ -1638,7 +1638,7 @@ namespace MediQueue.Infrastructure.Migrations
                     b.OwnsOne("MediQueue.Domain.ValueObjects.Money", "TaxAmount", b1 =>
                         {
                             b1.Property<Guid>("InvoiceId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<decimal>("Amount")
                                 .HasColumnType("decimal(18,2)")
@@ -1647,7 +1647,7 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.Property<string>("Currency")
                                 .IsRequired()
                                 .HasMaxLength(3)
-                                .HasColumnType("nvarchar(3)")
+                                .HasColumnType("character varying(3)")
                                 .HasColumnName("TaxCurrency");
 
                             b1.HasKey("InvoiceId");
@@ -1662,29 +1662,29 @@ namespace MediQueue.Infrastructure.Migrations
                         {
                             b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<string>("Description")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<Guid>("InvoiceId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<bool>("IsDeleted")
-                                .HasColumnType("bit");
+                                .HasColumnType("boolean");
 
                             b1.Property<int>("Quantity")
-                                .HasColumnType("int");
+                                .HasColumnType("integer");
 
                             b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.HasKey("Id");
 
@@ -1698,7 +1698,7 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.OwnsOne("MediQueue.Domain.ValueObjects.Money", "UnitPrice", b2 =>
                                 {
                                     b2.Property<Guid>("InvoiceItemId")
-                                        .HasColumnType("uniqueidentifier");
+                                        .HasColumnType("uuid");
 
                                     b2.Property<decimal>("Amount")
                                         .HasColumnType("decimal(18,2)")
@@ -1707,7 +1707,7 @@ namespace MediQueue.Infrastructure.Migrations
                                     b2.Property<string>("Currency")
                                         .IsRequired()
                                         .HasMaxLength(3)
-                                        .HasColumnType("nvarchar(3)")
+                                        .HasColumnType("character varying(3)")
                                         .HasColumnName("UnitPriceCurrency");
 
                                     b2.HasKey("InvoiceItemId");
@@ -1726,35 +1726,35 @@ namespace MediQueue.Infrastructure.Migrations
                         {
                             b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<Guid>("InvoiceId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<bool>("IsDeleted")
-                                .HasColumnType("bit");
+                                .HasColumnType("boolean");
 
                             b1.Property<string>("Method")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("Notes")
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<DateTime>("PaidAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<string>("ReferenceNumber")
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.HasKey("Id");
 
@@ -1768,7 +1768,7 @@ namespace MediQueue.Infrastructure.Migrations
                             b1.OwnsOne("MediQueue.Domain.ValueObjects.Money", "Amount", b2 =>
                                 {
                                     b2.Property<Guid>("PaymentId")
-                                        .HasColumnType("uniqueidentifier");
+                                        .HasColumnType("uuid");
 
                                     b2.Property<decimal>("Amount")
                                         .HasColumnType("decimal(18,2)")
@@ -1777,7 +1777,7 @@ namespace MediQueue.Infrastructure.Migrations
                                     b2.Property<string>("Currency")
                                         .IsRequired()
                                         .HasMaxLength(3)
-                                        .HasColumnType("nvarchar(3)")
+                                        .HasColumnType("character varying(3)")
                                         .HasColumnName("Currency");
 
                                     b2.HasKey("PaymentId");
@@ -1830,37 +1830,37 @@ namespace MediQueue.Infrastructure.Migrations
                         {
                             b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<string>("Allergen")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<DateOnly?>("DiagnosedAt")
                                 .HasColumnType("date");
 
                             b1.Property<bool>("IsDeleted")
-                                .HasColumnType("bit");
+                                .HasColumnType("boolean");
 
                             b1.Property<Guid>("PatientId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<string>("Reaction")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("Severity")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.HasKey("Id");
 
@@ -1876,38 +1876,38 @@ namespace MediQueue.Infrastructure.Migrations
                         {
                             b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<string>("ConditionName")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<DateOnly?>("DiagnosedAt")
                                 .HasColumnType("date");
 
                             b1.Property<string>("ICD10Code")
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<bool>("IsActive")
-                                .HasColumnType("bit");
+                                .HasColumnType("boolean");
 
                             b1.Property<bool>("IsDeleted")
-                                .HasColumnType("bit");
+                                .HasColumnType("boolean");
 
                             b1.Property<string>("Notes")
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<Guid>("PatientId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.HasKey("Id");
 
@@ -1923,40 +1923,40 @@ namespace MediQueue.Infrastructure.Migrations
                         {
                             b1.Property<Guid>("Id")
                                 .ValueGeneratedOnAdd()
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.Property<string>("Dosage")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("Frequency")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<bool>("IsDeleted")
-                                .HasColumnType("bit");
+                                .HasColumnType("boolean");
 
                             b1.Property<string>("MedicationName")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<Guid>("PatientId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<string>("PrescribedBy")
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<DateOnly>("StartedAt")
                                 .HasColumnType("date");
 
                             b1.Property<Guid>("TenantId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("datetime2");
+                                .HasColumnType("timestamp with time zone");
 
                             b1.HasKey("Id");
 
@@ -1971,22 +1971,22 @@ namespace MediQueue.Infrastructure.Migrations
                     b.OwnsOne("MediQueue.Domain.ValueObjects.ContactInfo", "ContactInfo", b1 =>
                         {
                             b1.Property<Guid>("PatientId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<string>("AlternativePhone")
                                 .HasMaxLength(20)
-                                .HasColumnType("nvarchar(20)")
+                                .HasColumnType("character varying(20)")
                                 .HasColumnName("AlternativePhone");
 
                             b1.Property<string>("Email")
                                 .HasMaxLength(100)
-                                .HasColumnType("nvarchar(100)")
+                                .HasColumnType("character varying(100)")
                                 .HasColumnName("Email");
 
                             b1.Property<string>("Phone")
                                 .IsRequired()
                                 .HasMaxLength(20)
-                                .HasColumnType("nvarchar(20)")
+                                .HasColumnType("character varying(20)")
                                 .HasColumnName("Phone");
 
                             b1.HasKey("PatientId");
@@ -2000,23 +2000,23 @@ namespace MediQueue.Infrastructure.Migrations
                     b.OwnsOne("MediQueue.Domain.ValueObjects.PersonName", "PersonName", b1 =>
                         {
                             b1.Property<Guid>("PatientId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<string>("FirstName")
                                 .IsRequired()
                                 .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)")
+                                .HasColumnType("character varying(50)")
                                 .HasColumnName("FirstName");
 
                             b1.Property<string>("LastName")
                                 .IsRequired()
                                 .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)")
+                                .HasColumnType("character varying(50)")
                                 .HasColumnName("LastName");
 
                             b1.Property<string>("MiddleName")
                                 .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)")
+                                .HasColumnType("character varying(50)")
                                 .HasColumnName("MiddleName");
 
                             b1.HasKey("PatientId");
@@ -2030,35 +2030,35 @@ namespace MediQueue.Infrastructure.Migrations
                     b.OwnsOne("MediQueue.Domain.ValueObjects.Address", "Address", b1 =>
                         {
                             b1.Property<Guid>("PatientId")
-                                .HasColumnType("uniqueidentifier");
+                                .HasColumnType("uuid");
 
                             b1.Property<string>("City")
                                 .IsRequired()
                                 .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)")
+                                .HasColumnType("character varying(50)")
                                 .HasColumnName("City");
 
                             b1.Property<string>("Country")
                                 .IsRequired()
                                 .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)")
+                                .HasColumnType("character varying(50)")
                                 .HasColumnName("Country");
 
                             b1.Property<string>("Governorate")
                                 .IsRequired()
                                 .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)")
+                                .HasColumnType("character varying(50)")
                                 .HasColumnName("Governorate");
 
                             b1.Property<string>("PostalCode")
                                 .HasMaxLength(20)
-                                .HasColumnType("nvarchar(20)")
+                                .HasColumnType("character varying(20)")
                                 .HasColumnName("PostalCode");
 
                             b1.Property<string>("Street")
                                 .IsRequired()
                                 .HasMaxLength(200)
-                                .HasColumnType("nvarchar(200)")
+                                .HasColumnType("character varying(200)")
                                 .HasColumnName("Street");
 
                             b1.HasKey("PatientId");

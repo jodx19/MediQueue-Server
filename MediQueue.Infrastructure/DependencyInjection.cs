@@ -58,7 +58,12 @@ public static class DependencyInjection
                 var sslMode = "Require";
                 if (query.Contains("sslmode=disable", StringComparison.OrdinalIgnoreCase)) sslMode = "Disable";
                 else if (query.Contains("sslmode=prefer", StringComparison.OrdinalIgnoreCase)) sslMode = "Prefer";
-                npgsqlConnectionString = $"Host={host};Port={port};Database={database};Username={user};Password={pass};SSL Mode={sslMode};Trust Server Certificate=true;";
+
+                var poolerConfig = host.Contains("-pooler", StringComparison.OrdinalIgnoreCase)
+                    ? "Maximum Pool Size=10;"
+                    : "";
+
+                npgsqlConnectionString = $"Host={host};Port={port};Database={database};Username={user};Password={pass};SSL Mode={sslMode};Trust Server Certificate=true;Timeout=30;Command Timeout=60;{poolerConfig}";
             }
             catch
             {
@@ -72,7 +77,10 @@ public static class DependencyInjection
             if (isPostgres)
             {
                 options.UseNpgsql(npgsqlConnectionString, npgsql =>
-                    npgsql.MigrationsAssembly(typeof(ClinicDbContext).Assembly.FullName));
+                {
+                    npgsql.MigrationsAssembly(typeof(ClinicDbContext).Assembly.FullName);
+                    npgsql.EnableRetryOnFailure(3);
+                });
             }
             else
             {
@@ -125,27 +133,24 @@ public static class DependencyInjection
 
         // 5. Caching — Redis if connection string is present, MemoryCache otherwise
         var redisConnStr = configuration.GetConnectionString("Redis");
-        if (!string.IsNullOrWhiteSpace(redisConnStr))
+        if (!string.IsNullOrWhiteSpace(redisConnStr) && !redisConnStr.Contains("localhost"))
         {
             try
             {
-                var connectionMultiplexer = ConnectionMultiplexer.Connect(redisConnStr);
-                
-                if (connectionMultiplexer.IsConnected)
-                {
-                    services.AddSingleton<IConnectionMultiplexer>(connectionMultiplexer);
-                    services.AddSingleton<ICacheService, RedisCacheService>();
-                    Console.WriteLine("--> Redis connected successfully.");
-                }
-                else
-                {
-                    throw new Exception("Redis connection is not active.");
-                }
+                var redisOptions = ConfigurationOptions.Parse(redisConnStr);
+                redisOptions.AbortOnConnectFail = false;
+                redisOptions.ConnectTimeout = 3000;
+                redisOptions.SyncTimeout = 3000;
+
+                var connectionMultiplexer = ConnectionMultiplexer.Connect(redisOptions);
+                services.AddSingleton<IConnectionMultiplexer>(connectionMultiplexer);
+                services.AddSingleton<ICacheService, RedisCacheService>();
+                Console.WriteLine("--> Redis connection configured (background connect enabled).");
             }
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine($"[Warning] Failed to connect to Redis: {ex.Message}. Falling back to MemoryCache.");
+                Console.WriteLine($"[Warning] Failed to configure Redis: {ex.Message}. Falling back to MemoryCache.");
                 Console.ResetColor();
 
                 services.AddMemoryCache();
@@ -194,7 +199,7 @@ public static class DependencyInjection
         var healthChecks = services.AddHealthChecks();
         if (isPostgres)
         {
-            healthChecks.AddNpgSql(connectionString, name: "postgres", tags: ["db", "infrastructure"]);
+            healthChecks.AddNpgSql(npgsqlConnectionString, name: "postgres", tags: ["db", "infrastructure"]);
         }
         else
         {
