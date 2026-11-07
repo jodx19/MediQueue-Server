@@ -1,72 +1,14 @@
-using System.IO;
-using MediatR;
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Configuration;
+using MediQueue.Application.Common;
 using MediQueue.Application.Interfaces;
 
 namespace MediQueue.Infrastructure.Persistence.Context;
 
-public sealed class ClinicDbContextFactory : IDesignTimeDbContextFactory<ClinicDbContext>
+public class ClinicDbContextFactory : IDesignTimeDbContextFactory<ClinicDbContext>
 {
-    public ClinicDbContext CreateDbContext(string[] args)
-    {
-        // Search for appsettings in the Host project first, then API
-        var currentDir = Directory.GetCurrentDirectory();
-        
-        // Potential paths to find appsettings.json
-        var pathsToTry = new[] 
-        {
-            currentDir,
-            Path.Combine(currentDir, "..", "MediQueue.Server.Host"),
-            Path.Combine(currentDir, "..", "MediQueue.API"),
-            Path.Combine(currentDir, "MediQueue.Server.Host"),
-            Path.Combine(currentDir, "MediQueue.API")
-        };
-
-        var configBuilder = new ConfigurationBuilder();
-        bool found = false;
-
-        foreach (var path in pathsToTry)
-        {
-            if (File.Exists(Path.Combine(path, "appsettings.json")))
-            {
-                configBuilder.SetBasePath(path)
-                    .AddJsonFile("appsettings.json", optional: false)
-                    .AddJsonFile("appsettings.Development.json", optional: true);
-                found = true;
-                break;
-            }
-        }
-
-        if (!found)
-        {
-            configBuilder.SetBasePath(currentDir)
-                .AddEnvironmentVariables();
-        }
-
-        var configuration = configBuilder.Build();
-
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Could not find 'DefaultConnection' in any appsettings.json.");
-
-        var optionsBuilder = new DbContextOptionsBuilder<ClinicDbContext>();
-        optionsBuilder.UseSqlServer(connectionString);
-
-        return new ClinicDbContext(
-            optionsBuilder.Options,
-            new NoOpMediator(),
-            new DesignTimeCurrentUserService(),
-            new DesignTimeTenantContext());
-    }
-
-    private sealed class DesignTimeTenantContext : ITenantContext
-    {
-        public Guid TenantId => Guid.Empty;
-        public string Subdomain => "dev";
-    }
-
-    private sealed class DesignTimeCurrentUserService : ICurrentUserService
+    private class DesignTimeCurrentUserService : ICurrentUserService
     {
         public Guid? UserId => null;
         public Guid TenantId => Guid.Empty;
@@ -78,42 +20,24 @@ public sealed class ClinicDbContextFactory : IDesignTimeDbContextFactory<ClinicD
         public bool IsInRole(string role) => false;
     }
 
-    private sealed class NoOpMediator : IMediator
+    private class DesignTimeTenantContext : ITenantContext
     {
-        public Task<TResponse> Send<TResponse>(
-            IRequest<TResponse> request,
-            CancellationToken cancellationToken = default) => Task.FromResult(default(TResponse)!);
+        public Guid TenantId => Guid.Empty;
+        public string Subdomain => string.Empty;
+        public bool HasResolvedTenant => true;
+    }
 
-        public Task Send<TRequest>(
-            TRequest request,
-            CancellationToken cancellationToken = default)
-            where TRequest : IRequest => Task.CompletedTask;
+    public ClinicDbContext CreateDbContext(string[] args)
+    {
+        var optionsBuilder = new DbContextOptionsBuilder<ClinicDbContext>();
+        optionsBuilder.UseNpgsql(
+            "Host=localhost;Database=mediqueue;Username=postgres;Password=postgres",
+            npgsql => npgsql.MigrationsAssembly(typeof(ClinicDbContext).Assembly.FullName));
 
-        public Task<object?> Send(
-            object request,
-            CancellationToken cancellationToken = default) => Task.FromResult<object?>(null);
-
-        public Task Publish(
-            object notification,
-            CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task Publish<TNotification>(
-            TNotification notification,
-            CancellationToken cancellationToken = default)
-            where TNotification : INotification => Task.CompletedTask;
-
-        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(
-            IStreamRequest<TResponse> request,
-            CancellationToken cancellationToken = default) => EmptyAsync<TResponse>();
-
-        public IAsyncEnumerable<object?> CreateStream(
-            object request,
-            CancellationToken cancellationToken = default) => EmptyAsync<object?>();
-
-        private static async IAsyncEnumerable<T> EmptyAsync<T>()
-        {
-            await Task.CompletedTask;
-            yield break;
-        }
+        return new ClinicDbContext(
+            optionsBuilder.Options,
+            null!,
+            new DesignTimeCurrentUserService(),
+            new DesignTimeTenantContext());
     }
 }

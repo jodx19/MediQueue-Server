@@ -15,7 +15,8 @@ public class AzureBlobStorageService : IStorageService
 
     public AzureBlobStorageService(IConfiguration configuration)
     {
-        var connectionString = configuration["AzureStorage:ConnectionString"] ?? "UseDevelopmentStorage=true";
+        var connectionString = configuration["AzureStorage:ConnectionString"] 
+            ?? throw new InvalidOperationException("AzureStorage:ConnectionString is not configured.");
         _blobServiceClient = new BlobServiceClient(connectionString);
         _containerName = configuration["AzureStorage:ContainerName"] ?? "mediqueue-blobs";
     }

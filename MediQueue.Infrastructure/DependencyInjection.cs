@@ -39,12 +39,48 @@ public static class DependencyInjection
             || connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase)
             || connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase);
 
+        // Convert URI format (postgresql://user:pass@host/db?sslmode=require)
+        // to Npgsql keyword format for maximum IIS compatibility
+        string npgsqlConnectionString = connectionString;
+        if (isPostgres && (connectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
+                        || connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase)))
+        {
+            try
+            {
+                var uri = new Uri(connectionString.Replace("postgresql://", "https://").Replace("postgres://", "https://"));
+                var userInfo = uri.UserInfo.Split(':');
+                var user = Uri.UnescapeDataString(userInfo[0]);
+                var pass = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+                var host = uri.Host;
+                var port = uri.Port > 0 ? uri.Port : 5432;
+                var database = uri.AbsolutePath.TrimStart('/');
+                var query = uri.Query.TrimStart('?');
+                var sslMode = "Require";
+                if (query.Contains("sslmode=disable", StringComparison.OrdinalIgnoreCase)) sslMode = "Disable";
+                else if (query.Contains("sslmode=prefer", StringComparison.OrdinalIgnoreCase)) sslMode = "Prefer";
+
+                var poolerConfig = host.Contains("-pooler", StringComparison.OrdinalIgnoreCase)
+                    ? "Maximum Pool Size=10;"
+                    : "";
+
+                npgsqlConnectionString = $"Host={host};Port={port};Database={database};Username={user};Password={pass};SSL Mode={sslMode};Trust Server Certificate=true;Timeout=30;Command Timeout=60;{poolerConfig}";
+            }
+            catch
+            {
+                // If URI parsing fails, use the original connection string
+                npgsqlConnectionString = connectionString;
+            }
+        }
+
         services.AddDbContext<ClinicDbContext>(options =>
         {
             if (isPostgres)
             {
-                options.UseNpgsql(connectionString, npgsql =>
-                    npgsql.MigrationsAssembly(typeof(ClinicDbContext).Assembly.FullName));
+                options.UseNpgsql(npgsqlConnectionString, npgsql =>
+                {
+                    npgsql.MigrationsAssembly(typeof(ClinicDbContext).Assembly.FullName);
+                    npgsql.EnableRetryOnFailure(3);
+                });
             }
             else
             {
@@ -68,7 +104,16 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, MediQueue.Infrastructure.ExternalServices.AuthService>();
         services.AddScoped<ITokenService, MediQueue.Infrastructure.Services.TokenService>();
         services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
-        services.AddScoped<IStorageService, AzureBlobStorageService>();
+        // Azure Storage — only register if connection string is configured
+        var azureConnStr = configuration["AzureStorage:ConnectionString"];
+        if (!string.IsNullOrWhiteSpace(azureConnStr) && !azureConnStr.Contains("REPLACE_WITH"))
+        {
+            services.AddScoped<IStorageService, AzureBlobStorageService>();
+        }
+        else
+        {
+            services.AddScoped<IStorageService, StubStorageService>();
+        }
 
         // 4a. SMS — Unifonic (Egyptian/Arab market)
         //     Configure via env vars: Sms__AppSid, Sms__SenderName
@@ -88,27 +133,24 @@ public static class DependencyInjection
 
         // 5. Caching — Redis if connection string is present, MemoryCache otherwise
         var redisConnStr = configuration.GetConnectionString("Redis");
-        if (!string.IsNullOrWhiteSpace(redisConnStr))
+        if (!string.IsNullOrWhiteSpace(redisConnStr) && !redisConnStr.Contains("localhost"))
         {
             try
             {
-                var connectionMultiplexer = ConnectionMultiplexer.Connect(redisConnStr);
-                
-                if (connectionMultiplexer.IsConnected)
-                {
-                    services.AddSingleton<IConnectionMultiplexer>(connectionMultiplexer);
-                    services.AddSingleton<ICacheService, RedisCacheService>();
-                    Console.WriteLine("--> Redis connected successfully.");
-                }
-                else
-                {
-                    throw new Exception("Redis connection is not active.");
-                }
+                var redisOptions = ConfigurationOptions.Parse(redisConnStr);
+                redisOptions.AbortOnConnectFail = false;
+                redisOptions.ConnectTimeout = 3000;
+                redisOptions.SyncTimeout = 3000;
+
+                var connectionMultiplexer = ConnectionMultiplexer.Connect(redisOptions);
+                services.AddSingleton<IConnectionMultiplexer>(connectionMultiplexer);
+                services.AddSingleton<ICacheService, RedisCacheService>();
+                Console.WriteLine("--> Redis connection configured (background connect enabled).");
             }
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine($"[Warning] Failed to connect to Redis: {ex.Message}. Falling back to MemoryCache.");
+                Console.WriteLine($"[Warning] Failed to configure Redis: {ex.Message}. Falling back to MemoryCache.");
                 Console.ResetColor();
 
                 services.AddMemoryCache();
@@ -130,7 +172,7 @@ public static class DependencyInjection
 
             if (isPostgres)
             {
-                config.UsePostgreSqlStorage(c => c.UseNpgsqlConnection(connectionString));
+                config.UsePostgreSqlStorage(c => c.UseNpgsqlConnection(npgsqlConnectionString));
             }
             else
             {
@@ -157,7 +199,7 @@ public static class DependencyInjection
         var healthChecks = services.AddHealthChecks();
         if (isPostgres)
         {
-            healthChecks.AddNpgSql(connectionString, name: "postgres", tags: ["db", "infrastructure"]);
+            healthChecks.AddNpgSql(npgsqlConnectionString, name: "postgres", tags: ["db", "infrastructure"]);
         }
         else
         {

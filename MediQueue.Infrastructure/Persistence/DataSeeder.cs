@@ -2,6 +2,7 @@ using MediQueue.Application.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using MediQueue.Domain.Common;
 using MediQueue.Domain.Entities;
 using MediQueue.Domain.Enums;
@@ -14,7 +15,7 @@ namespace MediQueue.Infrastructure.Persistence;
 public class DataSeeder : IDataSeeder
 {
     private static readonly Guid DevTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-    private static readonly Guid SuperAdminUserId  = Guid.Parse("00000000-0000-0000-0000-000000000000");
+    private static readonly Guid SuperAdminUserId  = Guid.Parse("00000000-0000-0000-0000-000000000005");
     private static readonly Guid AdminUserId        = Guid.Parse("00000000-0000-0000-0000-000000000001");
     private static readonly Guid DoctorUserId       = Guid.Parse("00000000-0000-0000-0000-000000000002");
     private static readonly Guid ReceptionUserId    = Guid.Parse("00000000-0000-0000-0000-000000000003");
@@ -34,27 +35,63 @@ public class DataSeeder : IDataSeeder
     private readonly ClinicDbContext _context;
     private readonly IPasswordHasher<AppUser> _hasher;
     private readonly ILogger<DataSeeder> _logger;
+    private readonly IConfiguration _configuration;
 
     public DataSeeder(
         ClinicDbContext context,
         IPasswordHasher<AppUser> hasher,
-        ILogger<DataSeeder> logger)
+        ILogger<DataSeeder> logger,
+        IConfiguration configuration)
     {
         _context = context;
         _hasher = hasher;
         _logger = logger;
+        _configuration = configuration;
     }
 
     public async Task SeedAsync()
     {
-        await EnsureDevTenantAsync();
-
+        // Single fast check: if users exist, exit immediately
         if (await _context.Users.IgnoreQueryFilters().AnyAsync())
         {
             _logger.LogInformation("Seed skipped because users already exist.");
             return;
         }
 
+        await EnsureDevTenantAsync();
+
+        var envName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+        var isProduction = string.Equals(envName, "Production", StringComparison.OrdinalIgnoreCase);
+
+        if (isProduction)
+        {
+            var adminEmail = _configuration["SuperAdmin:Email"] ?? Environment.GetEnvironmentVariable("SuperAdmin__Email");
+            var adminPassword = _configuration["SuperAdmin:Password"] ?? Environment.GetEnvironmentVariable("SuperAdmin__Password");
+            var adminUsername = _configuration["SuperAdmin:Username"] ?? Environment.GetEnvironmentVariable("SuperAdmin__Username") ?? "superadmin";
+
+            if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+            {
+                _logger.LogWarning("SuperAdmin credentials (SuperAdmin:Email / SuperAdmin:Password) not configured. Skipping SuperAdmin seed.");
+                return;
+            }
+
+            var superAdmin = CreateUser(
+                SuperAdminUserId,
+                adminUsername,
+                adminEmail,
+                "Super",
+                "Admin",
+                "01000000000",
+                adminPassword,
+                UserRole.SuperAdmin);
+
+            await _context.Users.AddAsync(superAdmin);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("SuperAdmin user seeded successfully in Production.");
+            return;
+        }
+
+        // In Development, seed full demo dataset
         await SeedUsersAsync();
         await SeedDoctorsAsync();
         await SeedPatientsAsync();
@@ -62,7 +99,7 @@ public class DataSeeder : IDataSeeder
         await SeedSettingsAsync();
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Seed data applied successfully.");
+        _logger.LogInformation("Seed data applied successfully for Development.");
     }
 
     private async Task EnsureDevTenantAsync()
@@ -353,6 +390,16 @@ public class DataSeeder : IDataSeeder
 
     private static void SetEntityId(BaseEntity entity, Guid id)
     {
-        typeof(BaseEntity).GetProperty(nameof(BaseEntity.Id))?.SetValue(entity, id);
+        var prop = typeof(BaseEntity).GetProperty(
+            nameof(BaseEntity.Id),
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        if (prop == null)
+            throw new InvalidOperationException($"Property '{nameof(BaseEntity.Id)}' not found on {nameof(BaseEntity)}.");
+
+        prop.SetValue(entity, id);
+
+        if (entity.Id == Guid.Empty)
+            throw new InvalidOperationException($"Failed to set '{nameof(BaseEntity.Id)}' on entity {entity.GetType().Name}. Id is still empty.");
     }
 }
