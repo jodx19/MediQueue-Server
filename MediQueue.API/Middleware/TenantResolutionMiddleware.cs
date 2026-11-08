@@ -67,10 +67,12 @@ public class TenantResolutionMiddleware
         var host = context.Request.Host.Host.ToLowerInvariant();
         var tenantCtx = (MediQueue.API.Services.TenantContext)tenantContext;
 
-        // Dev mode: localhost or IP
+        // Dev mode: localhost, IP, or shared-hosting test domains (runasp.net, databaseasp.net)
         if (host is "localhost" or "127.0.0.1" or "::1" ||
             host.StartsWith("192.168.") ||
-            host.StartsWith("10."))
+            host.StartsWith("10.") ||
+            host.EndsWith(".runasp.net") ||
+            host.EndsWith(".databaseasp.net"))
         {
             var devOk = await TryResolveDevTenantAsync(
                 tenantRepository, cacheService, tenantCtx, context);

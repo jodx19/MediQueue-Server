@@ -82,3 +82,8 @@ deployment-record-*.md
 # Publish output (build artifacts, never commit)
 publish/
 publish.zip
+
+publish/
+publish-*/
+*.zip
+

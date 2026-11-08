@@ -312,8 +312,18 @@ try
         try
         {
             var db = scope.ServiceProvider.GetRequiredService<ClinicDbContext>();
-            await db.Database.MigrateAsync();
-            Log.Information("Database migrated successfully.");
+            // Use EnsureCreated for SQL Server (no SQL Server migrations exist — schema built from model).
+            // Use MigrateAsync for PostgreSQL (Npgsql migrations are present).
+            if (db.Database.IsNpgsql())
+            {
+                await db.Database.MigrateAsync();
+                Log.Information("PostgreSQL: Database migrated successfully.");
+            }
+            else
+            {
+                await db.Database.EnsureCreatedAsync();
+                Log.Information("SQL Server: Database schema ensured (EnsureCreated).");
+            }
 
             var seeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
             await seeder.SeedAsync();

@@ -16,6 +16,16 @@ public class SecurityHeadersMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        var path = context.Request.Path.Value ?? string.Empty;
+
+        // Skip strict CSP for Swagger and Hangfire UI to allow their scripts/styles to render
+        if (path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/hangfire", StringComparison.OrdinalIgnoreCase))
+        {
+            await _next(context);
+            return;
+        }
+
         // Prevent MIME-type sniffing
         context.Response.Headers["X-Content-Type-Options"] = "nosniff";
 
