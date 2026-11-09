@@ -1,6 +1,7 @@
 // e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.API\Controllers\AppointmentsController.cs
 using System;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -36,28 +37,70 @@ public class AppointmentsController : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
-    /// <summary>Book a new appointment.</summary>
-    [HttpPost]
-    [Authorize(Policy = "AdminOrReceptionist")]
+    /// <summary>Get appointments for currently authenticated patient.</summary>
+    [HttpGet("self")]
+    [Authorize(Policy = "PatientOnly")]
+    [ProducesResponseType(typeof(PagedResult<AppointmentDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<AppointmentDto>>> GetMine(
+        [FromQuery] int page = 1, [FromQuery] int size = 20, CancellationToken ct = default)
+    {
+        var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+        if (!Guid.TryParse(patientClaim, out var patientId)) return Forbid();
+        var result = await _sender.Send(new GetPatientAppointmentsQuery(patientId, page, size), ct);
+        return Ok(result.Value);
+    }
+
+    /// <summary>Book appointment for currently authenticated patient.</summary>
+    [HttpPost("self")]
+    [Authorize(Policy = "PatientOnly")]
     [ProducesResponseType(typeof(AppointmentDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult<AppointmentDto>> Book([FromBody] BookAppointmentCommand command, CancellationToken ct)
+    public async Task<ActionResult<AppointmentDto>> BookSelf([FromBody] BookAppointmentCommand command, CancellationToken ct)
     {
+        var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+        if (!Guid.TryParse(patientClaim, out var patientId)) return Forbid();
+        command.PatientId = patientId;
         var result = await _sender.Send(command, ct);
         if (!result.IsSuccess) return UnprocessableEntity(result.Error);
         return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
     }
 
+    /// <summary>Book a new appointment.</summary>
+    [HttpPost]
+    [Authorize(Policy = "PatientOrStaff")]
+    [ProducesResponseType(typeof(AppointmentDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<AppointmentDto>> Book([FromBody] BookAppointmentCommand command, CancellationToken ct)
+    {
+        if (User.IsInRole("Patient"))
+        {
+            var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+            if (!Guid.TryParse(patientClaim, out var patientId)) return Forbid();
+            command.PatientId = patientId; // Enforce IDOR protection
+        }
+
+        var result = await _sender.Send(command, ct);
+        if (!result.IsSuccess) return UnprocessableEntity(result.Error);
+        return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
+    }
 
     /// <summary>Get appointment by ID.</summary>
     [HttpGet("{id:guid}")]
-    [Authorize(Policy = "StaffOnly")]
+    [Authorize(Policy = "PatientOrStaff")]
     [ProducesResponseType(typeof(AppointmentDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AppointmentDto>> GetById(Guid id, CancellationToken ct)
     {
         var result = await _sender.Send(new GetAppointmentByIdQuery(id), ct);
         if (!result.IsSuccess) return NotFound(result.Error);
+
+        if (User.IsInRole("Patient"))
+        {
+            var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+            if (!Guid.TryParse(patientClaim, out var pid) || result.Value!.PatientId != pid)
+                return Forbid();
+        }
+
         return Ok(result.Value);
     }
 
@@ -107,10 +150,19 @@ public class AppointmentsController : ControllerBase
 
     /// <summary>Get paginated appointment history for a patient.</summary>
     [HttpGet("patient/{patientId:guid}")]
-    [Authorize(Policy = "AdminOrDoctor")]
+    [Authorize(Policy = "PatientOrStaff")]
     public async Task<ActionResult<PagedResult<AppointmentDto>>> GetPatientHistory(
         Guid patientId, [FromQuery] int page = 1, [FromQuery] int size = 20, CancellationToken ct = default)
-        => Ok((await _sender.Send(new GetPatientAppointmentsQuery(patientId, page, size), ct)).Value);
+    {
+        if (User.IsInRole("Patient"))
+        {
+            var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+            if (!Guid.TryParse(patientClaim, out var pid) || pid != patientId)
+                return Forbid();
+        }
+
+        return Ok((await _sender.Send(new GetPatientAppointmentsQuery(patientId, page, size), ct)).Value);
+    }
 
     /// <summary>Confirm a scheduled appointment.</summary>
     [HttpPut("{id:guid}/confirm")]
@@ -148,12 +200,40 @@ public class AppointmentsController : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : UnprocessableEntity(result.Error);
     }
 
+    /// <summary>Cancel own appointment for current patient.</summary>
+    [HttpPost("{id:guid}/cancel-self")]
+    [Authorize(Policy = "PatientOnly")]
+    public async Task<IActionResult> CancelSelf(Guid id, [FromBody] CancelAppointmentCommand? command, CancellationToken ct)
+    {
+        var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+        if (!Guid.TryParse(patientClaim, out var pid)) return Forbid();
+
+        var appt = await _sender.Send(new GetAppointmentByIdQuery(id), ct);
+        if (!appt.IsSuccess || appt.Value!.PatientId != pid) return Forbid();
+
+        var cmd = command ?? new CancelAppointmentCommand();
+        cmd.AppointmentId = id;
+        if (string.IsNullOrWhiteSpace(cmd.Reason)) cmd.Reason = "Cancelled by patient";
+
+        var result = await _sender.Send(cmd, ct);
+        return result.IsSuccess ? NoContent() : UnprocessableEntity(result.Error);
+    }
+
     /// <summary>Cancel the appointment.</summary>
     [HttpPost("{id:guid}/cancel")]
-    [Authorize(Policy = "AdminOrReceptionist")]
+    [Authorize(Policy = "PatientOrStaff")]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelAppointmentCommand command, CancellationToken ct)
     {
         if (id != command.AppointmentId) return BadRequest("ID mismatch.");
+
+        if (User.IsInRole("Patient"))
+        {
+            var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+            var appt = await _sender.Send(new GetAppointmentByIdQuery(id), ct);
+            if (!appt.IsSuccess || !Guid.TryParse(patientClaim, out var pid) || appt.Value!.PatientId != pid)
+                return Forbid();
+        }
+
         var result = await _sender.Send(command, ct);
         return result.IsSuccess ? NoContent() : UnprocessableEntity(result.Error);
     }

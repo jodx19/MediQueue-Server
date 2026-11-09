@@ -35,7 +35,7 @@ public class PatientsController : BaseApiController
 
     /// <summary>Register a new patient.</summary>
     [HttpPost]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = "AdminOrReceptionist")]
     [ProducesResponseType(typeof(PatientDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<PatientDto>> Register(
         [FromBody] RegisterPatientCommand command,
@@ -71,13 +71,30 @@ public class PatientsController : BaseApiController
         return HandleResult(await Sender.Send(command, ct));
     }
 
+    /// <summary>Get current authenticated patient's profile.</summary>
+    [HttpGet("self")]
+    [Authorize(Policy = "PatientOnly")]
+    [ProducesResponseType(typeof(PatientDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PatientDetailDto>> GetSelf(CancellationToken ct)
+    {
+        if (CurrentPatientId is null) return Forbid();
+        var result = await Sender.Send(new GetPatientByIdQuery(CurrentPatientId.Value), ct);
+        return result.IsSuccess ? Ok(result.Value) : NotFound(result.Error);
+    }
+
     /// <summary>Get a patient by their unique ID.</summary>
     [HttpGet("{id:guid}")]
-    [Authorize(Policy = "StaffOnly")]
+    [Authorize(Policy = "PatientOrStaff")]
     [ProducesResponseType(typeof(PatientDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PatientDetailDto>> GetById(Guid id, CancellationToken ct)
     {
+        if (IsPatient && CurrentPatientId != id)
+        {
+            return Forbid();
+        }
+
         var result = await Sender.Send(new GetPatientByIdQuery(id), ct);
         return result.IsSuccess ? Ok(result.Value) : NotFound(result.Error);
     }
