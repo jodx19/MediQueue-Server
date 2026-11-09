@@ -1,5 +1,6 @@
 // e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.API\Controllers\InvoicesController.cs
 using System;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -64,21 +65,44 @@ public class InvoicesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
     }
 
+    /// <summary>Get paginated invoices for currently authenticated patient.</summary>
+    [HttpGet("self")]
+    [Authorize(Policy = "PatientOnly")]
+    [ProducesResponseType(typeof(PagedResult<InvoiceDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<InvoiceDto>>> GetMine(
+        [FromQuery] int page = 1,
+        [FromQuery] int size = 20,
+        CancellationToken ct = default)
+    {
+        var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+        if (!Guid.TryParse(patientClaim, out var patientId)) return Forbid();
+        var result = await _sender.Send(new GetPatientInvoicesQuery(patientId, page, size), ct);
+        return Ok(result.Value);
+    }
+
     /// <summary>Get an invoice by its unique ID.</summary>
     [HttpGet("{id:guid}")]
-    [Authorize(Policy = "AdminOrReceptionist")]
+    [Authorize(Policy = "PatientOrStaff")]
     [ProducesResponseType(typeof(InvoiceDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<InvoiceDto>> GetById(Guid id, CancellationToken ct)
     {
         var result = await _sender.Send(new GetInvoiceByIdQuery(id), ct);
         if (!result.IsSuccess) return NotFound(result.Error);
+
+        if (User.IsInRole("Patient"))
+        {
+            var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+            if (!Guid.TryParse(patientClaim, out var pid) || result.Value!.PatientId != pid)
+                return Forbid();
+        }
+
         return Ok(result.Value);
     }
 
     /// <summary>Get paginated invoices for a patient with optional status filter.</summary>
     [HttpGet("patient/{patientId:guid}")]
-    [Authorize(Policy = "AdminOrReceptionist")]
+    [Authorize(Policy = "PatientOrStaff")]
     [ProducesResponseType(typeof(PagedResult<InvoiceDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<InvoiceDto>>> GetByPatient(
         Guid patientId,
@@ -86,6 +110,13 @@ public class InvoicesController : ControllerBase
         [FromQuery] int size = 20,
         CancellationToken ct = default)
     {
+        if (User.IsInRole("Patient"))
+        {
+            var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+            if (!Guid.TryParse(patientClaim, out var pid) || pid != patientId)
+                return Forbid();
+        }
+
         var result = await _sender.Send(new GetPatientInvoicesQuery(patientId, page, size), ct);
         return Ok(result.Value);
     }
@@ -135,7 +166,7 @@ public class InvoicesController : ControllerBase
 
     /// <summary>Record a payment against an invoice. Raises InvoicePaidEvent when fully paid.</summary>
     [HttpPost("{id:guid}/payments")]
-    [Authorize(Policy = "AdminOrReceptionist")]
+    [Authorize(Policy = "PatientOrStaff")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> RecordPayment(
@@ -144,6 +175,15 @@ public class InvoicesController : ControllerBase
         CancellationToken ct)
     {
         if (id != command.InvoiceId) return BadRequest("Route ID must match command InvoiceId.");
+
+        if (User.IsInRole("Patient"))
+        {
+            var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+            var invoiceResult = await _sender.Send(new GetInvoiceByIdQuery(id), ct);
+            if (!invoiceResult.IsSuccess || !Guid.TryParse(patientClaim, out var pid) || invoiceResult.Value!.PatientId != pid)
+                return Forbid();
+        }
+
         var result = await _sender.Send(command, ct);
         return result.IsSuccess ? NoContent() : UnprocessableEntity(result.Error);
     }
@@ -167,7 +207,7 @@ public class InvoicesController : ControllerBase
     /// Currently backed by StubPaymentService — swap to Paymob/Fawry/Stripe in DependencyInjection.cs.
     /// </summary>
     [HttpPost("{id:guid}/create-payment-session")]
-    [Authorize(Policy = "AdminOrReceptionist")]
+    [Authorize(Policy = "PatientOrStaff")]
     [ProducesResponseType(typeof(PaymentSessionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
@@ -181,6 +221,14 @@ public class InvoicesController : ControllerBase
         if (!invoiceResult.IsSuccess) return NotFound(invoiceResult.Error);
 
         var invoice = invoiceResult.Value!;
+
+        if (User.IsInRole("Patient"))
+        {
+            var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+            if (!Guid.TryParse(patientClaim, out var pid) || invoice.PatientId != pid)
+                return Forbid();
+        }
+
         if (invoice.Status == InvoiceStatus.Paid)
             return UnprocessableEntity("Invoice is already paid.");
 

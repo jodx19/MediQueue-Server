@@ -1,5 +1,6 @@
 // e:\ITI\MY-Projects\MediQueue EMR Clinic System\MediQueue.Server\MediQueue.API\Controllers\ClinicalVisitsController.cs
 using System;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -26,15 +27,65 @@ public class ClinicalVisitsController : ControllerBase
 
     // ── Queries ──────────────────────────────────────────────────────────────
 
+    /// <summary>Get clinical visits for currently authenticated patient.</summary>
+    [HttpGet("self")]
+    [Authorize(Policy = "PatientOnly")]
+    [ProducesResponseType(typeof(PagedResult<ClinicalVisitSummaryDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<ClinicalVisitSummaryDto>>> GetMine(
+        [FromQuery] int page = 1,
+        [FromQuery] int size = 20,
+        CancellationToken ct = default)
+    {
+        var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+        if (!Guid.TryParse(patientClaim, out var patientId)) return Forbid();
+        var result = await _sender.Send(new GetPatientClinicalHistoryQuery(patientId, page, size), ct);
+        return Ok(result.Value);
+    }
+
+    /// <summary>Get all prescriptions for currently authenticated patient.</summary>
+    [HttpGet("self/prescriptions")]
+    [Authorize(Policy = "PatientOnly")]
+    [ProducesResponseType(typeof(PrescriptionDto[]), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PrescriptionDto[]>> GetMyPrescriptions(CancellationToken ct)
+    {
+        var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+        if (!Guid.TryParse(patientClaim, out var patientId)) return Forbid();
+        var result = await _sender.Send(new GetPatientPrescriptionsQuery(patientId), ct);
+        return Ok(result.Value);
+    }
+
+    /// <summary>Get a specific clinical visit detail for currently authenticated patient.</summary>
+    [HttpGet("self/{id:guid}")]
+    [Authorize(Policy = "PatientOnly")]
+    [ProducesResponseType(typeof(ClinicalVisitDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ClinicalVisitDetailDto>> GetMyVisitById(Guid id, CancellationToken ct)
+    {
+        var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+        if (!Guid.TryParse(patientClaim, out var patientId)) return Forbid();
+        var result = await _sender.Send(new GetClinicalVisitByIdQuery(id), ct);
+        if (!result.IsSuccess) return NotFound(result.Error);
+        if (result.Value!.PatientId != patientId) return Forbid();
+        return Ok(result.Value);
+    }
+
     /// <summary>Get a clinical visit by its ID.</summary>
     [HttpGet("{id:guid}")]
-    [Authorize(Policy = "AdminOrDoctor")]
+    [Authorize(Policy = "PatientOrStaff")]
     [ProducesResponseType(typeof(ClinicalVisitDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ClinicalVisitDetailDto>> GetById(Guid id, CancellationToken ct)
     {
         var result = await _sender.Send(new GetClinicalVisitByIdQuery(id), ct);
         if (!result.IsSuccess) return NotFound(result.Error);
+
+        if (User.IsInRole("Patient"))
+        {
+            var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+            if (!Guid.TryParse(patientClaim, out var pid) || result.Value!.PatientId != pid)
+                return Forbid();
+        }
+
         return Ok(result.Value);
     }
 
@@ -52,7 +103,7 @@ public class ClinicalVisitsController : ControllerBase
 
     /// <summary>Get paginated clinical visit history for a patient.</summary>
     [HttpGet("patient/{patientId:guid}")]
-    [Authorize(Policy = "AdminOrDoctor")]
+    [Authorize(Policy = "PatientOrStaff")]
     [ProducesResponseType(typeof(PagedResult<ClinicalVisitSummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<ClinicalVisitSummaryDto>>> GetPatientHistory(
         Guid patientId,
@@ -60,18 +111,32 @@ public class ClinicalVisitsController : ControllerBase
         [FromQuery] int size = 20,
         CancellationToken ct = default)
     {
+        if (User.IsInRole("Patient"))
+        {
+            var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+            if (!Guid.TryParse(patientClaim, out var pid) || pid != patientId)
+                return Forbid();
+        }
+
         var result = await _sender.Send(new GetPatientClinicalHistoryQuery(patientId, page, size), ct);
         return Ok(result.Value);
     }
 
     /// <summary>Get all prescriptions for a patient.</summary>
     [HttpGet("patient/{patientId:guid}/prescriptions")]
-    [Authorize(Policy = "AdminOrDoctor")]
+    [Authorize(Policy = "PatientOrStaff")]
     [ProducesResponseType(typeof(PrescriptionDto[]), StatusCodes.Status200OK)]
     public async Task<ActionResult<PrescriptionDto[]>> GetPatientPrescriptions(
         Guid patientId,
         CancellationToken ct)
     {
+        if (User.IsInRole("Patient"))
+        {
+            var patientClaim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+            if (!Guid.TryParse(patientClaim, out var pid) || pid != patientId)
+                return Forbid();
+        }
+
         var result = await _sender.Send(new GetPatientPrescriptionsQuery(patientId), ct);
         return Ok(result.Value);
     }

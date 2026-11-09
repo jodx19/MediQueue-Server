@@ -75,4 +75,16 @@ public abstract class BaseApiController : ControllerBase
     {
         return BadRequest(error);
     }
+
+    protected Guid? CurrentPatientId
+    {
+        get
+        {
+            var claim = User.FindFirst("PatientId")?.Value ?? User.FindFirst("patientId")?.Value;
+            return Guid.TryParse(claim, out var id) ? id : null;
+        }
+    }
+
+    protected bool IsStaff => User.IsInRole("Admin") || User.IsInRole("Doctor") || User.IsInRole("Receptionist") || User.IsInRole("SuperAdmin");
+    protected bool IsPatient => User.IsInRole("Patient");
 }
